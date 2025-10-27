@@ -1,0 +1,309 @@
+@charset "UTF-8";
+
+/* mainscreen css */
+.mainScreen {
+  width: 100%;
+  min-height: 100vh;
+  background-image: url('@/assets/img/backgroundImg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+.mainContent {
+  padding: 1.6rem;
+  margin: 0 auto;
+  height: auto;
+  min-height: calc(100dvh - 130px);
+}
+
+.mainMenu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.6rem;
+  justify-content: center;
+  margin-top: 35%;
+}
+
+.menuItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  flex: 1 1 40%;
+  max-width: 150px;
+}
+
+.mainMenu button {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.mainMenu button:hover {
+  transform: scale(1.05);
+}
+
+.menuLabel {
+  color: white;
+  font-size: 1.2em;
+  font-weight: 500;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* 채굴 버튼 */
+.menuItem:nth-child(1) button {
+  background-image: url('@/assets/img/mainMenu1.png');
+}
+
+/* 사냥 버튼 */
+.menuItem:nth-child(2) button {
+  background-image: url('@/assets/img/mainMenu2.png');
+}
+
+/* 탐험 버튼 */
+.menuItem:nth-child(3) button {
+  background-image: url('@/assets/img/mainMenu3.png');
+}
+
+/* 생산 버튼 */
+.menuItem:nth-child(4) button {
+  background-image: url('@/assets/img/mainMenu4.png');
+}
+.pageHeader h2{
+  text-align: center;
+}
+
+.miningButtonContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 33%;
+  width: 100%;
+}
+
+.clickerBtn{
+  max-width: 300px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+}
+
+.clickerBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000000;
+  opacity: 0;
+  border-radius: 50%;
+  transition: opacity 0.1s ease;
+}
+
+.clickerBtn:hover::after {
+  opacity: 0.2;
+}
+
+.clickerBtn:active::after {
+  opacity: 0.6;
+}
+
+/* 채굴 버튼 배경 이미지 */
+.miningBtn {
+  background-image: url('@/assets/img/mainBtn1.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.miningBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000000;
+  opacity: 0;
+  border-radius: 50%;
+  transition: opacity 0.1s ease;
+}
+
+.miningBtn:hover::after {
+  opacity: 0.2;
+}
+
+.miningBtn:active::after {
+  opacity: 0.6;
+}
+
+.miningLabel {
+  color: white;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+
+/* 사냥 버튼 컨테이너 */
+.huntingButtonContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 33%;
+  width: 100%;
+}
+
+.huntingBtn {
+  background-image: url('@/assets/img/mainBtn2.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.huntingBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000000;
+  opacity: 0;
+  border-radius: 50%;
+  transition: opacity 0.1s ease;
+}
+
+.huntingBtn:hover::after {
+  opacity: 0.2;
+}
+
+.huntingBtn:active::after {
+  opacity: 0.6;
+}
+
+.huntingLabel {
+  color: white;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+
+/* 탐험 버튼 컨테이너 */
+.explorationButtonContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 33%;
+  width: 100%;
+}
+
+.explorationBtn {
+  background-image: url('@/assets/img/mainBtn3.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.explorationBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000000;
+  opacity: 0;
+  border-radius: 50%;
+  transition: opacity 0.1s ease;
+}
+
+.explorationBtn:hover::after {
+  opacity: 0.2;
+}
+
+.explorationBtn:active::after {
+  opacity: 0.6;
+}
+
+.explorationLabel {
+  color: white;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+
+/* 생산 버튼 컨테이너 */
+.productionButtonContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 33%;
+  width: 100%;
+}
+
+.productionBtn {
+  background-image: url('@/assets/img/mainBtn4.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.productionBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000000;
+  opacity: 0;
+  border-radius: 50%;
+  transition: opacity 0.1s ease;
+}
+
+.productionBtn:hover::after {
+  opacity: 0.2;
+}
+
+.productionBtn:active::after {
+  opacity: 0.6;
+}
+
+.productionLabel {
+  color: white;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+
+
+/* 반응형 */

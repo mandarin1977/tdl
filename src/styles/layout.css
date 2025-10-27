@@ -1,0 +1,65 @@
+@charset "UTF-8";
+
+/* layout */
+html{
+    font-size: 10px;
+}
+
+body {
+    background: #e6e6e6;
+    font-size: 1.6rem;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+#app {
+    min-height: 100dvh;
+    height: auto;
+    width: 100%;
+    max-width: 500px;
+    background-color: #fff;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: clip;
+}
+
+/* 기본 페이지 레이아웃 */
+.page-container {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.5);
+}
+
+/* class모음 */
+.hidden {
+    visibility: hidden;
+    font-size: 0;
+    line-height: 0;
+}
+/* class모음 */
+
+/* 전체 반응형 */
+@media (max-width: 400px) {
+    body{
+        font-size: 1.4rem;
+    }
+}

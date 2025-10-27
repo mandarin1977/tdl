@@ -1,0 +1,17 @@
+@charset "UTF-8";
+/* default */
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    scroll-behavior: smooth;
+    text-decoration: none;
+    list-style: none;
+    outline: none;
+    border: none;
+}
+button {
+    cursor: pointer;
+    background: none;
+}
