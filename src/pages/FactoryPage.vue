@@ -1,66 +1,181 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
 
 const coinCount = ref(0)
+const catFragments = ref(50) // 고양이 파편 개수 (더미데이터)
+const requiredCoin = ref(100) // 필요 코인
+const requiredFragments = ref(3) // 필요 고양이 파편
 
-const starItems = ref([
-  { id: 1, color: '#EF4444' }, { id: 2, color: '#F97316' }, { id: 3, color: '#84CC16' }, { id: 4, color: '#EAB308' }, { id: 5, color: '#06B6D4' },
-  { id: 6, color: '#A855F7' }, { id: 7, color: '#EC4899' }, { id: 8, color: '#EF4444' }, { id: 9, color: '#F97316' }, { id: 10, color: '#EAB308' },
-  { id: 11, color: '#06B6D4' }, { id: 12, color: '#A855F7' }, { id: 13, color: '#EC4899' }, { id: 14, color: '#FFFFFF' }, { id: 15, color: '#FFFFFF' },
-  { id: 16, color: '#FFFFFF' }, { id: 17, color: '#FFFFFF' }, { id: 18, color: '#FFFFFF' }, { id: 19, color: '#FFFFFF' }, { id: 20, color: '#000000' },
-  { id: 21, color: '#FFFFFF' }, { id: 22, color: '#F97316' }, { id: 23, color: '#84CC16' }, { id: 24, color: '#EAB308' }, { id: 25, color: '#FFFFFF' },
-  { id: 26, color: '#A855F7' }, { id: 27, color: '#EC4899' }, { id: 28, color: '#EF4444' }, { id: 29, color: '#FFFFFF' }, { id: 30, color: '#FFFFFF' }
-])
+// 팝업 상태
+const showSuccessPopup = ref(false)
+const newCatImageId = ref(1) // 새로 데려온 고양이 이미지 ID
 
 onMounted(() => {
   const currentUser = getCurrentUser()
   if (currentUser) {
     coinCount.value = currentUser.gameData?.coins || 0
+    // 고양이 파편은 더미데이터로 50으로 설정
+    catFragments.value = 50
   }
 })
+
+// 고양이 제작하기
+const createCat = () => {
+  if (coinCount.value < requiredCoin.value) {
+    alert(`코인이 부족합니다. (필요: ${requiredCoin.value})`)
+    return
+  }
+  
+  if (catFragments.value < requiredFragments.value) {
+    alert(`고양이 파편이 부족합니다. (필요: ${requiredFragments.value})`)
+    return
+  }
+  
+  // 재료 차감
+  const currentUser = getCurrentUser()
+  if (currentUser) {
+    coinCount.value -= requiredCoin.value
+    catFragments.value -= requiredFragments.value
+    
+    // 랜덤 고양이 이미지 ID 생성 (1-30)
+    newCatImageId.value = getRandomCatId()
+    
+    // 고양이 개수 증가 (헤더의 고양이 숫자)
+    const catCount = (currentUser.gameData?.catCount || 0) + 1
+    
+    // 인벤토리에 고양이 추가
+    const currentInventory = currentUser.gameData?.inventory || []
+    const newCat = {
+      id: Date.now(), // 고유 ID
+      imageId: newCatImageId.value,
+      name: `Cat ${newCatImageId.value}`,
+      stars: Math.floor(Math.random() * 3) + 2, // 2-4 별
+      level: 1,
+      selected: false,
+      isNew: true // 새 고양이 표시
+    }
+    // 새 고양이는 맨 앞에 추가
+    currentInventory.unshift(newCat)
+    
+    // 데이터 업데이트
+    updateUserGameData(currentUser.id, {
+      coins: coinCount.value,
+      catFragments: catFragments.value,
+      catCount: catCount,
+      inventory: currentInventory
+    })
+    
+    // 성공 팝업 표시
+    showSuccessPopup.value = true
+  }
+}
+
+// 재료 충족 여부
+const canCreate = computed(() => {
+  return coinCount.value >= requiredCoin.value && catFragments.value >= requiredFragments.value
+})
+
+// 코인 충족 여부
+const hasEnoughCoins = computed(() => {
+  return coinCount.value >= requiredCoin.value
+})
+
+// 고양이 파편 충족 여부
+const hasEnoughFragments = computed(() => {
+  return catFragments.value >= requiredFragments.value
+})
+
+// 랜덤 고양이 이미지 ID 생성 함수
+const getRandomCatId = () => {
+  return Math.floor(Math.random() * 30) + 1 // 1부터 30까지
+}
+
+// 고양이 이미지 경로 가져오기 함수
+const getCatImage = (id) => {
+  try {
+    return new URL(`../assets/img/cat${id}.png`, import.meta.url).href
+  } catch (error) {
+    return `/src/assets/img/cat${id}.png`
+  }
+}
+
+// 팝업 닫기
+const closePopup = () => {
+  showSuccessPopup.value = false
+}
 </script>
 
 <template>
   <div class="factoryPage">
     <!-- 헤더 -->
-    <Header :coinCount="coinCount" />
+    <Header :coinCount="coinCount" :catCount="catFragments" />
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
-      <!-- 상단 캐릭터 영역 -->
-      <div class="topSection">
-        <div class="starConnection">⭐</div>
-        <div class="starConnection">⭐</div>
-        <div class="characterFrame">
-          <div class="character">🐱</div>
+      <!-- 제목 -->
+      <h1 class="pageTitle">고양이 제작하기</h1>
+      
+      <!-- 고양이 실루엣 -->
+      <div class="catSilhouette">
+        <div class="catCircle">
+          <img src="@/assets/img/factory_cat.png" alt="고양이" class="catShape" />
         </div>
-        <div class="starConnection">⭐</div>
-        <div class="starConnection">⭐</div>
+      </div>
+
+      <div class="factoryUnderLine">
+        <img src="@/assets/img/factory_under_line.png" alt="" class="factoryLine">
       </div>
       
       <!-- 구분선 -->
       <div class="divider">
-        <div class="diamond">◆</div>
+        <div class="dividerLine"><img src="@/assets/img/factory_under_guide.png" alt="" class="dividerLineImg"></div>
       </div>
       
-      <!-- 하단 아이템 그리드 -->
-      <div class="starGrid">
-        <div 
-          v-for="item in starItems" 
-          :key="item.id" 
-          class="starItem"
-          :style="{ backgroundColor: item.color }"
-        >
-          ⭐
+      <!-- 재료 섹션 -->
+      <div class="materialsSection">
+        <div class="materialItem" :class="{ insufficient: !hasEnoughCoins }">
+          <img src="@/assets/img/mainCoin.png" alt="코인" class="materialIcon">
+          <span class="materialText">
+            <span class="materialCount">{{ coinCount }}</span> / {{ requiredCoin }} Coin
+          </span>
+        </div>
+        <div class="plusSign">+</div>
+        <div class="materialItem" :class="{ insufficient: !hasEnoughFragments }">
+          <img src="@/assets/img/cat_ico.png" alt="고양이" class="materialIcon">
+          <span class="materialText">
+            <span class="materialCount">{{ catFragments }}</span> / {{ requiredFragments }} 고양이 파편
+          </span>
         </div>
       </div>
+      
+      <!-- 데려 오기 버튼 -->
+      <button 
+        class="createButton"
+        :class="{ disabled: !canCreate }"
+        @click="createCat"
+        :disabled="!canCreate"
+      >
+        데려 오기
+      </button>
     </main>
     
     <!-- 푸터 -->
     <Footer />
+    
+    <!-- 성공 팝업 -->
+    <div v-if="showSuccessPopup" class="popupOverlay" @click="closePopup">
+      <div class="popupContent" @click.stop>
+        <div class="popupCatImage">
+          <img :src="getCatImage(newCatImageId)" alt="고양이" />
+        </div>
+        <h2 class="popupTitle">고양이 데려오기 성공!</h2>
+        <p class="popupMessage">새로운 고양이가 인벤토리에 추가되었습니다!</p>
+        <button class="popupCloseBtn" @click="closePopup">확인</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -76,124 +191,272 @@ onMounted(() => {
 }
 
 .mainContent {
-  padding: 1.6rem;
+  padding: 2rem 1.6rem;
+  max-width: 500px;
   margin: 0 auto;
-  max-width: 600px;
-  max-height: calc(100vh - 130px);
+  min-height: calc(100vh - 130px);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  align-items: center;
 }
 
-.topSection {
-  display: grid;
-  grid-template-columns: auto auto auto;
-  grid-template-rows: auto auto auto;
-  gap: 0.5rem;
-  padding: 2rem;
-  max-width: 400px;
-  margin: 0 auto;
+.pageTitle {
+  color: white;
+  font-size: 1.8rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 0;
 }
 
-.starConnection {
-  width: 80px;
-  height: 80px;
-  border: 2px solid #3B82F6;
+.catSilhouette {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem 0 -7rem;
+  position: relative;
+  width: 80%;
+  height: auto;
+  aspect-ratio: 1/1;
+}
+
+.catSilhouette::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('@/assets/img/factory_line.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.8;
+  z-index: 0;
+}
+
+.catCircle {
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(59, 130, 246, 0.1);
-}
-
-/* 별 위치 지정 */
-.topSection > :nth-child(1) {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.topSection > :nth-child(2) {
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.topSection > :nth-child(4) {
-  grid-column: 1;
-  grid-row: 3;
-}
-
-.topSection > :nth-child(5) {
-  grid-column: 3;
-  grid-row: 3;
-}
-
-/* 중앙 캐릭터 */
-.topSection > :nth-child(3) {
-  grid-column: 2;
-  grid-row: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.characterFrame {
-  width: 150px;
-  height: 150px;
-  border: 3px solid #3B82F6;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: white;
-}
-
-.character {
-  font-size: 80px;
-}
-
-.starConnection {
-  font-size: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  z-index: 1;
+}
+
+.catCircle::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  z-index: -1;
+}
+
+.catShape {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
 }
 
 .divider {
-  text-align: center;
-  margin: 1.5rem 0;
-  padding: 0.5rem;
-  border-top: 2px solid #3B82F6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 0.5rem;
+  margin: 1rem 0 5rem;
 }
 
-.diamond {
-  display: inline-block;
-  color: #3B82F6;
-  font-size: 12px;
-  background: rgba(59, 130, 246, 0.1);
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  width: 100%;
+}
+.dividerLine img{
+  width: 100%;
 }
 
-.starGrid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+.materialsSection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.materialItem {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 5vw;
+  padding: 1rem 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.8rem;
-  padding-bottom: 2rem;
+  flex: 1;
 }
 
-.starItem {
-  aspect-ratio: 1;
+.materialIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.materialText {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+.materialCount {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.materialItem.insufficient .materialCount {
+  color: #ff6b6b;
+}
+
+.materialItem.insufficient {
+  border: 1px solid rgba(255, 107, 107, 0.5);
+}
+
+.plusSign {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.createButton {
+  width: 100%;
+  padding: 1.5rem;
+  background: #FF6B6B;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 5rem;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.createButton:hover:not(.disabled) {
+  background: #FF5252;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+}
+
+.createButton.disabled {
+  background: rgba(255, 107, 107, 0.5);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* 팝업 스타일 */
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+.popupContent {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 24px;
+  padding: 2.5rem;
+  max-width: 90%;
+  width: 400px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: popupSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.popupCatImage {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 1.5rem;
+  background: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  background: rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-  transition: transform 0.2s;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
-.starItem:hover {
-  transform: scale(1.1);
+.popupCatImage img {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+}
+
+.popupTitle {
+  color: white;
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 0 0 1rem 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.popupMessage {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  margin: 0 0 2rem 0;
+  line-height: 1.6;
+}
+
+.popupCloseBtn {
+  background: white;
+  color: #667eea;
+  border: none;
+  padding: 1rem 2.5rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.popupCloseBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.7) translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 </style>

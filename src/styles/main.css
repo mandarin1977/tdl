@@ -42,7 +42,6 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 50%;
   border: none;
   cursor: pointer;
   transition: transform 0.3s ease;
@@ -83,19 +82,38 @@
   text-align: center;
 }
 
-.miningButtonContainer {
+/* 채굴 모드 새 레이아웃 */
+.miningMode {
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.totalPointsDisplay {
+  text-align: center;
+  color: white;
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-top: 1rem;
+}
+
+.miningButtonContainer {
+  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 1rem;
-  margin-top: 33%;
+  margin: 1rem auto;
+  min-height: 300px;
+  height: 300px;
   width: 100%;
+  max-width: 500px;
+  position: relative;
 }
 
 .clickerBtn{
+  width: 300px;
+  height: 300px;
   max-width: 300px;
-  width: 100%;
-  height: auto;
   aspect-ratio: 1/1;
   background-size: cover;
   background-position: center;
@@ -105,30 +123,36 @@
   cursor: pointer;
   font-size: 1.2em;
   font-weight: 500;
-  position: relative;
-  overflow: hidden;
+  margin: 0;
 }
 
-.clickerBtn::after {
-  content: '';
+.completeMessageContainer {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #000000;
-  opacity: 0;
-  border-radius: 50%;
-  transition: opacity 0.1s ease;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.clickerBtn:hover::after {
+.completeMessageText {
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+
+
+/* .clickerBtn:hover::after {
   opacity: 0.2;
 }
 
 .clickerBtn:active::after {
   opacity: 0.6;
-}
+} */
 
 /* 채굴 버튼 배경 이미지 */
 .miningBtn {
@@ -138,33 +162,304 @@
   background-repeat: no-repeat !important;
 }
 
-.miningBtn::after {
-  content: '';
-  position: absolute;
+
+
+
+
+/* 에너지 섹션 */
+.energySection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1rem;
+}
+
+.energyInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.energyIcon {
+  font-size: 1.2rem;
+}
+
+.energyText {
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.energyBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.energyFill {
+  height: 100%;
+  background: #7DD3FC;
+  transition: width 0.3s;
+  border-radius: 4px;
+}
+
+/* 채굴 냥이 목록 */
+.miningCatsSection {
+  margin-top: 1rem;
+}
+
+.catsListLabel {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 0.8rem 1.2rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.catsListScroll {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.catsListScroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.catsListScroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.catCard {
+  width: calc(100% / 6 - 1rem);
+  min-width: calc(100% / 6 - 1rem);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.catCard:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.catCard.emptySlot {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  justify-content: center;
+  align-items: center;
+}
+
+.catCard.working {
+  border: 2px solid #10B981;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.3);
+  animation: workingPulse 2s ease-in-out infinite;
+}
+
+@keyframes workingPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.7), 0 0 40px rgba(16, 185, 129, 0.5);
+    transform: scale(1.02);
+  }
+}
+
+.emptySlotContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.emptySlotText {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.catLevel {
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+.catImage {
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.catImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.catStars {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.star {
+  font-size: 0.7rem;
+  color: #10B981;
+}
+
+/* 고양이 선택 팝업 */
+.catSelectPopupOverlay {
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: #000000;
-  opacity: 0;
-  border-radius: 50%;
-  transition: opacity 0.1s ease;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
 }
 
-.miningBtn:hover::after {
-  opacity: 0.2;
+.catSelectPopupContent {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
-.miningBtn:active::after {
-  opacity: 0.6;
+.catSelectPopupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.miningLabel {
+.catSelectPopupHeader h3 {
   color: white;
-  font-size: 1.5em;
+  font-size: 1.5rem;
   font-weight: bold;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  margin: 0;
+}
+
+.closePopupBtn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.closePopupBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.catSelectPopupBody {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.availableCatsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.availableCatCard {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.availableCatCard:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.availableCatImage {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.availableCatImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.availableCatInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+}
+
+.availableCatName {
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
   text-align: center;
+}
+
+.availableCatLevel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+}
+
+.availableCatStars {
+  display: flex;
+  gap: 0.2rem;
+  justify-content: center;
+}
+
+.availableCatStars .star {
+  color: #FFD700;
+  font-size: 0.7rem;
 }
 
 /* 사냥 버튼 컨테이너 */
@@ -182,27 +477,6 @@
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
-}
-
-.huntingBtn::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #000000;
-  opacity: 0;
-  border-radius: 50%;
-  transition: opacity 0.1s ease;
-}
-
-.huntingBtn:hover::after {
-  opacity: 0.2;
-}
-
-.huntingBtn:active::after {
-  opacity: 0.6;
 }
 
 .huntingLabel {
@@ -230,26 +504,6 @@
   background-repeat: no-repeat !important;
 }
 
-.explorationBtn::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #000000;
-  opacity: 0;
-  border-radius: 50%;
-  transition: opacity 0.1s ease;
-}
-
-.explorationBtn:hover::after {
-  opacity: 0.2;
-}
-
-.explorationBtn:active::after {
-  opacity: 0.6;
-}
 
 .explorationLabel {
   color: white;
@@ -276,26 +530,6 @@
   background-repeat: no-repeat !important;
 }
 
-.productionBtn::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #000000;
-  opacity: 0;
-  border-radius: 50%;
-  transition: opacity 0.1s ease;
-}
-
-.productionBtn:hover::after {
-  opacity: 0.2;
-}
-
-.productionBtn:active::after {
-  opacity: 0.6;
-}
 
 .productionLabel {
   color: white;
@@ -306,4 +540,167 @@
 }
 
 
+/* 새로운 메인 메뉴 스타일 */
+.mainMenuNew {
+  display: flex;
+  flex-direction: column;
+}
+
+.totalStats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+}
+
+.totalPoint,
+.totalCoin {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.statLabel {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.statValue {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.iconCircle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.iconCircle img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.statNumber {
+  color: white;
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.divider {
+  width: 1px;
+  opacity: 0.3;
+}
+.factoryUnderLine{
+  width: 90%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.factoryUnderLine img{
+  width: 100%;
+}
+
+.gameModeGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.modeCard {
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  width: 45%;
+  height: auto;
+}
+
+.modeCard:hover {
+  transform: scale(1.02);
+}
+
+
+.modeTitle {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.modeLevel {
+  background: rgba(30, 41, 59, 0.8);
+  color: white;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.mainmenuBtns{
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.miningCard .mainmenuBtns{
+  background-image: url('@/assets/img/mainMenu1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.huntingCard{
+  margin-top: 15%;
+}
+
+.huntingCard .mainmenuBtns{
+  background-image: url('@/assets/img/mainMenu2.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.explorationCard .mainmenuBtns{
+  background-image: url('@/assets/img/mainMenu3.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.productionCard{
+  margin-top: 15%;
+}
+
+.productionCard .mainmenuBtns{
+  background-image: url('@/assets/img/mainMenu4.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 /* 반응형 */
+@media (max-width: 319px) {
+  .miningButtonContainer{
+    max-width: unset;
+    width: 220px;
+  }
+  .clickerBtn{
+    width: 100%;
+    height: auto;
+  }
+}

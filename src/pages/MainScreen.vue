@@ -1,10 +1,22 @@
 <script setup>
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, updateUserCoins } from '@/utils/userUtils'
+import { getCurrentUser, updateUserCoins, updateUserGameData } from '@/utils/userUtils'
 import '@/styles/main.css'
+
+// 숫자 포맷팅 함수
+const formatNumber = (num) => {
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B'
+  } else if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+  } else if (num >= 10000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
+  }
+  return num.toLocaleString()
+}
 
 const router = useRouter()
 
@@ -16,9 +28,22 @@ const activeMode = ref('main')
 
 // 코인 수
 const coinCount = ref(0)
+// 포인트 수 (헤더 맨 왼쪽)
+const pointCount = ref(0)
+// 코인 수 (헤더 왼쪽에서 두번째)
+const totalCoin = ref(0)
+// 고양이 개수
+const catCount = ref(50)
+// 고양이 파편 개수
+const catFragments = ref(50)
 
 // 말풍선 관련
 const speechBubbles = ref([])
+// 고양이 이모지 애니메이션
+const catEmojis = ref([])
+
+// 클릭 사운드
+const clickSound = ref(null)
 
 // 채굴 클릭 카운터
 const miningClickCount = ref(0)
@@ -77,20 +102,79 @@ onMounted(() => {
   // 현재 사용자 정보 로드
   currentUser.value = getCurrentUser()
   if (currentUser.value) {
-    coinCount.value = currentUser.value.gameData?.coins || 0
+    // 포인트 = 헤더 맨 왼쪽 값 (현재 coinCount로 전달되는 값)
+    pointCount.value = currentUser.value.gameData?.coins || 0
+    // 코인 = 헤더 두번째 값 (나중에 별도로 관리 가능)
+    totalCoin.value = 0 // 현재는 0으로 설정
+    coinCount.value = pointCount.value
+    // 고양이 파편 로드
+    catFragments.value = currentUser.value.gameData?.catFragments || 50
+    // 각 모드별 냥이 목록 로드
+    if (currentUser.value.gameData?.miningCats) {
+      miningCats.value = currentUser.value.gameData.miningCats
+    }
+    if (currentUser.value.gameData?.huntingCats) {
+      huntingCats.value = currentUser.value.gameData.huntingCats
+    }
+    if (currentUser.value.gameData?.explorationCats) {
+      explorationCats.value = currentUser.value.gameData.explorationCats
+    }
+    if (currentUser.value.gameData?.productionCats) {
+      productionCats.value = currentUser.value.gameData.productionCats
+    }
   }
+  
+  // 에너지 체크 및 리셋
+  checkAndResetEnergy()
   
   // 라우터 이벤트 리스너 등록
   router.afterEach(handleRouteChange)
+  
+  // 클릭 사운드 초기화
+  try {
+    clickSound.value = new Audio()
+    clickSound.value.src = new URL('@/assets/audio/clickbgm.mp3', import.meta.url).href
+    clickSound.value.volume = 0.3 // 볼륨 30%
+  } catch (error) {
+    console.log('클릭 사운드 파일을 찾을 수 없습니다.')
+  }
+  
+  // 자동 포인트 획득 시작
+  startAutoPointGeneration('mining')
+  startAutoPointGeneration('hunting')
+  startAutoPointGeneration('exploration')
+  startAutoPointGeneration('production')
 })
 
 onUnmounted(() => {
   // 컴포넌트 언마운트 시 이벤트 리스너 제거
   router.afterEach(handleRouteChange)
+  
+  // 모든 자동 포인트 획득 중지
+  stopAllAutoPointGeneration()
 })
 
 // 클릭 이벤트 함수
 const handleClick = (mode) => {
+  // 클릭 사운드 재생
+  if (clickSound.value) {
+    clickSound.value.currentTime = 0 // 처음부터 재생
+    clickSound.value.play().catch(() => {
+      // 재생 실패 시 무시
+    })
+  }
+  
+  // 에너지 체크
+  if (currentEnergy.value < energyPerClick.value) {
+    alert('에너지가 부족합니다!')
+    return
+  }
+  
+  // 에너지 소모
+  if (!consumeEnergy()) {
+    return
+  }
+  
   // 각 모드별로 10번 클릭해야 돈 획득
   if (mode === 'mining') {
     miningClickCount.value++
@@ -101,16 +185,64 @@ const handleClick = (mode) => {
       isMiningComplete.value = true
       showNewMiningButton.value = false
       
+      // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
+      const fragmentChance = Math.random()
+      let fragmentsGained = 0
+      if (fragmentChance < 0.3) {
+        fragmentsGained = 1
+      } else if (fragmentChance < 0.4) {
+        fragmentsGained = 2
+      }
+      
+      if (fragmentsGained > 0) {
+        catFragments.value += fragmentsGained
+        
+        // 고양이 이모지 애니메이션 추가
+        for (let i = 0; i < fragmentsGained; i++) {
+          const randomTulId = Math.floor(Math.random() * 6) + 1 // 1~6
+          // 이미지 위치 계산 (화면 안에 들어오도록)
+          const maxWidth = Math.min(window.innerWidth || 500, 500)
+          const maxHeight = window.innerHeight || 800
+          const imageSize = 60 // tul 이미지 크기
+          const padding = 30 // 여백
+          
+          const catEmoji = {
+            id: Date.now() + i,
+            x: Math.random() * (maxWidth - imageSize - padding * 2) + padding,
+            y: Math.random() * (maxHeight - imageSize - padding * 2 - 200) + 100,
+            imageId: randomTulId
+          }
+          catEmojis.value.push(catEmoji)
+          
+          setTimeout(() => {
+            const index = catEmojis.value.findIndex(e => e.id === catEmoji.id)
+            if (index > -1) {
+              catEmojis.value.splice(index, 1)
+            }
+          }, 2000)
+        }
+      }
+      
       // 사용자 데이터 업데이트
       if (currentUser.value) {
-        updateUserCoins(currentUser.value.id, coinCount.value)
+        updateUserGameData(currentUser.value.id, {
+          coins: coinCount.value,
+          catFragments: catFragments.value
+        })
       }
+      
+      // 말풍선 위치 계산 (화면 안에 들어오도록)
+      const maxWidth = Math.min(window.innerWidth || 500, 500)
+      const maxHeight = window.innerHeight || 800
+      const bubbleWidth = 220 // 말풍선 최대 너비
+      const bubbleHeight = 60 // 말풍선 예상 높이
+      const padding = 20 // 여백
       
       const bubble = {
         id: Date.now(),
         text: '채굴 완료! 100원 획득!',
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 150
+        x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+        y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
       speechBubbles.value.push(bubble)
       
@@ -126,11 +258,18 @@ const handleClick = (mode) => {
         showNewMiningButton.value = true
       }, 1500)
     } else {
+      // 말풍선 위치 계산 (화면 안에 들어오도록)
+      const maxWidth = Math.min(window.innerWidth || 500, 500)
+      const maxHeight = window.innerHeight || 800
+      const bubbleWidth = 220
+      const bubbleHeight = 60
+      const padding = 20
+      
       const bubble = {
         id: Date.now(),
         text: `채굴 진행: ${miningClickCount.value}/10`,
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 150
+        x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+        y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
       speechBubbles.value.push(bubble)
       
@@ -150,16 +289,64 @@ const handleClick = (mode) => {
       isExplorationComplete.value = true
       showNewExplorationButton.value = false
       
+      // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
+      const fragmentChance = Math.random()
+      let fragmentsGained = 0
+      if (fragmentChance < 0.3) {
+        fragmentsGained = 1
+      } else if (fragmentChance < 0.4) {
+        fragmentsGained = 2
+      }
+      
+      if (fragmentsGained > 0) {
+        catFragments.value += fragmentsGained
+        
+        // 고양이 이모지 애니메이션 추가
+        for (let i = 0; i < fragmentsGained; i++) {
+          const randomTulId = Math.floor(Math.random() * 6) + 1 // 1~6
+          // 이미지 위치 계산 (화면 안에 들어오도록)
+          const maxWidth = Math.min(window.innerWidth || 500, 500)
+          const maxHeight = window.innerHeight || 800
+          const imageSize = 60 // tul 이미지 크기
+          const padding = 30 // 여백
+          
+          const catEmoji = {
+            id: Date.now() + i,
+            x: Math.random() * (maxWidth - imageSize - padding * 2) + padding,
+            y: Math.random() * (maxHeight - imageSize - padding * 2 - 200) + 100,
+            imageId: randomTulId
+          }
+          catEmojis.value.push(catEmoji)
+          
+          setTimeout(() => {
+            const index = catEmojis.value.findIndex(e => e.id === catEmoji.id)
+            if (index > -1) {
+              catEmojis.value.splice(index, 1)
+            }
+          }, 2000)
+        }
+      }
+      
       // 사용자 데이터 업데이트
       if (currentUser.value) {
-        updateUserCoins(currentUser.value.id, coinCount.value)
+        updateUserGameData(currentUser.value.id, {
+          coins: coinCount.value,
+          catFragments: catFragments.value
+        })
       }
+      
+      // 말풍선 위치 계산 (화면 안에 들어오도록)
+      const maxWidth = Math.min(window.innerWidth || 500, 500)
+      const maxHeight = window.innerHeight || 800
+      const bubbleWidth = 220
+      const bubbleHeight = 60
+      const padding = 20
       
       const bubble = {
         id: Date.now(),
         text: '탐험 완료! 100원 획득!',
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 150
+        x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+        y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
       speechBubbles.value.push(bubble)
       
@@ -175,11 +362,18 @@ const handleClick = (mode) => {
         showNewExplorationButton.value = true
       }, 1500)
     } else {
+      // 말풍선 위치 계산 (화면 안에 들어오도록)
+      const maxWidth = Math.min(window.innerWidth || 500, 500)
+      const maxHeight = window.innerHeight || 800
+      const bubbleWidth = 220
+      const bubbleHeight = 60
+      const padding = 20
+      
       const bubble = {
         id: Date.now(),
         text: `탐험 진행: ${explorationClickCount.value}/10`,
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 150
+        x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+        y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
       speechBubbles.value.push(bubble)
       
@@ -199,16 +393,64 @@ const handleClick = (mode) => {
       isHuntingComplete.value = true
       showNewHuntingButton.value = false
       
+      // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
+      const fragmentChance = Math.random()
+      let fragmentsGained = 0
+      if (fragmentChance < 0.3) {
+        fragmentsGained = 1
+      } else if (fragmentChance < 0.4) {
+        fragmentsGained = 2
+      }
+      
+      if (fragmentsGained > 0) {
+        catFragments.value += fragmentsGained
+        
+        // 고양이 이모지 애니메이션 추가
+        for (let i = 0; i < fragmentsGained; i++) {
+          const randomTulId = Math.floor(Math.random() * 6) + 1 // 1~6
+          // 이미지 위치 계산 (화면 안에 들어오도록)
+          const maxWidth = Math.min(window.innerWidth || 500, 500)
+          const maxHeight = window.innerHeight || 800
+          const imageSize = 60 // tul 이미지 크기
+          const padding = 30 // 여백
+          
+          const catEmoji = {
+            id: Date.now() + i,
+            x: Math.random() * (maxWidth - imageSize - padding * 2) + padding,
+            y: Math.random() * (maxHeight - imageSize - padding * 2 - 200) + 100,
+            imageId: randomTulId
+          }
+          catEmojis.value.push(catEmoji)
+          
+          setTimeout(() => {
+            const index = catEmojis.value.findIndex(e => e.id === catEmoji.id)
+            if (index > -1) {
+              catEmojis.value.splice(index, 1)
+            }
+          }, 2000)
+        }
+      }
+      
       // 사용자 데이터 업데이트
       if (currentUser.value) {
-        updateUserCoins(currentUser.value.id, coinCount.value)
+        updateUserGameData(currentUser.value.id, {
+          coins: coinCount.value,
+          catFragments: catFragments.value
+        })
       }
+      
+      // 말풍선 위치 계산 (화면 안에 들어오도록)
+      const maxWidth = Math.min(window.innerWidth || 500, 500)
+      const maxHeight = window.innerHeight || 800
+      const bubbleWidth = 220
+      const bubbleHeight = 60
+      const padding = 20
       
       const bubble = {
         id: Date.now(),
         text: '사냥 완료! 100원 획득!',
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 150
+        x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+        y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
       speechBubbles.value.push(bubble)
       
@@ -224,11 +466,18 @@ const handleClick = (mode) => {
         showNewHuntingButton.value = true
       }, 1500)
     } else {
+      // 말풍선 위치 계산 (화면 안에 들어오도록)
+      const maxWidth = Math.min(window.innerWidth || 500, 500)
+      const maxHeight = window.innerHeight || 800
+      const bubbleWidth = 220
+      const bubbleHeight = 60
+      const padding = 20
+      
       const bubble = {
         id: Date.now(),
         text: `사냥 진행: ${huntingClickCount.value}/10`,
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 150
+        x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+        y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
       speechBubbles.value.push(bubble)
       
@@ -248,16 +497,64 @@ const handleClick = (mode) => {
       isProductionComplete.value = true
       showNewProductionButton.value = false
       
+      // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
+      const fragmentChance = Math.random()
+      let fragmentsGained = 0
+      if (fragmentChance < 0.3) {
+        fragmentsGained = 1
+      } else if (fragmentChance < 0.4) {
+        fragmentsGained = 2
+      }
+      
+      if (fragmentsGained > 0) {
+        catFragments.value += fragmentsGained
+        
+        // 고양이 이모지 애니메이션 추가
+        for (let i = 0; i < fragmentsGained; i++) {
+          const randomTulId = Math.floor(Math.random() * 6) + 1 // 1~6
+          // 이미지 위치 계산 (화면 안에 들어오도록)
+          const maxWidth = Math.min(window.innerWidth || 500, 500)
+          const maxHeight = window.innerHeight || 800
+          const imageSize = 60 // tul 이미지 크기
+          const padding = 30 // 여백
+          
+          const catEmoji = {
+            id: Date.now() + i,
+            x: Math.random() * (maxWidth - imageSize - padding * 2) + padding,
+            y: Math.random() * (maxHeight - imageSize - padding * 2 - 200) + 100,
+            imageId: randomTulId
+          }
+          catEmojis.value.push(catEmoji)
+          
+          setTimeout(() => {
+            const index = catEmojis.value.findIndex(e => e.id === catEmoji.id)
+            if (index > -1) {
+              catEmojis.value.splice(index, 1)
+            }
+          }, 2000)
+        }
+      }
+      
       // 사용자 데이터 업데이트
       if (currentUser.value) {
-        updateUserCoins(currentUser.value.id, coinCount.value)
+        updateUserGameData(currentUser.value.id, {
+          coins: coinCount.value,
+          catFragments: catFragments.value
+        })
       }
+      
+      // 말풍선 위치 계산 (화면 안에 들어오도록)
+      const maxWidth = Math.min(window.innerWidth || 500, 500)
+      const maxHeight = window.innerHeight || 800
+      const bubbleWidth = 220
+      const bubbleHeight = 60
+      const padding = 20
       
       const bubble = {
         id: Date.now(),
         text: '생산 완료! 100원 획득!',
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 150
+        x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+        y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
       speechBubbles.value.push(bubble)
       
@@ -273,11 +570,18 @@ const handleClick = (mode) => {
         showNewProductionButton.value = true
       }, 1500)
     } else {
+      // 말풍선 위치 계산 (화면 안에 들어오도록)
+      const maxWidth = Math.min(window.innerWidth || 500, 500)
+      const maxHeight = window.innerHeight || 800
+      const bubbleWidth = 220
+      const bubbleHeight = 60
+      const padding = 20
+      
       const bubble = {
         id: Date.now(),
         text: `생산 진행: ${productionClickCount.value}/10`,
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 150
+        x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+        y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
       speechBubbles.value.push(bubble)
       
@@ -313,6 +617,366 @@ const resources = ref({
   gold: 0,
   diamond: 0
 })
+
+// 에너지 관련
+const currentEnergy = ref(4000)
+const maxEnergy = ref(4000)
+const energyPerClick = ref(1) // 클릭당 소모 에너지
+
+// 에너지 체크 및 리셋 함수
+const checkAndResetEnergy = () => {
+  const today = new Date().toDateString()
+  const lastEnergyDate = localStorage.getItem('energyLastDate')
+  const savedEnergy = localStorage.getItem('currentEnergy')
+  
+  if (lastEnergyDate !== today) {
+    // 하루가 지나면 에너지 리셋
+    currentEnergy.value = maxEnergy.value
+    localStorage.setItem('energyLastDate', today)
+    localStorage.setItem('currentEnergy', maxEnergy.value.toString())
+  } else if (savedEnergy) {
+    // 오늘 날짜면 저장된 에너지 로드
+    currentEnergy.value = parseInt(savedEnergy) || maxEnergy.value
+  }
+}
+
+// 에너지 소모 함수
+const consumeEnergy = (amount = energyPerClick.value) => {
+  if (currentEnergy.value >= amount) {
+    currentEnergy.value -= amount
+    localStorage.setItem('currentEnergy', currentEnergy.value.toString())
+    localStorage.setItem('energyLastDate', new Date().toDateString())
+    return true
+  }
+  return false
+}
+
+// 랜덤 고양이 이미지 ID 생성 함수
+const getRandomCatId = () => {
+  return Math.floor(Math.random() * 30) + 1 // 1부터 30까지
+}
+
+// 고양이 이미지 경로 가져오기 함수
+const getCatImage = (id) => {
+  try {
+    return new URL(`../assets/img/cat${id}.png`, import.meta.url).href
+  } catch (error) {
+    return `/src/assets/img/cat${id}.png`
+  }
+}
+
+// tul 이미지 경로 가져오기 함수
+const getTulImage = (id) => {
+  try {
+    return new URL(`../assets/img/tul${id}.png`, import.meta.url).href
+  } catch (error) {
+    return `/src/assets/img/tul${id}.png`
+  }
+}
+
+// 채굴 냥이 목록 (처음에는 빈칸)
+const miningCats = ref([
+  null, null, null, null, null, null
+])
+
+// 고양이 선택 팝업 관련
+const showCatSelectPopup = ref(false)
+const selectedSlotIndex = ref(-1)
+const availableCats = ref([])
+
+// 이미 사용 중인 고양이 ID 수집
+const getUsedCatIds = () => {
+  const usedIds = new Set()
+  
+  // 각 모드의 냥이 목록에서 사용 중인 ID 수집
+  miningCats.value.forEach(cat => {
+    if (cat && cat.id) usedIds.add(cat.id)
+  })
+  huntingCats.value.forEach(cat => {
+    if (cat && cat.id) usedIds.add(cat.id)
+  })
+  explorationCats.value.forEach(cat => {
+    if (cat && cat.id) usedIds.add(cat.id)
+  })
+  productionCats.value.forEach(cat => {
+    if (cat && cat.id) usedIds.add(cat.id)
+  })
+  
+  return usedIds
+}
+
+// 인벤토리에서 고양이 목록 가져오기 (사용 중인 고양이 제외)
+const loadAvailableCats = () => {
+  const currentUser = getCurrentUser()
+  if (currentUser) {
+    const userInventory = currentUser.gameData?.inventory || []
+    // 기본 인벤토리와 병합 (InventoryPage와 동일한 로직)
+    const defaultInventory = [
+      { id: 1, name: 'Robot', stars: 1, level: 1, imageId: 1 },
+      { id: 2, name: 'Style', stars: 1, level: 1, imageId: 2 },
+      { id: 3, name: 'Suit', stars: 1, level: 1, imageId: 3 },
+      { id: 4, name: 'Tech', stars: 1, level: 1, imageId: 4 },
+      { id: 5, name: 'Army', stars: 1, level: 1, imageId: 5 },
+      { id: 6, name: 'Detective', stars: 1, level: 1, imageId: 6 },
+      { id: 7, name: 'Scholar', stars: 1, level: 1, imageId: 7 },
+      { id: 8, name: 'White', stars: 1, level: 1, imageId: 8 },
+      { id: 9, name: 'Green', stars: 1, level: 1, imageId: 9 },
+      { id: 10, name: 'Blue', stars: 1, level: 1, imageId: 10 },
+      { id: 11, name: 'Red', stars: 1, level: 1, imageId: 11 },
+      { id: 12, name: 'Shirt', stars: 1, level: 1, imageId: 12 },
+      { id: 13, name: 'Ninja', stars: 1, level: 1, imageId: 13 },
+      { id: 14, name: 'Knight', stars: 1, level: 1, imageId: 14 },
+      { id: 15, name: 'Pirate', stars: 1, level: 1, imageId: 15 },
+      { id: 16, name: 'Sailor', stars: 1, level: 1, imageId: 16 },
+      { id: 17, name: 'Sport', stars: 1, level: 1, imageId: 17 },
+      { id: 18, name: 'Cafe', stars: 1, level: 1, imageId: 18 },
+      { id: 19, name: 'Chef', stars: 1, level: 1, imageId: 19 },
+      { id: 20, name: 'Fisher', stars: 1, level: 1, imageId: 20 },
+      { id: 21, name: 'Farmer', stars: 1, level: 1, imageId: 21 },
+      { id: 22, name: 'Doctor', stars: 1, level: 1, imageId: 22 },
+      { id: 23, name: 'Teacher', stars: 1, level: 1, imageId: 23 },
+      { id: 24, name: 'Artist', stars: 1, level: 1, imageId: 24 }
+    ]
+    
+    const mergedInventory = [...defaultInventory]
+    userInventory.forEach(userCat => {
+      const existingIndex = mergedInventory.findIndex(cat => cat.id === userCat.id)
+      if (existingIndex > -1) {
+        mergedInventory[existingIndex] = { ...mergedInventory[existingIndex], ...userCat }
+      } else {
+        mergedInventory.push(userCat)
+      }
+    })
+    
+    // 이미 사용 중인 고양이 제외 (모든 모드에서)
+    const usedIds = getUsedCatIds()
+    
+    // 현재 선택 중인 슬롯의 고양이만 제외하지 않음 (같은 슬롯에서 교체 가능하도록)
+    const currentSlotCat = getCurrentSlotCat()
+    if (currentSlotCat && currentSlotCat.id) {
+      usedIds.delete(currentSlotCat.id)
+    }
+    
+    // 사용 가능한 고양이만 필터링 (다른 모드에서 선택한 고양이 제외)
+    availableCats.value = mergedInventory.filter(cat => !usedIds.has(cat.id))
+  }
+}
+
+// 현재 선택 중인 슬롯의 고양이 가져오기
+const getCurrentSlotCat = () => {
+  const mode = currentSelectMode.value
+  const slotIndex = selectedSlotIndex.value
+  
+  if (slotIndex < 0 || slotIndex >= 6) return null
+  
+  let catsList = null
+  if (mode === 'mining') catsList = miningCats.value
+  else if (mode === 'hunting') catsList = huntingCats.value
+  else if (mode === 'exploration') catsList = explorationCats.value
+  else if (mode === 'production') catsList = productionCats.value
+  
+  return catsList && catsList[slotIndex] ? catsList[slotIndex] : null
+}
+
+// 슬롯 클릭 핸들러
+const openCatSelectPopup = (slotIndex, mode) => {
+  currentSelectMode.value = mode
+  loadAvailableCats()
+  selectedSlotIndex.value = slotIndex
+  showCatSelectPopup.value = true
+}
+
+// 고양이 선택 핸들러
+const selectCatForSlot = (cat) => {
+  if (selectedSlotIndex.value >= 0 && selectedSlotIndex.value < 6) {
+    const selectedCat = {
+      id: cat.id,
+      level: cat.level || 1,
+      stars: cat.stars || 1,
+      imageId: cat.imageId || cat.id,
+      name: cat.name
+    }
+    
+    // 모드별로 해당 배열에 저장
+    if (currentSelectMode.value === 'mining') {
+      miningCats.value[selectedSlotIndex.value] = selectedCat
+      // 자동 포인트 획득 재시작
+      startAutoPointGeneration('mining')
+    } else if (currentSelectMode.value === 'hunting') {
+      huntingCats.value[selectedSlotIndex.value] = selectedCat
+      startAutoPointGeneration('hunting')
+    } else if (currentSelectMode.value === 'exploration') {
+      explorationCats.value[selectedSlotIndex.value] = selectedCat
+      startAutoPointGeneration('exploration')
+    } else if (currentSelectMode.value === 'production') {
+      productionCats.value[selectedSlotIndex.value] = selectedCat
+      startAutoPointGeneration('production')
+    }
+    
+    // 사용자 데이터 저장
+    const currentUser = getCurrentUser()
+    if (currentUser) {
+      updateUserGameData(currentUser.id, {
+        miningCats: miningCats.value,
+        huntingCats: huntingCats.value,
+        explorationCats: explorationCats.value,
+        productionCats: productionCats.value
+      })
+    }
+  }
+  showCatSelectPopup.value = false
+  selectedSlotIndex.value = -1
+  currentSelectMode.value = 'mining'
+}
+
+// 팝업 닫기
+const closeCatSelectPopup = () => {
+  showCatSelectPopup.value = false
+  selectedSlotIndex.value = -1
+  currentSelectMode.value = 'mining'
+}
+
+// 사냥 냥이 목록 (처음에는 빈칸)
+const huntingCats = ref([
+  null, null, null, null, null, null
+])
+
+// 탐험 냥이 목록 (처음에는 빈칸)
+const explorationCats = ref([
+  null, null, null, null, null, null
+])
+
+// 생산 냥이 목록 (처음에는 빈칸)
+const productionCats = ref([
+  null, null, null, null, null, null
+])
+
+// 현재 선택 중인 모드 (mining, hunting, exploration, production)
+const currentSelectMode = ref('mining')
+
+// 자동 포인트 획득 관련
+const autoPointIntervals = ref({
+  mining: null,
+  hunting: null,
+  exploration: null,
+  production: null
+})
+
+// 자동 포인트 획득 함수
+const startAutoPointGeneration = (mode) => {
+  // 기존 인터벌이 있으면 제거
+  if (autoPointIntervals.value[mode]) {
+    clearInterval(autoPointIntervals.value[mode])
+    autoPointIntervals.value[mode] = null
+  }
+  
+  // 해당 모드의 고양이 목록 가져오기
+  let catsList = []
+  if (mode === 'mining') catsList = miningCats.value
+  else if (mode === 'hunting') catsList = huntingCats.value
+  else if (mode === 'exploration') catsList = explorationCats.value
+  else if (mode === 'production') catsList = productionCats.value
+  
+  // 선택된 고양이들만 필터링
+  const activeCats = catsList.filter(cat => cat !== null)
+  
+  if (activeCats.length === 0) {
+    return // 고양이가 없으면 시작하지 않음
+  }
+  
+  // 1초마다 포인트 획득 (고양이 1마리당 1포인트)
+  autoPointIntervals.value[mode] = setInterval(() => {
+    // 현재 활성화된 고양이 수 다시 확인 (동적으로 업데이트)
+    let currentCatsList = []
+    if (mode === 'mining') currentCatsList = miningCats.value
+    else if (mode === 'hunting') currentCatsList = huntingCats.value
+    else if (mode === 'exploration') currentCatsList = explorationCats.value
+    else if (mode === 'production') currentCatsList = productionCats.value
+    
+    const currentActiveCats = currentCatsList.filter(cat => cat !== null)
+    if (currentActiveCats.length > 0) {
+      // 고양이 1마리당 에너지 소모량 계산
+      const energyCost = currentActiveCats.length // 고양이 1마리당 1 에너지
+      
+      // 에너지 체크
+      if (currentEnergy.value < energyCost) {
+        // 에너지가 부족하면 인터벌 중지
+        stopAutoPointGeneration(mode)
+        return
+      }
+      
+      // 에너지 소모
+      currentEnergy.value -= energyCost
+      localStorage.setItem('currentEnergy', currentEnergy.value.toString())
+      localStorage.setItem('energyLastDate', new Date().toDateString())
+      
+      // 고양이 1마리당 1포인트씩 획득
+      const pointsGained = currentActiveCats.length
+      coinCount.value += pointsGained
+      pointCount.value = coinCount.value
+      
+      // 현재 활성화된 모드에서만 말풍선 표시 (메인 화면이 아닐 때)
+      if (activeMode.value === mode && activeMode.value !== 'main') {
+        // 포인트 획득 말풍선 표시 (고양이 수만큼)
+        for (let i = 0; i < pointsGained; i++) {
+          const maxWidth = Math.min(window.innerWidth || 500, 500)
+          const maxHeight = window.innerHeight || 800
+          const bubbleWidth = 100 // 말풍선 최대 너비
+          const bubbleHeight = 40 // 말풍선 예상 높이
+          const padding = 20 // 여백
+          
+          const bubble = {
+            id: Date.now() + i,
+            text: '+1pt',
+            x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
+            y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
+          }
+          speechBubbles.value.push(bubble)
+          
+          setTimeout(() => {
+            const index = speechBubbles.value.findIndex(b => b.id === bubble.id)
+            if (index > -1) {
+              speechBubbles.value.splice(index, 1)
+            }
+          }, 2000)
+        }
+      }
+      
+      // 사용자 데이터 업데이트
+      if (currentUser.value) {
+        updateUserGameData(currentUser.value.id, {
+          coins: coinCount.value
+        })
+      }
+    } else {
+      // 고양이가 없으면 인터벌 중지
+      stopAutoPointGeneration(mode)
+    }
+  }, 1000) // 1초마다 실행
+}
+
+// 자동 포인트 획득 중지
+const stopAutoPointGeneration = (mode) => {
+  if (autoPointIntervals.value[mode]) {
+    clearInterval(autoPointIntervals.value[mode])
+    autoPointIntervals.value[mode] = null
+  }
+}
+
+// 모든 자동 포인트 획득 중지
+const stopAllAutoPointGeneration = () => {
+  Object.keys(autoPointIntervals.value).forEach(mode => {
+    stopAutoPointGeneration(mode)
+  })
+}
+
+// 고양이 목록 변경 감지하여 자동 포인트 획득 재시작
+watch([miningCats, huntingCats, explorationCats, productionCats], () => {
+  startAutoPointGeneration('mining')
+  startAutoPointGeneration('hunting')
+  startAutoPointGeneration('exploration')
+  startAutoPointGeneration('production')
+}, { deep: true })
 
 const startMining = () => {
   if (isMining.value) return
@@ -602,50 +1266,78 @@ const canProduce = (recipe) => {
 <template>
   <div class="mainScreen">
     <!-- 헤더 -->
-    <Header :coinCount="coinCount" />
+    <Header 
+      :coinCount="coinCount" 
+      :currentEnergy="currentEnergy"
+      :maxEnergy="maxEnergy"
+      :totalCoin="totalCoin"
+      :catCount="catCount"
+    />
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
       <!-- 메인 메뉴 -->
-      <article v-if="activeMode === 'main'" class="mainMenu">
-        <div class="menuItem" style="margin-top: -20%;">
-          <button @click="setActiveMode('mining')"></button>
-          <span class="menuLabel">채굴</span>
-        </div>
-        <div class="menuItem" style="margin-top: 10%;">
-          <button @click="setActiveMode('hunting')"></button>
-          <span class="menuLabel">사냥</span>
-        </div>
-        <div class="menuItem" style="margin-top: 0%;">
-          <button @click="setActiveMode('exploration')"></button>
-          <span class="menuLabel">탐험</span>
-        </div>
-        <div class="menuItem" style="margin-top: 20%;">
-          <button @click="setActiveMode('production')"></button>
-          <span class="menuLabel">생산</span>
-        </div>
-      </article>
-
-      <!-- 채굴 모드 -->
-      <div v-if="activeMode === 'mining'" class="gameMode">
-        <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
-        </div>
-        
-        <!-- 채굴 완료 상태일 때 -->
-        <div v-if="isMiningComplete" class="miningComplete">
-          <div class="completeMessage">
-            <h3>🎉 채굴 완료!</h3>
-            <p>새로운 채굴장을 준비 중...</p>
-            <div class="loadingDots">
-              <span></span>
-              <span></span>
-              <span></span>
+      <article v-if="activeMode === 'main'" class="mainMenuNew">
+        <!-- 총 포인트 & 총 코인 -->
+        <div class="totalStats">
+          <div class="totalPoint">
+            <div class="statLabel">총 포인트</div>
+            <div class="statValue">
+              <div class="iconCircle pointIcon">
+                <img src="@/assets/img/mainPoint.png" alt="P" />
+              </div>
+              <span class="statNumber">{{ formatNumber(pointCount) }}</span>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="totalCoin">
+            <div class="statLabel">총코인</div>
+            <div class="statValue">
+              <div class="iconCircle coinIcon">
+                <img src="@/assets/img/mainCoin.png" alt="C" />
+              </div>
+              <span class="statNumber">{{ formatNumber(totalCoin) }}</span>
             </div>
           </div>
         </div>
         
-        <!-- 새로운 채굴 버튼 -->
+        <!-- 게임 모드 그리드 -->
+        <div class="gameModeGrid">
+          <div class="modeCard miningCard" @click="setActiveMode('mining')">
+            <div class="mainmenuBtns"></div>
+            <div class="modeTitle">채굴</div>
+            <div class="modeLevel">Level 01</div>
+          </div>
+          <div class="modeCard huntingCard" @click="setActiveMode('hunting')">
+            <div class="mainmenuBtns"></div>
+            <div class="modeTitle">사냥</div>
+            <div class="modeLevel">Level 01</div>
+          </div>
+          <div class="modeCard explorationCard" @click="setActiveMode('exploration')">
+            <div class="mainmenuBtns"></div>
+            <div class="modeTitle">탐험</div>
+            <div class="modeLevel">Level 01</div>
+          </div>
+          <div class="modeCard productionCard" @click="setActiveMode('production')">
+            <div class="mainmenuBtns"></div>
+            <div class="modeTitle">생산</div>
+            <div class="modeLevel">Level 01</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 채굴 모드 -->
+      <div v-if="activeMode === 'mining'" class="miningMode">
+        <div class="pageHeader">
+          <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
+        </div>
+        
+        <!-- 상단 총 포인트 -->
+        <div class="totalPointsDisplay">
+          {{ formatNumber(pointCount) }}
+        </div>
+        
+        <!-- 클리커 버튼 (구름 모양) -->
         <div class="miningButtonContainer">
           <button 
             v-if="showNewMiningButton && !isMiningComplete" 
@@ -654,31 +1346,61 @@ const canProduce = (recipe) => {
             :class="{ 'mining-active': miningClickCount > 0 }"
           >
           </button>
-          <div v-if="showNewMiningButton && !isMiningComplete" class="miningLabel">채굴!</div>
+          <div v-if="isMiningComplete" class="completeMessageContainer">
+            <div class="completeMessageText">채굴 완료!</div>
+          </div>
+        </div>
+        
+        <!-- 에너지 섹션 -->
+        <div class="energySection">
+          <div class="energyInfo">
+            <span class="energyIcon">⚡</span>
+            <span class="energyText">{{ currentEnergy.toLocaleString() }}/{{ maxEnergy.toLocaleString() }}</span>
+          </div>
+          <div class="energyBar">
+            <div class="energyFill" :style="{ width: (currentEnergy / maxEnergy * 100) + '%' }"></div>
+          </div>
+        </div>
+        
+        <!-- 채굴 냥이 목록 -->
+        <div class="miningCatsSection">
+          <div class="catsListLabel">채굴 냥이 목록</div>
+          <div class="catsListScroll">
+            <div 
+              v-for="(cat, index) in miningCats" 
+              :key="index"
+              class="catCard"
+              :class="{ 'emptySlot': !cat, 'working': cat && activeMode === 'mining' }"
+              @click="openCatSelectPopup(index, 'mining')"
+            >
+              <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
+              <div v-if="cat" class="catImage">
+                <img :src="getCatImage(cat.imageId)" alt="고양이" />
+              </div>
+              <div v-if="cat" class="catStars">
+                <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
+              </div>
+              <div v-if="!cat" class="emptySlotContent">
+                <span class="emptySlotText">+</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 사냥 모드 -->
-      <div v-if="activeMode === 'hunting'" class="gameMode">
+      <div v-if="activeMode === 'hunting'" class="miningMode">
         <div class="pageHeader">
           <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
         </div>
         
-        <!-- 사냥 완료 상태일 때 -->
-        <div v-if="isHuntingComplete" class="huntingComplete">
-          <div class="completeMessage">
-            <h3>🎯 사냥 완료!</h3>
-            <p>새로운 사냥터를 준비 중...</p>
-            <div class="loadingDots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
+        <!-- 상단 총 포인트 -->
+        <div class="totalPointsDisplay">
+          {{ formatNumber(pointCount) }}
         </div>
         
-        <!-- 새로운 사냥 버튼 -->
-        <div class="huntingButtonContainer">
+        <!-- 클리커 버튼 -->
+        <div class="miningButtonContainer">
           <button 
             v-if="showNewHuntingButton && !isHuntingComplete" 
             @click="handleClick('hunting')" 
@@ -686,31 +1408,61 @@ const canProduce = (recipe) => {
             :class="{ 'hunting-active': huntingClickCount > 0 }"
           >
           </button>
-          <div v-if="showNewHuntingButton && !isHuntingComplete" class="huntingLabel">사냥!</div>
+          <div v-if="isHuntingComplete" class="completeMessageContainer">
+            <div class="completeMessageText">사냥 완료!</div>
+          </div>
+        </div>
+        
+        <!-- 에너지 섹션 -->
+        <div class="energySection">
+          <div class="energyInfo">
+            <span class="energyIcon">⚡</span>
+            <span class="energyText">{{ currentEnergy.toLocaleString() }}/{{ maxEnergy.toLocaleString() }}</span>
+          </div>
+          <div class="energyBar">
+            <div class="energyFill" :style="{ width: (currentEnergy / maxEnergy * 100) + '%' }"></div>
+          </div>
+        </div>
+        
+        <!-- 사냥 냥이 목록 -->
+        <div class="miningCatsSection">
+          <div class="catsListLabel">사냥 냥이 목록</div>
+          <div class="catsListScroll">
+            <div 
+              v-for="(cat, index) in huntingCats" 
+              :key="index"
+              class="catCard"
+              :class="{ 'emptySlot': !cat, 'working': cat && activeMode === 'hunting' }"
+              @click="openCatSelectPopup(index, 'hunting')"
+            >
+              <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
+              <div v-if="cat" class="catImage">
+                <img :src="getCatImage(cat.imageId)" alt="고양이" />
+              </div>
+              <div v-if="cat" class="catStars">
+                <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
+              </div>
+              <div v-if="!cat" class="emptySlotContent">
+                <span class="emptySlotText">+</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 탐험 모드 -->
-      <div v-if="activeMode === 'exploration'" class="gameMode">
+      <div v-if="activeMode === 'exploration'" class="miningMode">
         <div class="pageHeader">
           <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
         </div>
         
-        <!-- 탐험 완료 상태일 때 -->
-        <div v-if="isExplorationComplete" class="explorationComplete">
-          <div class="completeMessage">
-            <h3>🗺️ 탐험 완료!</h3>
-            <p>새로운 지역을 준비 중...</p>
-            <div class="loadingDots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
+        <!-- 상단 총 포인트 -->
+        <div class="totalPointsDisplay">
+          {{ formatNumber(pointCount) }}
         </div>
         
-        <!-- 새로운 탐험 버튼 -->
-        <div class="explorationButtonContainer">
+        <!-- 클리커 버튼 -->
+        <div class="miningButtonContainer">
           <button 
             v-if="showNewExplorationButton && !isExplorationComplete" 
             @click="handleClick('exploration')" 
@@ -718,31 +1470,61 @@ const canProduce = (recipe) => {
             :class="{ 'exploration-active': explorationClickCount > 0 }"
           >
           </button>
-          <div v-if="showNewExplorationButton && !isExplorationComplete" class="explorationLabel">탐험!</div>
+          <div v-if="isExplorationComplete" class="completeMessageContainer">
+            <div class="completeMessageText">탐험 완료!</div>
+          </div>
+        </div>
+        
+        <!-- 에너지 섹션 -->
+        <div class="energySection">
+          <div class="energyInfo">
+            <span class="energyIcon">⚡</span>
+            <span class="energyText">{{ currentEnergy.toLocaleString() }}/{{ maxEnergy.toLocaleString() }}</span>
+          </div>
+          <div class="energyBar">
+            <div class="energyFill" :style="{ width: (currentEnergy / maxEnergy * 100) + '%' }"></div>
+          </div>
+        </div>
+        
+        <!-- 탐험 냥이 목록 -->
+        <div class="miningCatsSection">
+          <div class="catsListLabel">탐험 냥이 목록</div>
+          <div class="catsListScroll">
+            <div 
+              v-for="(cat, index) in explorationCats" 
+              :key="index"
+              class="catCard"
+              :class="{ 'emptySlot': !cat, 'working': cat && activeMode === 'exploration' }"
+              @click="openCatSelectPopup(index, 'exploration')"
+            >
+              <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
+              <div v-if="cat" class="catImage">
+                <img :src="getCatImage(cat.imageId)" alt="고양이" />
+              </div>
+              <div v-if="cat" class="catStars">
+                <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
+              </div>
+              <div v-if="!cat" class="emptySlotContent">
+                <span class="emptySlotText">+</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 생산 모드 -->
-      <div v-if="activeMode === 'production'" class="gameMode">
+      <div v-if="activeMode === 'production'" class="miningMode">
         <div class="pageHeader">
           <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
         </div>
         
-        <!-- 생산 완료 상태일 때 -->
-        <div v-if="isProductionComplete" class="productionComplete">
-          <div class="completeMessage">
-            <h3>🏭 생산 완료!</h3>
-            <p>새로운 작업장을 준비 중...</p>
-            <div class="loadingDots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
+        <!-- 상단 총 포인트 -->
+        <div class="totalPointsDisplay">
+          {{ formatNumber(pointCount) }}
         </div>
         
-        <!-- 새로운 생산 버튼 -->
-        <div class="productionButtonContainer">
+        <!-- 클리커 버튼 -->
+        <div class="miningButtonContainer">
           <button 
             v-if="showNewProductionButton && !isProductionComplete" 
             @click="handleClick('production')" 
@@ -750,7 +1532,45 @@ const canProduce = (recipe) => {
             :class="{ 'production-active': productionClickCount > 0 }"
           >
           </button>
-          <div v-if="showNewProductionButton && !isProductionComplete" class="productionLabel">생산!</div>
+          <div v-if="isProductionComplete" class="completeMessageContainer">
+            <div class="completeMessageText">생산 완료!</div>
+          </div>
+        </div>
+        
+        <!-- 에너지 섹션 -->
+        <div class="energySection">
+          <div class="energyInfo">
+            <span class="energyIcon">⚡</span>
+            <span class="energyText">{{ currentEnergy.toLocaleString() }}/{{ maxEnergy.toLocaleString() }}</span>
+          </div>
+          <div class="energyBar">
+            <div class="energyFill" :style="{ width: (currentEnergy / maxEnergy * 100) + '%' }"></div>
+          </div>
+        </div>
+        
+        <!-- 생산 냥이 목록 -->
+        <div class="miningCatsSection">
+          <div class="catsListLabel">생산 냥이 목록</div>
+          <div class="catsListScroll">
+            <div 
+              v-for="(cat, index) in productionCats" 
+              :key="index"
+              class="catCard"
+              :class="{ 'emptySlot': !cat, 'working': cat && activeMode === 'production' }"
+              @click="openCatSelectPopup(index, 'production')"
+            >
+              <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
+              <div v-if="cat" class="catImage">
+                <img :src="getCatImage(cat.imageId)" alt="고양이" />
+              </div>
+              <div v-if="cat" class="catStars">
+                <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
+              </div>
+              <div v-if="!cat" class="emptySlotContent">
+                <span class="emptySlotText">+</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -764,9 +1584,52 @@ const canProduce = (recipe) => {
         v-for="bubble in speechBubbles" 
         :key="bubble.id"
         class="speechBubble"
-        :style="{ left: bubble.x + 'px', top: bubble.y + 'px' }"
+        :style="{ left: bubble.x + 'px', top: bubble.y + 'px', transform: 'translateX(-50%)' }"
       >
         {{ bubble.text }}
+      </div>
+    </div>
+    
+    <!-- 고양이 이모지 애니메이션 -->
+    <div class="catEmojis">
+      <div 
+        v-for="emoji in catEmojis" 
+        :key="emoji.id"
+        class="catEmoji"
+        :style="{ left: emoji.x + 'px', top: emoji.y + 'px' }"
+      >
+        <img :src="getTulImage(emoji.imageId)" alt="고양이 파편" class="tulImage" />
+      </div>
+    </div>
+    
+    <!-- 고양이 선택 팝업 (모든 모드에서 공유) -->
+    <div v-if="showCatSelectPopup" class="catSelectPopupOverlay" @click="closeCatSelectPopup">
+      <div class="catSelectPopupContent" @click.stop>
+        <div class="catSelectPopupHeader">
+          <h3>고양이 선택</h3>
+          <button class="closePopupBtn" @click="closeCatSelectPopup">×</button>
+        </div>
+        <div class="catSelectPopupBody">
+          <div class="availableCatsGrid">
+            <div 
+              v-for="cat in availableCats" 
+              :key="cat.id"
+              class="availableCatCard"
+              @click="selectCatForSlot(cat)"
+            >
+              <div class="availableCatImage">
+                <img :src="getCatImage(cat.imageId || cat.id)" alt="고양이" />
+              </div>
+              <div class="availableCatInfo">
+                <div class="availableCatName">{{ cat.name }}</div>
+                <div class="availableCatLevel">Lv {{ String(cat.level || 1).padStart(2, '0') }}</div>
+                <div class="availableCatStars">
+                  <span v-for="n in (cat.stars || 1)" :key="n" class="star">★</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -776,14 +1639,10 @@ const canProduce = (recipe) => {
 /* 클릭 버튼 애니메이션 */
 .clickerBtn {
   border: none;
-  border-radius: 50%;
   font-size: 1.5rem;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.1s ease;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  position: relative;
-  overflow: hidden;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -826,6 +1685,7 @@ const canProduce = (recipe) => {
   max-width: 220px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
+  transform-origin: center;
 }
 
 .speechBubble::before {
@@ -1042,98 +1902,34 @@ const canProduce = (recipe) => {
 /* 채굴 버튼 스타일 */
 .miningBtn {
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+
 }
 
 .miningBtn.mining-active {
-  background: linear-gradient(45deg, #ff6b6b, #ffa500);
   transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
 }
 
-.miningBtn.mining-active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer 2s infinite;
-}
 
 /* 사냥 버튼 스타일 */
 .huntingBtn {
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+
 }
 
-.huntingBtn.hunting-active {
-  background: linear-gradient(45deg, #ff4757, #ff3838);
-  transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(255, 71, 87, 0.4);
-}
-
-.huntingBtn.hunting-active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer 2s infinite;
-}
 
 /* 탐험 버튼 스타일 */
 .explorationBtn {
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+
 }
 
-.explorationBtn.exploration-active {
-  background: linear-gradient(45deg, #2ed573, #1e90ff);
-  transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(46, 213, 115, 0.4);
-}
-
-.explorationBtn.exploration-active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer 2s infinite;
-}
 
 /* 생산 버튼 스타일 */
 .productionBtn {
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+
 }
 
-.productionBtn.production-active {
-  background: linear-gradient(45deg, #ff9ff3, #f368e0);
-  transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(255, 159, 243, 0.4);
-}
-
-.productionBtn.production-active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer 2s infinite;
-}
 
 /* 애니메이션 키프레임 */
 @keyframes fadeIn {
@@ -1160,5 +1956,57 @@ const canProduce = (recipe) => {
 @keyframes shimmer {
   0% { left: -100%; }
   100% { left: 100%; }
+}
+
+/* 고양이 이모지 애니메이션 */
+.catEmojis {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1001;
+  overflow: hidden;
+}
+
+.catEmoji {
+  position: absolute;
+  animation: catPopUp 2s ease-out forwards;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tulImage {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+@keyframes catPopUp {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(0) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.5) translateY(-30px) rotate(-15deg);
+  }
+  40% {
+    transform: scale(1.2) translateY(-60px) rotate(10deg);
+  }
+  60% {
+    transform: scale(1) translateY(-90px) rotate(-5deg);
+  }
+  80% {
+    opacity: 0.8;
+    transform: scale(0.9) translateY(-120px) rotate(5deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.7) translateY(-150px) rotate(0deg);
+  }
 }
 </style>

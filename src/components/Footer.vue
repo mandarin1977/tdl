@@ -204,7 +204,7 @@ footer {
   bottom: -10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 70%;
+  width: 70px;
   height: auto;
   aspect-ratio: 3 / 1.3;
   background: #80BEBD;

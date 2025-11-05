@@ -1,8 +1,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, updateUserCoins } from '@/utils/userUtils'
+
+const router = useRouter()
 
 const coinCount = ref(0)
 const currentUser = ref(null)
@@ -13,6 +16,8 @@ const vibrationEnabled = ref(true)
 const userId = ref('')
 const showLanguageDropdown = ref(false)
 const showRegionDropdown = ref(false)
+const isCheckedInToday = ref(false)
+const checkInMessage = ref('')
 
 // 언어 옵션
 const languages = ['한국어', 'English']
@@ -70,12 +75,62 @@ onMounted(() => {
   if (savedLanguage) {
     language.value = savedLanguage
   }
+  
+  // 출석체크 상태 확인
+  checkAttendanceStatus()
 })
 
 // User ID 복사
 const copyUserId = () => {
   navigator.clipboard.writeText(userId.value)
   alert(currentTexts.value.copySuccess)
+}
+
+// 출석체크 기능
+const checkAttendance = () => {
+  if (!currentUser.value) {
+    alert('로그인이 필요합니다.')
+    return
+  }
+  
+  // 오늘 날짜 가져오기
+  const today = new Date().toDateString()
+  const lastCheckInDate = localStorage.getItem(`checkIn_${currentUser.value.id}`)
+  
+  // 이미 출석체크 했는지 확인
+  if (lastCheckInDate === today) {
+    checkInMessage.value = '오늘 이미 출석체크를 완료했습니다!'
+    setTimeout(() => {
+      checkInMessage.value = ''
+    }, 3000)
+    return
+  }
+  
+  // 출석체크 보상 (예: 100 코인)
+  const reward = 100
+  coinCount.value += reward
+  currentUser.value.gameData.coins = coinCount.value
+  
+  // 사용자 데이터 업데이트
+  updateUserCoins(currentUser.value.id, coinCount.value)
+  
+  // 출석체크 날짜 저장
+  localStorage.setItem(`checkIn_${currentUser.value.id}`, today)
+  isCheckedInToday.value = true
+  
+  checkInMessage.value = `출석체크 완료! ${reward} 코인을 받았습니다!`
+  setTimeout(() => {
+    checkInMessage.value = ''
+  }, 3000)
+}
+
+// 출석체크 상태 확인
+const checkAttendanceStatus = () => {
+  if (!currentUser.value) return
+  
+  const today = new Date().toDateString()
+  const lastCheckInDate = localStorage.getItem(`checkIn_${currentUser.value.id}`)
+  isCheckedInToday.value = lastCheckInDate === today
 }
 </script>
 
@@ -157,6 +212,27 @@ const copyUserId = () => {
             <div class="toggleHandle"></div>
           </button>
         </div>
+      </div>
+      
+      <!-- 출석체크 -->
+      <div class="settingGroup">
+        <label class="settingLabel">출석체크</label>
+        <button 
+          class="checkInBtn" 
+          @click="router.push('/attendance')"
+        >
+          출석체크 하기
+        </button>
+      </div>
+      
+      <!-- NFT 버튼 -->
+      <div class="settingGroup">
+        <button 
+          class="nftBtn" 
+          @click="router.push('/nft')"
+        >
+          NFT
+        </button>
       </div>
       
       <!-- User ID -->
@@ -333,5 +409,73 @@ const copyUserId = () => {
 .copyBtn:hover {
   background: #61BBF5;
   transform: scale(1.05);
+}
+
+/* 출석체크 버튼 */
+.checkInBtn {
+  width: 100%;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #7DD3FC 0%, #0EA5E9 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(125, 211, 252, 0.3);
+}
+
+.checkInBtn:hover:not(.disabled) {
+  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.4);
+}
+
+.checkInBtn.disabled {
+  background: rgba(125, 211, 252, 0.3);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* NFT 버튼 */
+.nftBtn {
+  width: 100%;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #7DD3FC 0%, #0EA5E9 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(125, 211, 252, 0.3);
+}
+
+.nftBtn:hover {
+  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.4);
+}
+
+.checkInMessage {
+  margin-top: 0.8rem;
+  color: #7DD3FC;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

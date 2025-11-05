@@ -197,7 +197,10 @@ onMounted(() => {
 .login-screen {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background-image: url('@/assets/img/backgroundImg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   position: relative;
   padding: 2rem;
   display: flex;

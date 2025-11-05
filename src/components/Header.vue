@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getI18nTexts } from '@/utils/userUtils'
+import { getI18nTexts, getCurrentUser } from '@/utils/userUtils'
 import noticeIcon from '@/assets/img/notice.png'
 import settingIcon from '@/assets/img/setting.png'
 
@@ -10,12 +10,45 @@ const texts = computed(() => getI18nTexts())
 
 const router = useRouter()
 
-const props = defineProps({
-  coinCount: {
-    type: Number,
-    default: 0
+// 사용자 데이터
+const coinCount = ref(0) // 포인트 (P)
+const totalCoin = ref(0) // 코인 (C)
+const catFragments = ref(50) // 고양이 파편
+const currentEnergy = ref(4000)
+const maxEnergy = ref(4000)
+
+// 에너지 체크 및 리셋 함수
+const checkAndResetEnergy = () => {
+  const today = new Date().toDateString()
+  const lastEnergyDate = localStorage.getItem('energyLastDate')
+  const savedEnergy = localStorage.getItem('currentEnergy')
+  
+  if (lastEnergyDate !== today) {
+    // 하루가 지나면 에너지 리셋
+    currentEnergy.value = maxEnergy.value
+    localStorage.setItem('energyLastDate', today)
+    localStorage.setItem('currentEnergy', maxEnergy.value.toString())
+  } else if (savedEnergy) {
+    // 오늘 날짜면 저장된 에너지 로드
+    currentEnergy.value = parseInt(savedEnergy) || maxEnergy.value
   }
-})
+}
+
+// 사용자 데이터 로드
+const loadUserData = () => {
+  const currentUser = getCurrentUser()
+  if (currentUser) {
+    // 포인트 = gameData.coins
+    coinCount.value = currentUser.gameData?.coins || 0
+    // 코인 = totalCoin (현재는 0으로 설정, 나중에 별도 관리)
+    totalCoin.value = currentUser.gameData?.totalCoin || 0
+    // 고양이 파편 = catFragments 또는 catCount
+    catFragments.value = currentUser.gameData?.catFragments || currentUser.gameData?.catCount || 50
+  }
+  
+  // 에너지 체크 및 리셋
+  checkAndResetEnergy()
+}
 
 const isMenuOpen = ref(false)
 
@@ -28,26 +61,40 @@ const goToSettings = () => {
 }
 
 let interval = null
+let dataUpdateInterval = null
 
 onMounted(() => {
-  // localStorage 변경 감지
+  // 초기 데이터 로드
+  loadUserData()
+  
+  // localStorage 변경 감지 (언어)
   interval = setInterval(() => {
     const currentLang = localStorage.getItem('appLanguage') || '한국어'
     if (currentLang !== language.value) {
       language.value = currentLang
     }
   }, 100)
+  
+  // 사용자 데이터 업데이트 감지 (주기적으로 체크)
+  dataUpdateInterval = setInterval(() => {
+    loadUserData()
+  }, 500) // 0.5초마다 체크
 })
 
 onUnmounted(() => {
   if (interval) {
     clearInterval(interval)
   }
+  if (dataUpdateInterval) {
+    clearInterval(dataUpdateInterval)
+  }
 })
 
-// 숫자 포맷팅 함수 (10,000 이상이면 K/M 표시)
+// 숫자 포맷팅 함수
 const formatNumber = (num) => {
-  if (num >= 1000000) {
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'G'
+  } else if (num >= 1000000) {
     return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
   } else if (num >= 10000) {
     return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
@@ -59,32 +106,43 @@ const formatNumber = (num) => {
 <template>
   <header>
     <div class="headerCont">
-      <div class="leftArea">
-        <div class="myCoin">
-          <img src="@/assets/img/point_ico.png" alt="포인트" class="coin-icon">
-          <span><b>{{ formatNumber(coinCount) }}</b></span>
-          <span>⊕</span>
+      <div class="headerBar">
+        <!-- 번개 아이콘 + 숫자 -->
+        <div class="headerItem">
+          <img src="@/assets/img/lighting.png" alt="에너지" class="energyIcon" />
+          <span class="headerValue">{{ formatNumber(currentEnergy) }}</span>
         </div>
+        <div class="divider"></div>
         
-        <div class="myNew">
-          <img src="@/assets/img/coin_ico.png" alt="새 항목" class="coin-icon">
-          <span><b>0</b></span>
-          <span>⊕</span>
+        <!-- P 아이콘 + 숫자 -->
+        <div class="headerItem">
+          <img src="@/assets/img/point_ico.png" alt="P" class="pointIcon" />
+          <span class="headerValue">{{ formatNumber(coinCount) }}</span>
         </div>
+        <div class="divider"></div>
         
-        <div class="myCat">
-          <img src="@/assets/img/cat_ico.png" alt="고양이" class="cat-icon">
-          <span><b>50</b></span>
-          <span>⊕</span>
+        <!-- C 아이콘 + 숫자 -->
+        <div class="headerItem">
+          <img src="@/assets/img/coin_ico.png" alt="C" class="coinIcon" />
+          <span class="headerValue">{{ formatNumber(totalCoin) }}</span>
         </div>
-      </div>
-
-      <div class="headerAct">
-        <button class="notifi">
+        <div class="divider"></div>
+        
+        <!-- 고양이 아이콘 + 숫자 -->
+        <div class="headerItem">
+          <img src="@/assets/img/cat_ico.png" alt="고양이" class="catIcon">
+          <span class="headerValue">{{ catFragments }}</span>
+        </div>
+        <div class="divider"></div>
+        
+        <!-- 알림 아이콘 -->
+        <button class="headerIconBtn notifi">
           <img src="@/assets/img/notice.png" alt="알림" class="icon-img">
         </button>
+        <div class="divider"></div>
         
-        <button class="menuBtn" @click="goToSettings">
+        <!-- 설정 아이콘 -->
+        <button class="headerIconBtn menuBtn" @click="goToSettings">
           <img src="@/assets/img/setting.png" alt="설정" class="icon-img">
         </button>
       </div>
@@ -109,47 +167,84 @@ header {
   max-width: 500px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 1.6rem;
+  justify-content: center;
+  padding: 0 1rem;
 }
 
-.leftArea{
+.headerBar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  color: #fff;
+  align-items: center;
+  gap: 0.8rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 0.6rem 1rem;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
-.myCoin, .myCat, .myNew {
+
+.headerBar::-webkit-scrollbar {
+  display: none;
+}
+
+.headerItem {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.3);
-  padding: 0.3rem 0.6rem;
-  border-radius: 20px;
+  color: white;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.coin-icon, .cat-icon {
-  width: 20px;
-  height: 20px;
+.energyIcon {
+  width: 24px;
+  height: 24px;
   object-fit: contain;
 }
 
-.headerAct {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.pointIcon, .coinIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
-.notifi, .menuBtn {
-  width: 40px;
-  height: 40px;
+.catIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.headerValue {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: transparent;
+  border-left: 1px dotted rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.headerIconBtn {
+  width: 32px;
+  height: 32px;
   border: none;
-  background: rgba(255, 255, 255, .3);
-  border-radius: 50%;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.notifi{
+  margin-left: auto;
+}
+
+.notifi, .menuBtn {
   transition: all 0.3s ease;
 }
 
@@ -166,24 +261,25 @@ header {
 
 
 
-@media (max-width: 400px) {
-  .notifi{
-    display: none;
-  }
-  .menuBtn{
-    width: 30px;
-    height: auto;
-    aspect-ratio: 1/1;
-  }
+.icon-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
-@media (max-width: 320px) {
-  .headerCont{
-    padding: 0 1rem;
+
+@media (max-width: 480px) {
+  .headerBar {
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
   }
-  .leftArea{gap: 0.5rem;}
-  .myCoin img, .myCat img, .myNew img {
-    width: 16px;
-    height: 16px;
+  
+  .headerValue {
+    font-size: 0.85rem;
+  }
+  
+  .pointIcon, .coinIcon, .catIcon, .energyIcon {
+    width: 20px;
+    height: 20px;
   }
 }
 </style>

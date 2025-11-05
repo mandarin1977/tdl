@@ -16,6 +16,8 @@ import QuestPage from './pages/QuestPage.vue'
 import InventoryPage from './pages/InventoryPage.vue'
 import FactoryPage from './pages/FactoryPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
+import AttendancePage from './pages/AttendancePage.vue'
+import NFTPage from './pages/NFTPage.vue'
 
 // 라우터 설정
 const routes = [
@@ -32,7 +34,9 @@ const routes = [
   { path: '/quest', component: QuestPage },
   { path: '/inventory', component: InventoryPage },
   { path: '/factory', component: FactoryPage },
-  { path: '/settings', component: SettingsPage }
+  { path: '/settings', component: SettingsPage },
+  { path: '/attendance', component: AttendancePage },
+  { path: '/nft', component: NFTPage }
 ]
 
 const router = createRouter({
