@@ -829,6 +829,40 @@ const selectCatForSlot = (cat) => {
   currentSelectMode.value = 'mining'
 }
 
+// 고양이 제거 함수
+const removeCatFromSlot = () => {
+  if (selectedSlotIndex.value >= 0 && selectedSlotIndex.value < 6) {
+    // 모드별로 해당 슬롯을 null로 설정
+    if (currentSelectMode.value === 'mining') {
+      miningCats.value[selectedSlotIndex.value] = null
+      startAutoPointGeneration('mining')
+    } else if (currentSelectMode.value === 'hunting') {
+      huntingCats.value[selectedSlotIndex.value] = null
+      startAutoPointGeneration('hunting')
+    } else if (currentSelectMode.value === 'exploration') {
+      explorationCats.value[selectedSlotIndex.value] = null
+      startAutoPointGeneration('exploration')
+    } else if (currentSelectMode.value === 'production') {
+      productionCats.value[selectedSlotIndex.value] = null
+      startAutoPointGeneration('production')
+    }
+    
+    // 사용자 데이터 저장
+    const currentUser = getCurrentUser()
+    if (currentUser) {
+      updateUserGameData(currentUser.id, {
+        miningCats: miningCats.value,
+        huntingCats: huntingCats.value,
+        explorationCats: explorationCats.value,
+        productionCats: productionCats.value
+      })
+    }
+  }
+  showCatSelectPopup.value = false
+  selectedSlotIndex.value = -1
+  currentSelectMode.value = 'mining'
+}
+
 // 팝업 닫기
 const closeCatSelectPopup = () => {
   showCatSelectPopup.value = false
@@ -1610,6 +1644,12 @@ const canProduce = (recipe) => {
           <button class="closePopupBtn" @click="closeCatSelectPopup">×</button>
         </div>
         <div class="catSelectPopupBody">
+          <!-- 현재 슬롯에 고양이가 있으면 제거 버튼 표시 -->
+          <div v-if="getCurrentSlotCat()" class="removeCatSection">
+            <button class="removeCatBtn" @click="removeCatFromSlot">
+              고양이 제거
+            </button>
+          </div>
           <div class="availableCatsGrid">
             <div 
               v-for="cat in availableCats" 

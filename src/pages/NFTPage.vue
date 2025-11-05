@@ -54,15 +54,15 @@ const nftItems = ref([
       <!-- 액션 버튼 섹션 -->
       <div class="actionButtons">
         <button class="actionBtn sendBtn">
-          <div class="btnIcon">$→</div>
+          <div class="btnIcon"></div>
           <span class="btnLabel">Send</span>
         </button>
         <button class="actionBtn buyBtn">
-          <div class="btnIcon">+</div>
+          <div class="btnIcon"></div>
           <span class="btnLabel">Buy</span>
         </button>
         <button class="actionBtn receiveBtn">
-          <div class="btnIcon">$←</div>
+          <div class="btnIcon"></div>
           <span class="btnLabel">Receive</span>
         </button>
       </div>
@@ -216,15 +216,24 @@ const nftItems = ref([
 }
 
 .sendBtn .btnIcon {
-  background: gray;
+  background-image: url('@/assets/img/nftSend.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .buyBtn .btnIcon {
-  background: linear-gradient(135deg, blue, purple);
+  background-image: url('@/assets/img/nftPlus.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .receiveBtn .btnIcon {
-  background: gray;
+  background-image: url('@/assets/img/nftReceive.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* 탭 메뉴 */
@@ -232,18 +241,28 @@ const nftItems = ref([
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
+  background: #212436;
+  border-radius: 5vw;
 }
 
 .tab {
   flex: 1;
   padding: 0.8rem;
-  border-radius: 12px;
+  border-radius:5vw;
   border: none;
   cursor: pointer;
+  color: #7C7D82;
 }
 
+span.btnLabel {
+    color: #E9E9E9;
+    font-weight: 600;
+}
+
+
 .tab.active {
-  background: darkgray;
+  background: #3B3F58;
+  color: #fff;
 }
 
 /* 아이템 목록 */

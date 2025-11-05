@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, updateUserCoins } from '@/utils/userUtils'
 
 const router = useRouter()
 const coinCount = ref(0)
@@ -34,32 +34,43 @@ const checkAttendance = (dayIndex) => {
     return
   }
   
-  const day = attendanceData.value[dayIndex]
-  if (day.isChecked) {
-    return // 이미 체크된 날짜
-  }
-  
   // 오늘 날짜 확인
   const today = new Date().toDateString()
-  const lastCheckInDate = localStorage.getItem(`checkIn_${currentUser.value.id}`)
+  const lastCheckInDate = localStorage.getItem(`attendance_checkIn_${currentUser.value.id}`)
   
-  if (lastCheckInDate !== today) {
-    alert('오늘 출석체크를 먼저 진행해주세요.')
+  // 하루에 한 번만 출석체크 가능
+  if (lastCheckInDate === today) {
+    alert('오늘 이미 출석체크를 완료했습니다! 내일 다시 시도해주세요.')
     return
   }
   
-  // 연속 출석일 계산
+  const day = attendanceData.value[dayIndex]
+  if (day.isChecked) {
+    alert('이미 체크된 날짜입니다.')
+    return // 이미 체크된 날짜
+  }
+  
+  // 연속 출석일 계산 (첫 번째 날이거나 다음 순서의 날만 체크 가능)
   if (checkedDays.value.length === 0 || dayIndex === checkedDays.value.length) {
     day.isChecked = true
     checkedDays.value.push(day.day)
     
-    // 보상 지급 (간단히 처리)
+    // 보상 지급
     const reward = 1000 // 1K
     coinCount.value += reward
     
+    // 오늘 출석체크 날짜 저장
+    localStorage.setItem(`attendance_checkIn_${currentUser.value.id}`, today)
+    isCheckedInToday.value = true
+    
+    // 사용자 데이터 업데이트
+    if (currentUser.value) {
+      updateUserCoins(currentUser.value.id, coinCount.value)
+    }
+    
     // localStorage에 저장
     saveAttendanceData()
-    alert(`Day ${day.day} 출석체크 완료! ${reward} 코인 획득!`)
+    alert(`Day ${day.day} 출석체크 완료! ${reward} 포인트 획득!`)
   } else {
     alert('연속 출석체크만 가능합니다.')
   }
@@ -97,10 +108,18 @@ const loadAttendanceData = () => {
   }
 }
 
+// 오늘 출석체크 여부 확인
+const isCheckedInToday = ref(false)
+
 onMounted(() => {
   currentUser.value = getCurrentUser()
   if (currentUser.value) {
     coinCount.value = currentUser.value.gameData?.coins || 0
+    
+    // 오늘 출석체크 여부 확인
+    const today = new Date().toDateString()
+    const lastCheckInDate = localStorage.getItem(`attendance_checkIn_${currentUser.value.id}`)
+    isCheckedInToday.value = lastCheckInDate === today
   }
   loadAttendanceData()
 })
@@ -117,14 +136,19 @@ onMounted(() => {
       <!-- 타이틀 -->
       <h1 class="pageTitle">출석체크</h1>
       
+      <!-- 오늘 출석체크 완료 메시지 -->
+      <div v-if="isCheckedInToday" class="attendanceMessage">
+        오늘 출석체크를 완료했습니다! 내일 다시 시도해주세요.
+      </div>
+      
       <!-- 출석체크 그리드 -->
       <div class="attendanceGrid">
         <div 
           v-for="(day, index) in attendanceData" 
           :key="day.day"
           class="dayCell"
-          :class="{ checked: day.isChecked }"
-          @click="checkAttendance(index)"
+          :class="{ checked: day.isChecked, disabled: isCheckedInToday && !day.isChecked }"
+          @click="!isCheckedInToday || day.isChecked ? checkAttendance(index) : null"
         >
           <div class="dayNumber">Day {{ day.day }}</div>
           <div class="rewardIcon">
@@ -199,6 +223,23 @@ onMounted(() => {
 .dayCell.checked {
   background: rgba(125, 211, 252, 0.3);
   opacity: 0.7;
+}
+
+.dayCell.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.attendanceMessage {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .dayNumber {
