@@ -60,6 +60,18 @@ const toggleLanguage = (lang) => {
   localStorage.setItem('appLanguage', lang)
 }
 
+// 소리 설정 토글 함수
+const toggleSound = () => {
+  soundEnabled.value = !soundEnabled.value
+  // localStorage에 저장
+  localStorage.setItem('soundEnabled', soundEnabled.value.toString())
+  
+  // 전역 이벤트 발생하여 모든 오디오 제어
+  window.dispatchEvent(new CustomEvent('soundSettingChanged', { 
+    detail: { enabled: soundEnabled.value } 
+  }))
+}
+
 onMounted(() => {
   const user = getCurrentUser()
   if (user) {
@@ -74,6 +86,15 @@ onMounted(() => {
   const savedLanguage = localStorage.getItem('appLanguage')
   if (savedLanguage) {
     language.value = savedLanguage
+  }
+  
+  // localStorage에서 소리 설정 로드
+  const savedSoundSetting = localStorage.getItem('soundEnabled')
+  if (savedSoundSetting !== null) {
+    soundEnabled.value = savedSoundSetting === 'true'
+  } else {
+    // 기본값 저장
+    localStorage.setItem('soundEnabled', 'true')
   }
   
   // 출석체크 상태 확인
@@ -195,7 +216,7 @@ const checkAttendanceStatus = () => {
           <button 
             class="toggleSwitch" 
             :class="{ active: soundEnabled }"
-            @click="soundEnabled = !soundEnabled"
+            @click="toggleSound"
           >
             <div class="toggleHandle"></div>
           </button>

@@ -37,6 +37,16 @@ export const updateUserCoins = (userId, coins) => {
   return updateUserGameData(userId, { coins })
 }
 
+// 사용자 토탈 코인 업데이트 (Coin C)
+export const updateUserTotalCoin = (userId, totalCoin) => {
+  return updateUserGameData(userId, { totalCoin })
+}
+
+// 동시에 포인트와 코인 업데이트
+export const updateUserPointsAndCoins = (userId, coins, totalCoin) => {
+  return updateUserGameData(userId, { coins, totalCoin })
+}
+
 // 사용자 레벨 업데이트
 export const updateUserLevel = (userId, level) => {
   return updateUserGameData(userId, { level })

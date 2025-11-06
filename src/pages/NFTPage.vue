@@ -3,6 +3,12 @@ import { ref } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser } from '@/utils/userUtils'
+import btcImage from '@/assets/img/btc.png'
+import ethImage from '@/assets/img/eth.png'
+import btcLineImage from '@/assets/img/BTC_line.png'
+import ethLineImage from '@/assets/img/eth_line.png'
+import catProfile01 from '@/assets/img/catProfile01.png'
+import catProfile02 from '@/assets/img/catProfile02.png'
 
 const coinCount = ref(0)
 const activeTab = ref('tokens')
@@ -23,14 +29,14 @@ const switchTab = (tab) => {
 
 // Token 아이템 목록 (예시 데이터)
 const tokenItems = ref([
-  { id: 1, name: 'Bitcoin', symbol: 'BTC', price: '36,590.00', change: '+6.21%', isPositive: true },
-  { id: 2, name: 'Ethereum', symbol: 'ETH', price: '2,590.00', change: '+5.21%', isPositive: true }
+  { id: 1, name: 'Bitcoin', symbol: 'BTC', price: '36,590.00', change: '+6.21%', isPositive: true, image: btcImage, lineImage: btcLineImage },
+  { id: 2, name: 'Ethereum', symbol: 'ETH', price: '2,590.00', change: '+5.21%', isPositive: true, image: ethImage, lineImage: ethLineImage }
 ])
 
 // NFT 아이템 목록 (예시 데이터)
 const nftItems = ref([
-  { id: 1, nftId: '#1957', collectionName: 'Bored Ape Yacht Club', ethAmount: '64', usdValue: '23,114.57', image: '' },
-  { id: 2, nftId: '#6513', collectionName: 'Bored Ape Yacht Club', ethAmount: '199.8', usdValue: '45,114.57', image: '' }
+  { id: 1, nftId: '#1957', collectionName: 'Bored Ape Yacht Club', ethAmount: '64', usdValue: '23,114.57', image: catProfile01 },
+  { id: 2, nftId: '#6513', collectionName: 'Bored Ape Yacht Club', ethAmount: '199.8', usdValue: '45,114.57', image: catProfile02 }
 ])
 </script>
 
@@ -40,7 +46,7 @@ const nftItems = ref([
     <Header :coinCount="coinCount" />
     
     <!-- 메인 콘텐츠 -->
-    <main class="mainContent">
+    <main class="mainContent nftWrap">
       <!-- 지갑 잔액 섹션 -->
       <div class="walletSection">
         <div class="walletLabel">Current Wallet Balance</div>
@@ -93,14 +99,14 @@ const nftItems = ref([
           class="item"
         >
           <div class="itemIcon">
-            <div class="iconCircle"></div>
+            <div class="iconCircle" :style="{ backgroundImage: `url(${item.image})` }"></div>
           </div>
           <div class="itemInfo">
             <div class="itemSymbol">{{ item.symbol }}</div>
             <div class="itemName">{{ item.name }}</div>
           </div>
           <div class="itemChart">
-            <div class="chartLine"></div>
+            <div class="chartLine" :style="{ backgroundImage: `url(${item.lineImage})` }"></div>
           </div>
           <div class="itemPrice">
             <div class="price">${{ item.price }}</div>
@@ -119,7 +125,7 @@ const nftItems = ref([
           class="nftItem"
         >
           <div class="nftThumbnail">
-            <div class="thumbnailPlaceholder"></div>
+            <div class="thumbnailPlaceholder" :style="{ backgroundImage: `url(${item.image})` }"></div>
           </div>
           <div class="nftInfo">
             <div class="nftId">{{ item.nftId }}</div>
@@ -145,6 +151,11 @@ const nftItems = ref([
 </template>
 
 <style scoped>
+.nftWrap{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
 .nftPage {
   width: 100%;
   min-height: 100vh;
@@ -169,13 +180,14 @@ const nftItems = ref([
 
 .walletLabel {
   margin-bottom: 0.5rem;
+  color: #fff;
 }
 
 .walletBalance {
   font-size: 2.5em;
   color: #fff;
   font-weight: bold;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.8rem;
 }
 
 .btcInfo {
@@ -183,6 +195,12 @@ const nftItems = ref([
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  background: rgba(0, 0, 0, .5);
+  width: max-content;
+  margin: auto;
+  padding: 0 2rem;
+  border-radius: 2rem;
+  color: #fff;
 }
 
 .change.positive {
@@ -193,7 +211,7 @@ const nftItems = ref([
 .actionButtons {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 2rem;
+  /* margin-bottom: 2rem; */
 }
 
 .actionBtn {
@@ -207,8 +225,9 @@ const nftItems = ref([
 }
 
 .btnIcon {
-  width: 60px;
-  height: 60px;
+  width: 76px;
+  height: auto;
+  aspect-ratio: 1/1;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -240,9 +259,10 @@ const nftItems = ref([
 .tabMenu {
   display: flex;
   gap: 1rem;
-  margin-bottom: 2rem;
+  /* margin-bottom: 2rem; */
   background: #212436;
   border-radius: 5vw;
+  padding: 4px;
 }
 
 .tab {
@@ -274,9 +294,11 @@ span.btnLabel {
 
 .item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
+  color: #fff;
 }
 
 .itemIcon {
@@ -288,12 +310,14 @@ span.btnLabel {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: orange;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-.itemInfo {
+/* .itemInfo {
   flex: 1;
-}
+} */
 
 .itemSymbol {
   font-size: 1.2rem;
@@ -306,14 +330,19 @@ span.btnLabel {
 }
 
 .itemChart {
-  width: 60px;
-  height: 30px;
+  /* width: 60px;
+  height: 30px; */
+  flex: 1;
+  max-width: 150px;
 }
 
 .chartLine {
   width: 100%;
-  height: 100%;
-  border: 1px solid green;
+  height: auto;
+  aspect-ratio: 100/27;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .itemPrice {
@@ -341,6 +370,7 @@ span.btnLabel {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
+  color: #fff;
 }
 
 .nftThumbnail {
@@ -353,7 +383,9 @@ span.btnLabel {
   width: 100%;
   height: 100%;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .nftInfo {

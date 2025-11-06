@@ -79,6 +79,9 @@ onMounted(() => {
   dataUpdateInterval = setInterval(() => {
     loadUserData()
   }, 500) // 0.5초마다 체크
+  
+  // 커스텀 이벤트 리스너: 사용자 데이터 즉시 업데이트
+  window.addEventListener('userDataUpdated', loadUserData)
 })
 
 onUnmounted(() => {
@@ -88,6 +91,8 @@ onUnmounted(() => {
   if (dataUpdateInterval) {
     clearInterval(dataUpdateInterval)
   }
+  // 이벤트 리스너 제거
+  window.removeEventListener('userDataUpdated', loadUserData)
 })
 
 // 숫자 포맷팅 함수

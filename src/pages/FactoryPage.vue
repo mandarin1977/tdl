@@ -4,7 +4,7 @@ import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
 
-const coinCount = ref(0)
+const totalCoin = ref(0) // Coin (C) - Point가 아니라 Coin 사용
 const catFragments = ref(50) // 고양이 파편 개수 (더미데이터)
 const requiredCoin = ref(100) // 필요 코인
 const requiredFragments = ref(3) // 필요 고양이 파편
@@ -16,7 +16,7 @@ const newCatImageId = ref(1) // 새로 데려온 고양이 이미지 ID
 onMounted(() => {
   const currentUser = getCurrentUser()
   if (currentUser) {
-    coinCount.value = currentUser.gameData?.coins || 0
+    totalCoin.value = currentUser.gameData?.totalCoin || 0
     // 고양이 파편은 더미데이터로 50으로 설정
     catFragments.value = 50
   }
@@ -24,7 +24,7 @@ onMounted(() => {
 
 // 고양이 제작하기
 const createCat = () => {
-  if (coinCount.value < requiredCoin.value) {
+  if (totalCoin.value < requiredCoin.value) {
     alert(`코인이 부족합니다. (필요: ${requiredCoin.value})`)
     return
   }
@@ -37,7 +37,7 @@ const createCat = () => {
   // 재료 차감
   const currentUser = getCurrentUser()
   if (currentUser) {
-    coinCount.value -= requiredCoin.value
+    totalCoin.value -= requiredCoin.value
     catFragments.value -= requiredFragments.value
     
     // 랜덤 고양이 이미지 ID 생성 (1-30)
@@ -60,13 +60,16 @@ const createCat = () => {
     // 새 고양이는 맨 앞에 추가
     currentInventory.unshift(newCat)
     
-    // 데이터 업데이트
+    // 데이터 업데이트 (totalCoin 사용)
     updateUserGameData(currentUser.id, {
-      coins: coinCount.value,
+      totalCoin: totalCoin.value,
       catFragments: catFragments.value,
       catCount: catCount,
       inventory: currentInventory
     })
+    
+    // Header에 즉시 업데이트 알림 (커스텀 이벤트)
+    window.dispatchEvent(new CustomEvent('userDataUpdated'))
     
     // 성공 팝업 표시
     showSuccessPopup.value = true
@@ -75,12 +78,12 @@ const createCat = () => {
 
 // 재료 충족 여부
 const canCreate = computed(() => {
-  return coinCount.value >= requiredCoin.value && catFragments.value >= requiredFragments.value
+  return totalCoin.value >= requiredCoin.value && catFragments.value >= requiredFragments.value
 })
 
 // 코인 충족 여부
 const hasEnoughCoins = computed(() => {
-  return coinCount.value >= requiredCoin.value
+  return totalCoin.value >= requiredCoin.value
 })
 
 // 고양이 파편 충족 여부
@@ -111,7 +114,7 @@ const closePopup = () => {
 <template>
   <div class="factoryPage">
     <!-- 헤더 -->
-    <Header :coinCount="coinCount" :catCount="catFragments" />
+    <Header :catCount="catFragments" />
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
@@ -139,7 +142,7 @@ const closePopup = () => {
         <div class="materialItem" :class="{ insufficient: !hasEnoughCoins }">
           <img src="@/assets/img/mainCoin.png" alt="코인" class="materialIcon">
           <span class="materialText">
-            <span class="materialCount">{{ coinCount }}</span> / {{ requiredCoin }} Coin
+            <span class="materialCount">{{ totalCoin }}</span> / {{ requiredCoin }} Coin
           </span>
         </div>
         <div class="plusSign">+</div>
@@ -457,6 +460,21 @@ const closePopup = () => {
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@media (max-width: 500px) {
+  .catSilhouette::before{
+    display: none;
+  }
+  .catCircle{
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1/1;
+  }
+  .catShape{
+    width: 30vw;
+    height: auto;
   }
 }
 </style>

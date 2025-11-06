@@ -139,25 +139,45 @@ onMounted(() => {
     console.log('클릭 사운드 파일을 찾을 수 없습니다.')
   }
   
+  // 소리 설정 변경 이벤트 리스너 (클릭 사운드는 handleClick에서 이미 처리)
+  const handleSoundSettingChange = () => {
+    // 소리 꺼지면 현재 재생 중인 사운드 정지
+    if (!getSoundEnabled() && clickSound.value) {
+      clickSound.value.pause()
+      clickSound.value.currentTime = 0
+    }
+  }
+  window.addEventListener('soundSettingChanged', handleSoundSettingChange)
+  
   // 자동 포인트 획득 시작
   startAutoPointGeneration('mining')
   startAutoPointGeneration('hunting')
   startAutoPointGeneration('exploration')
   startAutoPointGeneration('production')
+  
+  // 언마운트 시 정리
+  onUnmounted(() => {
+    // 라우터 이벤트 리스너 제거
+    router.afterEach(handleRouteChange)
+    
+    // 모든 자동 포인트 획득 중지
+    stopAllAutoPointGeneration()
+    
+    // 소리 설정 변경 이벤트 리스너 제거
+    window.removeEventListener('soundSettingChanged', handleSoundSettingChange)
+  })
 })
 
-onUnmounted(() => {
-  // 컴포넌트 언마운트 시 이벤트 리스너 제거
-  router.afterEach(handleRouteChange)
-  
-  // 모든 자동 포인트 획득 중지
-  stopAllAutoPointGeneration()
-})
+// 소리 설정 상태 확인 함수
+const getSoundEnabled = () => {
+  const saved = localStorage.getItem('soundEnabled')
+  return saved !== null ? saved === 'true' : true // 기본값 true
+}
 
 // 클릭 이벤트 함수
 const handleClick = (mode) => {
-  // 클릭 사운드 재생
-  if (clickSound.value) {
+  // 클릭 사운드 재생 (소리 설정이 켜져 있을 때만)
+  if (clickSound.value && getSoundEnabled()) {
     clickSound.value.currentTime = 0 // 처음부터 재생
     clickSound.value.play().catch(() => {
       // 재생 실패 시 무시
