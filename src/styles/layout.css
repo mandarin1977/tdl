@@ -33,9 +33,9 @@ body {
 
 /* 스크롤바 스타일링 */
 ::-webkit-scrollbar {
-    width: 4px;
+    display: none;
 }
-
+/* 
 ::-webkit-scrollbar-track {
     background: transparent;
 }
@@ -47,7 +47,7 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(102, 126, 234, 0.5);
-}
+} */
 
 /* class모음 */
 .hidden {

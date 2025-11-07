@@ -9,12 +9,16 @@ import btcLineImage from '@/assets/img/BTC_line.png'
 import ethLineImage from '@/assets/img/eth_line.png'
 import catProfile01 from '@/assets/img/catProfile01.png'
 import catProfile02 from '@/assets/img/catProfile02.png'
+import ethIco from '@/assets/img/eth_ico.png'
 
 const coinCount = ref(0)
 const activeTab = ref('tokens')
 const walletBalance = ref('$ 5,323.00')
 const btcAmount = ref('0.00335')
 const btcChange = ref('+6.54%')
+const showBuyPopup = ref(false)
+const showSendPopup = ref(false)
+const showReceivePopup = ref(false)
 
 // 현재 사용자 정보 로드
 const currentUser = getCurrentUser()
@@ -25,6 +29,36 @@ if (currentUser) {
 // 탭 전환
 const switchTab = (tab) => {
   activeTab.value = tab
+}
+
+// Buy 버튼 클릭 핸들러
+const handleBuyClick = () => {
+  showBuyPopup.value = true
+}
+
+// 팝업 닫기
+const closeBuyPopup = () => {
+  showBuyPopup.value = false
+}
+
+// Send 버튼 클릭 핸들러
+const handleSendClick = () => {
+  showSendPopup.value = true
+}
+
+// Send 팝업 닫기
+const closeSendPopup = () => {
+  showSendPopup.value = false
+}
+
+// Receive 버튼 클릭 핸들러
+const handleReceiveClick = () => {
+  showReceivePopup.value = true
+}
+
+// Receive 팝업 닫기
+const closeReceivePopup = () => {
+  showReceivePopup.value = false
 }
 
 // Token 아이템 목록 (예시 데이터)
@@ -59,15 +93,15 @@ const nftItems = ref([
       
       <!-- 액션 버튼 섹션 -->
       <div class="actionButtons">
-        <button class="actionBtn sendBtn">
+        <button class="actionBtn sendBtn" @click="handleSendClick">
           <div class="btnIcon"></div>
           <span class="btnLabel">Send</span>
         </button>
-        <button class="actionBtn buyBtn">
+        <button class="actionBtn buyBtn" @click="handleBuyClick">
           <div class="btnIcon"></div>
           <span class="btnLabel">Buy</span>
         </button>
-        <button class="actionBtn receiveBtn">
+        <button class="actionBtn receiveBtn" @click="handleReceiveClick">
           <div class="btnIcon"></div>
           <span class="btnLabel">Receive</span>
         </button>
@@ -133,7 +167,7 @@ const nftItems = ref([
           </div>
           <div class="nftValue">
             <div class="ethAmount">
-              <span class="diamondIcon">💎</span>
+              <img :src="ethIco" alt="ETH" class="ethIcon" />
               <span>{{ item.ethAmount }}</span>
             </div>
             <div class="usdValue positive">
@@ -147,6 +181,57 @@ const nftItems = ref([
     
     <!-- 푸터 -->
     <Footer />
+    
+    <!-- Buy 팝업 -->
+    <div v-if="showBuyPopup" class="popupOverlay" @click="closeBuyPopup">
+      <div class="popupContent" @click.stop>
+        <div class="popupHeader">
+          <h2 class="popupTitle">구매하기</h2>
+          <button class="closeBtn" @click="closeBuyPopup">×</button>
+        </div>
+        <div class="popupBody">
+          <p class="popupMessage">구매해주세요</p>
+          <div class="popupActions">
+            <button class="popupBtn cancelBtn" @click="closeBuyPopup">취소</button>
+            <button class="popupBtn confirmBtn" @click="closeBuyPopup">확인</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Send 팝업 -->
+    <div v-if="showSendPopup" class="popupOverlay" @click="closeSendPopup">
+      <div class="popupContent" @click.stop>
+        <div class="popupHeader">
+          <h2 class="popupTitle">전송하기</h2>
+          <button class="closeBtn" @click="closeSendPopup">×</button>
+        </div>
+        <div class="popupBody">
+          <p class="popupMessage">전송해주세요</p>
+          <div class="popupActions">
+            <button class="popupBtn cancelBtn" @click="closeSendPopup">취소</button>
+            <button class="popupBtn confirmBtn" @click="closeSendPopup">확인</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Receive 팝업 -->
+    <div v-if="showReceivePopup" class="popupOverlay" @click="closeReceivePopup">
+      <div class="popupContent" @click.stop>
+        <div class="popupHeader">
+          <h2 class="popupTitle">받기</h2>
+          <button class="closeBtn" @click="closeReceivePopup">×</button>
+        </div>
+        <div class="popupBody">
+          <p class="popupMessage">받아주세요</p>
+          <div class="popupActions">
+            <button class="popupBtn cancelBtn" @click="closeReceivePopup">취소</button>
+            <button class="popupBtn confirmBtn" @click="closeReceivePopup">확인</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -283,6 +368,7 @@ span.btnLabel {
 .tab.active {
   background: #3B3F58;
   color: #fff;
+  font-weight: 500;
 }
 
 /* 아이템 목록 */
@@ -416,8 +502,10 @@ span.btnLabel {
   font-weight: 600;
 }
 
-.diamondIcon {
-  font-size: 1rem;
+.ethIcon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
 }
 
 .usdValue {
@@ -434,6 +522,138 @@ span.btnLabel {
 
 .arrowUp {
   font-size: 0.9rem;
+}
+
+/* 팝업 스타일 */
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.popupContent {
+  background: rgba(33, 36, 54, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 90%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.popupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.popupTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: #7C7D82;
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s;
+}
+
+.closeBtn:hover {
+  color: #fff;
+}
+
+.popupBody {
+  color: #fff;
+}
+
+.popupMessage {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.popupActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.popupBtn {
+  flex: 1;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 1rem;
+}
+
+.cancelBtn {
+  background: rgba(59, 63, 88, 0.8);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cancelBtn:hover {
+  background: rgba(59, 63, 88, 1);
+  transform: translateY(-2px);
+}
+
+.confirmBtn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.confirmBtn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 </style>
 

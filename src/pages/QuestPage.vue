@@ -350,24 +350,6 @@ onMounted(() => {
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
-      <!-- 메인 탭 -->
-      <div class="mainTabs">
-        <button 
-          class="mainTab" 
-          :class="{ active: activeMainTab === 'inProgress' }"
-          @click="activeMainTab = 'inProgress'"
-        >
-          진행중
-        </button>
-        <button 
-          class="mainTab" 
-          :class="{ active: activeMainTab === 'completed' }"
-          @click="activeMainTab = 'completed'"
-        >
-          완료
-        </button>
-      </div>
-      
       <!-- 필터 탭 -->
       <div class="filterTabs">
         <button 
@@ -392,6 +374,25 @@ onMounted(() => {
           Monthly
         </button>
       </div>
+      <!-- 메인 탭 -->
+      <div class="mainTabs">
+        <button 
+          class="mainTab" 
+          :class="{ active: activeMainTab === 'inProgress' }"
+          @click="activeMainTab = 'inProgress'"
+        >
+          진행중
+        </button>
+        <button 
+          class="mainTab" 
+          :class="{ active: activeMainTab === 'completed' }"
+          @click="activeMainTab = 'completed'"
+        >
+          완료
+        </button>
+      </div>
+      
+
       
       <!-- 퀘스트 리스트 -->
       <div class="questList">
@@ -462,25 +463,28 @@ onMounted(() => {
 /* 메인 탭 */
 .mainTabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
   margin-bottom: 1rem;
+  background: #212436;
+  border-radius: 5vw;
+  padding: 4px;
 }
 
 .mainTab {
   flex: 1;
-  padding: 1rem;
+  padding: 0.8rem;
+  border-radius: 5vw;
   border: none;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-weight: 500;
   cursor: pointer;
+  color: #7C7D82;
+  background: transparent;
+  font-weight: 500;
   transition: all 0.3s;
 }
 
 .mainTab.active {
-  background: #7DD3FC;
-  color: #0F172A;
+  background: #3B3F58;
+  color: #fff;
 }
 
 /* 필터 탭 */
@@ -488,21 +492,29 @@ onMounted(() => {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+  background: rgba(33, 36, 54, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 5rem;
+  width: max-content;
+  margin-left: auto;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .filterTab {
   padding: 0.6rem 1.2rem;
   border: none;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  color: #7C7D82;
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.3s;
+  background: transparent;
 }
 
 .filterTab.active {
-  background: rgba(255, 255, 255, 0.3);
+  background: #3B3F58;
+  color: #fff;
 }
 
 /* 퀘스트 리스트 */
@@ -514,12 +526,15 @@ onMounted(() => {
 
 /* 퀘스트 카드 */
 .questCard {
-  background: white;
+  background: rgba(33, 36, 54, 0.8);
+  backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 1.2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .questContent {
@@ -536,13 +551,13 @@ onMounted(() => {
 .questTitle {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #0F172A;
+  color: #fff;
   margin: 0 0 0.5rem 0;
 }
 
 .questDescription {
   font-size: 0.9rem;
-  color: #64748B;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
 }
 
@@ -555,28 +570,32 @@ onMounted(() => {
 .characterImg {
   width: 100%;
   height: 100%;
-  background: #F1F5F9;
+  background: rgba(59, 63, 88, 0.8);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* 보상 받기 버튼 */
 .rewardBtn {
   padding: 0.8rem;
-  background: #FF6B6B;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 .rewardBtn:hover {
-  background: #FF5252;
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
 /* 진행도 바 */
@@ -584,14 +603,15 @@ onMounted(() => {
   position: relative;
   width: 100%;
   height: 8px;
-  background: #E2E8F0;
+  background: rgba(59, 63, 88, 0.8);
   border-radius: 4px;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .progressFill {
   height: 100%;
-  background: #7DD3FC;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
   transition: width 0.3s;
 }
 
@@ -601,17 +621,18 @@ onMounted(() => {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 0.75rem;
-  color: #64748B;
+  color: #fff;
   font-weight: 600;
 }
 
 .completedBadge {
   padding: 0.8rem;
-  background: #F1F5F9;
-  color: #64748B;
+  background: rgba(59, 63, 88, 0.8);
+  color: rgba(255, 255, 255, 0.7);
   border-radius: 8px;
   text-align: center;
   font-weight: 600;
   font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 </style>

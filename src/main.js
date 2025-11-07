@@ -18,6 +18,8 @@ import FactoryPage from './pages/FactoryPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
 import AttendancePage from './pages/AttendancePage.vue'
 import NFTPage from './pages/NFTPage.vue'
+import NotificationPage from './pages/NotificationPage.vue'
+import ShopPage from './pages/ShopPage.vue'
 
 // 라우터 설정
 const routes = [
@@ -36,7 +38,9 @@ const routes = [
   { path: '/factory', component: FactoryPage },
   { path: '/settings', component: SettingsPage },
   { path: '/attendance', component: AttendancePage },
-  { path: '/nft', component: NFTPage }
+  { path: '/nft', component: NFTPage },
+  { path: '/notification', component: NotificationPage },
+  { path: '/shop', component: ShopPage }
 ]
 
 const router = createRouter({

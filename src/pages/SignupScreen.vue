@@ -91,9 +91,7 @@ const togglePasswordVisibility = () => {
   <div class="signup-screen">
     <!-- 뒤로가기 버튼 -->
     <button class="back-button" @click="goBack">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
+      <img src="@/assets/img/arrowsLeft.png" alt="back-button" width="20px">
     </button>
 
     <!-- 타이틀 -->
@@ -213,9 +211,9 @@ const togglePasswordVisibility = () => {
   position: absolute;
   top: 2rem;
   left: 2rem;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.3);
+  width: 48px;
+  height: 48px;
+  background: #2BB5BD;
   border: none;
   border-radius: 50%;
   color: white;
@@ -224,10 +222,11 @@ const togglePasswordVisibility = () => {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
+  z-index: 10;
 }
 
 .back-button:hover {
-  background: rgba(0, 0, 0, 0.5);
+  background: #1E1E2D;
   transform: scale(1.05);
 }
 
@@ -236,15 +235,15 @@ const togglePasswordVisibility = () => {
   font-size: 2.5rem;
   font-weight: bold;
   text-align: center;
-  margin: 4rem 0 3rem 0;
+  margin: 9rem 0 3rem 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-align: left;
 }
 
 .signup-form {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  max-width: 400px;
   margin: 0 auto;
   width: 100%;
 }
@@ -265,11 +264,8 @@ const togglePasswordVisibility = () => {
   position: relative;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
   padding: 1rem;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .input-icon {
@@ -306,16 +302,17 @@ const togglePasswordVisibility = () => {
 }
 
 .signup-button {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  background: #2BB5BD;
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius:5px;
   padding: 1.2rem;
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;
+  height: 56px;
   box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
 }
 

@@ -668,11 +668,11 @@
 }
 
 .modeLevel {
-  background: rgba(30, 41, 59, 0.8);
+  background: rgba(0, 0, 0, 0.2);
   color: white;
   padding: 0.4rem 1rem;
   border-radius: 20px;
-  font-size: 0.9rem;
+  font-size: 1em;
   font-weight: 500;
 }
 

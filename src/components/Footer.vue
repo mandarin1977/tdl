@@ -237,7 +237,7 @@ footer {
 /* 반응형 */
 @media (max-width: 480px) {
   .tabLabel {
-    font-size: 0.65rem;
+    font-size:1.2rem;
   }
   
   .tabIcon {

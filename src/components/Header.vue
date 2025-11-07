@@ -18,19 +18,24 @@ const currentEnergy = ref(4000)
 const maxEnergy = ref(4000)
 
 // 에너지 체크 및 리셋 함수
+// 에너지는 하루에 최대 4000개까지 사용 가능하며, 하루가 지나면 4000개로 회복됩니다.
 const checkAndResetEnergy = () => {
   const today = new Date().toDateString()
   const lastEnergyDate = localStorage.getItem('energyLastDate')
   const savedEnergy = localStorage.getItem('currentEnergy')
   
   if (lastEnergyDate !== today) {
-    // 하루가 지나면 에너지 리셋
-    currentEnergy.value = maxEnergy.value
+    // 하루가 지나면 에너지를 4000개로 리셋
+    currentEnergy.value = maxEnergy.value // 4000
     localStorage.setItem('energyLastDate', today)
     localStorage.setItem('currentEnergy', maxEnergy.value.toString())
   } else if (savedEnergy) {
-    // 오늘 날짜면 저장된 에너지 로드
-    currentEnergy.value = parseInt(savedEnergy) || maxEnergy.value
+    // 오늘 날짜면 저장된 에너지 로드 (최소 0, 최대 4000개)
+    const saved = parseInt(savedEnergy) || 0
+    currentEnergy.value = Math.max(0, Math.min(saved, maxEnergy.value))
+  } else {
+    // 저장된 에너지가 없으면 0으로 설정
+    currentEnergy.value = 0
   }
 }
 
@@ -58,6 +63,14 @@ const toggleMenu = () => {
 
 const goToSettings = () => {
   router.push('/settings')
+}
+
+const goToNotification = () => {
+  router.push('/notification')
+}
+
+const goToShop = () => {
+  router.push('/shop')
 }
 
 let interval = null
@@ -113,35 +126,35 @@ const formatNumber = (num) => {
     <div class="headerCont">
       <div class="headerBar">
         <!-- 번개 아이콘 + 숫자 -->
-        <div class="headerItem">
+        <button class="headerItem energyItem" @click="goToShop">
           <img src="@/assets/img/lighting.png" alt="에너지" class="energyIcon" />
           <span class="headerValue">{{ formatNumber(currentEnergy) }}</span>
-        </div>
+        </button>
         <div class="divider"></div>
         
         <!-- P 아이콘 + 숫자 -->
-        <div class="headerItem">
+        <button class="headerItem clickableItem" @click="goToShop">
           <img src="@/assets/img/point_ico.png" alt="P" class="pointIcon" />
           <span class="headerValue">{{ formatNumber(coinCount) }}</span>
-        </div>
+        </button>
         <div class="divider"></div>
         
         <!-- C 아이콘 + 숫자 -->
-        <div class="headerItem">
+        <button class="headerItem clickableItem" @click="goToShop">
           <img src="@/assets/img/coin_ico.png" alt="C" class="coinIcon" />
           <span class="headerValue">{{ formatNumber(totalCoin) }}</span>
-        </div>
+        </button>
         <div class="divider"></div>
         
         <!-- 고양이 아이콘 + 숫자 -->
-        <div class="headerItem">
+        <button class="headerItem clickableItem" @click="goToShop">
           <img src="@/assets/img/cat_ico.png" alt="고양이" class="catIcon">
           <span class="headerValue">{{ catFragments }}</span>
-        </div>
+        </button>
         <div class="divider"></div>
         
         <!-- 알림 아이콘 -->
-        <button class="headerIconBtn notifi">
+        <button class="headerIconBtn notifi" @click="goToNotification">
           <img src="@/assets/img/notice.png" alt="알림" class="icon-img">
         </button>
         <div class="divider"></div>
@@ -199,6 +212,21 @@ header {
   color: white;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.energyItem,
+.clickableItem {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+.energyItem:hover,
+.clickableItem:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
 }
 
 .energyIcon {
