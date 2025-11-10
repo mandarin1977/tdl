@@ -16,6 +16,7 @@ import QuestPage from './pages/QuestPage.vue'
 import InventoryPage from './pages/InventoryPage.vue'
 import FactoryPage from './pages/FactoryPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
+import UserProfilePage from './pages/UserProfilePage.vue'
 import AttendancePage from './pages/AttendancePage.vue'
 import NFTPage from './pages/NFTPage.vue'
 import NotificationPage from './pages/NotificationPage.vue'
@@ -37,6 +38,7 @@ const routes = [
   { path: '/inventory', component: InventoryPage },
   { path: '/factory', component: FactoryPage },
   { path: '/settings', component: SettingsPage },
+  { path: '/profile', component: UserProfilePage },
   { path: '/attendance', component: AttendancePage },
   { path: '/nft', component: NFTPage },
   { path: '/notification', component: NotificationPage },

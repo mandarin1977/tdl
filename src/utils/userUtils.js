@@ -12,7 +12,23 @@ export const getCurrentUser = () => {
 }
 
 // 사용자 게임 데이터 업데이트
-export const updateUserGameData = (userId, gameData) => {
+export const updateUserGameData = async (userId, gameData) => {
+  const currentUser = getCurrentUser()
+  
+  // Firebase 사용자인지 확인 (uid가 있거나 Firebase 형식인 경우)
+  if (currentUser && (currentUser.id?.length > 20 || currentUser.uid)) {
+    // Firebase를 사용하는 경우
+    try {
+      const { updateGameData } = await import('@/utils/firebaseAuth')
+      const result = await updateGameData(userId, gameData)
+      return result.success
+    } catch (error) {
+      console.error('Firebase 업데이트 실패, localStorage로 폴백:', error)
+      // Firebase 실패 시 localStorage로 폴백
+    }
+  }
+  
+  // 기존 localStorage 방식
   const users = getAllUsers()
   const userIndex = users.findIndex(user => user.id === userId)
   
@@ -21,7 +37,6 @@ export const updateUserGameData = (userId, gameData) => {
     localStorage.setItem('users', JSON.stringify(users))
     
     // 현재 사용자 정보도 업데이트
-    const currentUser = getCurrentUser()
     if (currentUser && currentUser.id === userId) {
       currentUser.gameData = { ...currentUser.gameData, ...gameData }
       sessionStorage.setItem('currentUser', JSON.stringify(currentUser))

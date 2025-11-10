@@ -13,7 +13,6 @@ const language = ref('한국어')
 const region = ref('부산')
 const soundEnabled = ref(true)
 const vibrationEnabled = ref(true)
-const userId = ref('')
 const showLanguageDropdown = ref(false)
 const showRegionDropdown = ref(false)
 const isCheckedInToday = ref(false)
@@ -77,9 +76,6 @@ onMounted(() => {
   if (user) {
     currentUser.value = user
     coinCount.value = user.gameData?.coins || 0
-    
-    // User ID 설정 (email이나 id 사용)
-    userId.value = user.email || user.id || 'ID' + String(Math.random()).substring(2, 10)
   }
   
   // localStorage에서 언어 설정 로드
@@ -100,12 +96,6 @@ onMounted(() => {
   // 출석체크 상태 확인
   checkAttendanceStatus()
 })
-
-// User ID 복사
-const copyUserId = () => {
-  navigator.clipboard.writeText(userId.value)
-  alert(currentTexts.value.copySuccess)
-}
 
 // 출석체크 기능
 const checkAttendance = () => {
@@ -162,6 +152,18 @@ const checkAttendanceStatus = () => {
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
+      <!-- 사용자 설정 버튼 -->
+      <div class="settingGroup">
+        <button 
+          class="userProfileBtn" 
+          @click="router.push('/profile')"
+        >
+          <span class="userProfileIcon">👤</span>
+          <span>사용자 설정</span>
+          <span class="arrowIcon">→</span>
+        </button>
+      </div>
+      
       <!-- 언어 설정 -->
       <div class="settingGroup">
         <label class="settingLabel">{{ language === '한국어' ? '언어' : 'Language' }}</label>
@@ -255,15 +257,6 @@ const checkAttendanceStatus = () => {
           NFT
         </button>
       </div>
-      
-      <!-- User ID -->
-      <div class="settingGroup">
-        <label class="settingLabel">{{ currentTexts.userID }}</label>
-        <div class="settingInput">
-          <span class="userId">{{ userId }}</span>
-          <button class="copyBtn" @click="copyUserId">📋</button>
-        </div>
-      </div>
     </main>
     
     <!-- 푸터 -->
@@ -352,8 +345,43 @@ const checkAttendanceStatus = () => {
   color: #7DD3FC;
 }
 
-.userId {
-  font-family: monospace;
+/* 사용자 설정 버튼 */
+.userProfileBtn {
+  width: 100%;
+  padding: 1.2rem 1.5rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 2px solid rgba(125, 211, 252, 0.3);
+  border-radius: 12px;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.userProfileBtn:hover {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(125, 211, 252, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(125, 211, 252, 0.2);
+}
+
+.userProfileIcon {
+  font-size: 1.5rem;
+}
+
+.arrowIcon {
+  font-size: 1.2rem;
+  color: #7DD3FC;
+  transition: transform 0.3s;
+}
+
+.userProfileBtn:hover .arrowIcon {
+  transform: translateX(4px);
 }
 
 /* 소리 설정 섹션 */
