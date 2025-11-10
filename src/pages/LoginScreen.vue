@@ -13,10 +13,6 @@ const isGoogleLoading = ref(false)
 // 비밀번호 표시/숨김 상태
 const showPassword = ref(false)
 
-// 뒤로가기
-const goBack = () => {
-  router.go(-1)
-}
 
 // 회원가입 페이지로 이동
 const goToSignup = () => {
@@ -124,11 +120,6 @@ onMounted(() => {
 
 <template>
   <div class="login-screen">
-    <!-- 뒤로가기 버튼 -->
-    <button class="back-button" @click="goBack">
-      <img src="@/assets/img/arrowsLeft.png" alt="back-button" width="20px">
-    </button>
-
     <!-- 타이틀 -->
     <h1 class="login-title">로그인</h1>
 
