@@ -111,16 +111,33 @@ onMounted(() => {
     catFragments.value = currentUser.value.gameData?.catFragments || 50
     // 각 모드별 냥이 목록 로드
     if (currentUser.value.gameData?.miningCats) {
-      miningCats.value = currentUser.value.gameData.miningCats
+      // 빈 배열이면 null 배열로 변환 (기존 Firebase 사용자 호환)
+      if (Array.isArray(currentUser.value.gameData.miningCats) && currentUser.value.gameData.miningCats.length === 0) {
+        miningCats.value = [null, null, null, null, null, null]
+      } else {
+        miningCats.value = currentUser.value.gameData.miningCats
+      }
     }
     if (currentUser.value.gameData?.huntingCats) {
-      huntingCats.value = currentUser.value.gameData.huntingCats
+      if (Array.isArray(currentUser.value.gameData.huntingCats) && currentUser.value.gameData.huntingCats.length === 0) {
+        huntingCats.value = [null, null, null, null, null, null]
+      } else {
+        huntingCats.value = currentUser.value.gameData.huntingCats
+      }
     }
     if (currentUser.value.gameData?.explorationCats) {
-      explorationCats.value = currentUser.value.gameData.explorationCats
+      if (Array.isArray(currentUser.value.gameData.explorationCats) && currentUser.value.gameData.explorationCats.length === 0) {
+        explorationCats.value = [null, null, null, null, null, null]
+      } else {
+        explorationCats.value = currentUser.value.gameData.explorationCats
+      }
     }
     if (currentUser.value.gameData?.productionCats) {
-      productionCats.value = currentUser.value.gameData.productionCats
+      if (Array.isArray(currentUser.value.gameData.productionCats) && currentUser.value.gameData.productionCats.length === 0) {
+        productionCats.value = [null, null, null, null, null, null]
+      } else {
+        productionCats.value = currentUser.value.gameData.productionCats
+      }
     }
   }
   
@@ -201,6 +218,7 @@ const handleClick = (mode) => {
     
     if (miningClickCount.value >= 10) {
       coinCount.value += 100
+      pointCount.value = coinCount.value
       miningClickCount.value = 0
       isMiningComplete.value = true
       showNewMiningButton.value = false
@@ -305,6 +323,7 @@ const handleClick = (mode) => {
     
     if (explorationClickCount.value >= 10) {
       coinCount.value += 100
+      pointCount.value = coinCount.value
       explorationClickCount.value = 0
       isExplorationComplete.value = true
       showNewExplorationButton.value = false
@@ -409,6 +428,7 @@ const handleClick = (mode) => {
     
     if (huntingClickCount.value >= 10) {
       coinCount.value += 100
+      pointCount.value = coinCount.value
       huntingClickCount.value = 0
       isHuntingComplete.value = true
       showNewHuntingButton.value = false
@@ -513,6 +533,7 @@ const handleClick = (mode) => {
     
     if (productionClickCount.value >= 10) {
       coinCount.value += 100
+      pointCount.value = coinCount.value
       productionClickCount.value = 0
       isProductionComplete.value = true
       showNewProductionButton.value = false
@@ -1168,6 +1189,11 @@ const stopAllAutoPointGeneration = () => {
     stopAutoPointGeneration(mode)
   })
 }
+
+// coinCount 변경 시 pointCount도 실시간 업데이트
+watch(coinCount, (newValue) => {
+  pointCount.value = newValue
+})
 
 // 고양이 목록 변경 감지하여 자동 포인트 획득 재시작
 watch([miningCats, huntingCats, explorationCats, productionCats], () => {
