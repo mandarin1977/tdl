@@ -276,13 +276,12 @@ onMounted(() => {
 
 .login-title {
   color: white;
-  font-size: 2.5rem;
-  font-weight: 500;
-  text-align: center;
-  margin: 9rem 0 3rem 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-align: left;
+  margin: 2rem 0 2rem 0;
   position: relative;
   z-index: 1;
-  text-align: left;
 }
 
 .login-form {
@@ -302,9 +301,10 @@ onMounted(() => {
 }
 
 .input-label {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
   font-weight: 500;
+  margin-bottom: 0.5rem;
 }
 
 .input-container {
@@ -329,6 +329,7 @@ onMounted(() => {
   color: white;
   font-size: 1rem;
   outline: none;
+  padding: 0.5rem 0;
 }
 
 .input-field::placeholder {
@@ -354,14 +355,14 @@ onMounted(() => {
   background: #2BB5BD;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 12px;
   height: 56px;
   padding: 1.2rem;
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
   width: 100%;
 }
@@ -421,6 +422,7 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 /* Google 로그인 버튼 */
@@ -477,8 +479,10 @@ onMounted(() => {
   border: none;
   color: white;
   font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
   transition: color 0.3s ease;
+  padding: 0.5rem;
 }
 
 .signup-btn:hover {
@@ -488,16 +492,35 @@ onMounted(() => {
 /* 반응형 */
 @media (max-width: 480px) {
   .login-screen {
-    padding: 1rem;
+    padding: 1.2rem;
   }
   
   .login-title {
-    font-size: 2rem;
-    margin: 3rem 0 2rem 0;
+    font-size: 1.6rem;
+    margin: 1.5rem 0 1.5rem 0;
   }
   
   .login-form {
     gap: 1.5rem;
+  }
+  
+  .input-label {
+    font-size: 0.85rem;
+  }
+  
+  .input-field {
+    font-size: 0.95rem;
+  }
+  
+  .login-button,
+  .google-login-button {
+    font-size: 1rem;
+    height: 52px;
+    padding: 1rem;
+  }
+  
+  .signup-btn {
+    font-size: 0.9rem;
   }
   
   .back-button {

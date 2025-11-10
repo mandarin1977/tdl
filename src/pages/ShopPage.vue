@@ -184,16 +184,17 @@ onMounted(() => {
 }
 
 .itemName {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   margin: 0 0 0.5rem 0;
 }
 
 .itemDescription {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.7);
   margin: 0;
+  line-height: 1.4;
 }
 
 .itemPrice {
@@ -204,7 +205,7 @@ onMounted(() => {
 }
 
 .priceValue {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #fff;
 }
@@ -221,6 +222,7 @@ onMounted(() => {
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -240,9 +242,22 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
+  .mainContent {
+    padding: 1.2rem;
+  }
+  
   .shopItem {
     flex-direction: column;
     align-items: flex-start;
+    padding: 1rem;
+  }
+  
+  .itemName {
+    font-size: 0.95rem;
+  }
+  
+  .itemDescription {
+    font-size: 0.8rem;
   }
   
   .itemPrice {
@@ -250,8 +265,14 @@ onMounted(() => {
     margin-bottom: 0.5rem;
   }
   
+  .priceValue {
+    font-size: 1rem;
+  }
+  
   .buyBtn {
     width: 100%;
+    font-size: 0.9rem;
+    padding: 0.75rem 1.2rem;
   }
 }
 </style>

@@ -1,36 +1,44 @@
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const progress = ref(0)
 
 onMounted(() => {
-  // 3초 후 로그인 화면으로 이동
-  setTimeout(() => {
-    router.push('/login')
-  }, 3000)
+  // 진행률 애니메이션
+  const duration = 3000 // 3초
+  const interval = 16 // 약 60fps
+  const increment = 100 / (duration / interval)
+  
+  const timer = setInterval(() => {
+    progress.value += increment
+    if (progress.value >= 100) {
+      progress.value = 100
+      clearInterval(timer)
+      // 로딩 완료 후 로그인 화면으로 이동
+      setTimeout(() => {
+        router.push('/login')
+      }, 200)
+    }
+  }, interval)
 })
 </script>
 
 <template>
   <div class="loading-screen">
-    <div class="loading-container">
-      <div class="logo">
-        <h1>TDL</h1>
-        <p>NFT Web3 Game</p>
+    <div class="logo-top">
+      <img src="@/assets/img/tdl_splashLogo.png" alt="TDL Logo" class="splash-logo" />
+    </div>
+    
+    <div class="loading-bar-container">
+      <div class="loading-bar-track">
+        <div class="loading-bar-fill" :style="{ width: progress + '%' }"></div>
       </div>
-      
-      <div class="loading-spinner">
-        <div class="spinner"></div>
-        <p>Loading...</p>
-      </div>
-      
-      <div class="loading-progress">
-        <div class="progress-bar">
-          <div class="progress-fill"></div>
-        </div>
-        <span class="progress-text">100%</span>
-      </div>
+    </div>
+    
+    <div class="splash-bg">
+      <img src="@/assets/img/tdl_splash_bg.png" alt="Splash Background" class="splash-bg-image" />
     </div>
   </div>
 </template>
@@ -39,111 +47,117 @@ onMounted(() => {
 .loading-screen {
   width: 100%;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background-image: url('@/assets/img/backgroundImg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.loading-screen::before {
-  content: '';
+.logo-top {
   position: absolute;
-  top: 0;
+  top: 40%;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-  animation: float 6s ease-in-out infinite;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 2rem;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+.splash-logo {
+  max-width: 550px;
+  width: 100%;
+  height: auto;
+  animation: fadeIn 1s ease-in;
 }
 
-.loading-container {
-  text-align: center;
-  z-index: 1;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loading-bar-container {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 100%;
+  max-width: 500px;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-bar-track {
+  width: 100%;
+  height: 13px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
   position: relative;
 }
 
-.logo h1 {
-  font-size: 4rem;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 1rem;
-  text-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-  from { text-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.2); }
-  to { text-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 30px rgba(255,255,255,0.4); }
-}
-
-.logo p {
-  font-size: 1.2rem;
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 3rem;
-  font-weight: 300;
-}
-
-.loading-spinner {
-  margin-bottom: 2rem;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(255,255,255,0.3);
-  border-top: 3px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-spinner p {
-  color: rgba(255,255,255,0.8);
-  font-size: 1rem;
-  margin: 0;
-}
-
-.loading-progress {
-  width: 200px;
-  margin: 0 auto;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background: rgba(255,255,255,0.3);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 0.5rem;
-}
-
-.progress-fill {
+.loading-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-  border-radius: 2px;
-  animation: progress 3s ease-out forwards;
+  background: linear-gradient(90deg, #14b8a6 0%, #06b6d4 100%);
+  border-radius: 3px;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 10px rgba(20, 184, 166, 0.5);
 }
 
-@keyframes progress {
-  0% { width: 0%; }
-  100% { width: 100%; }
+.splash-bg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
 }
 
-.progress-text {
-  color: rgba(255,255,255,0.8);
-  font-size: 0.9rem;
-  font-weight: 500;
+.splash-bg-image {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  object-position: bottom;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .logo-top {
+    top: 20%;
+    width: 100%;
+    max-width: unset;
+    padding: 0 1rem;
+  }
+  
+  .splash-logo {
+    max-width: 320px;
+  }
+  
+  .loading-bar-container {
+    top: 55%;
+    max-width: 90%;
+    padding: 0 1rem;
+  }
+  
+  .loading-bar-track {
+    height: 13px;
+  }
 }
 </style>

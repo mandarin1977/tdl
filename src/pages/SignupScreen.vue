@@ -232,12 +232,11 @@ const togglePasswordVisibility = () => {
 
 .signup-title {
   color: white;
-  font-size: 2.5rem;
-  font-weight: bold;
-  text-align: center;
-  margin: 9rem 0 3rem 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-size: 1.8rem;
+  font-weight: 600;
   text-align: left;
+  margin: 2rem 0 2rem 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .signup-form {
@@ -255,9 +254,10 @@ const togglePasswordVisibility = () => {
 }
 
 .input-label {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
   font-weight: 500;
+  margin-bottom: 0.5rem;
 }
 
 .input-container {
@@ -281,6 +281,7 @@ const togglePasswordVisibility = () => {
   color: white;
   font-size: 1rem;
   outline: none;
+  padding: 0.5rem 0;
 }
 
 .input-field::placeholder {
@@ -305,7 +306,7 @@ const togglePasswordVisibility = () => {
   background: #2BB5BD;
   color: white;
   border: none;
-  border-radius:5px;
+  border-radius: 12px;
   padding: 1.2rem;
   font-size: 1.1rem;
   font-weight: 600;
@@ -328,16 +329,30 @@ const togglePasswordVisibility = () => {
 /* 반응형 */
 @media (max-width: 480px) {
   .signup-screen {
-    padding: 1rem;
+    padding: 1.2rem;
   }
   
   .signup-title {
-    font-size: 2rem;
-    margin: 3rem 0 2rem 0;
+    font-size: 1.6rem;
+    margin: 1.5rem 0 1.5rem 0;
   }
   
   .signup-form {
     gap: 1.5rem;
+  }
+  
+  .input-label {
+    font-size: 0.85rem;
+  }
+  
+  .input-field {
+    font-size: 0.95rem;
+  }
+  
+  .signup-button {
+    font-size: 1rem;
+    height: 52px;
+    padding: 1rem;
   }
 }
 </style>

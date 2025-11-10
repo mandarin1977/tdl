@@ -46,26 +46,39 @@ const catEmojis = ref([])
 const clickSound = ref(null)
 
 // 채굴 클릭 카운터
-const miningClickCount = ref(0)
+const miningClickCount = ref(0) // 10번 클릭용 (리셋됨)
+const miningTotalClicks = ref(0) // 총 클릭 수 (누적, 레벨업용)
+const miningLevel = ref(1) // 채굴 레벨
 
 // 채굴 버튼 상태 관리
 const isMiningComplete = ref(false)
 const showNewMiningButton = ref(true)
 
 // 탐험 클릭 카운터
-const explorationClickCount = ref(0)
+const explorationClickCount = ref(0) // 10번 클릭용 (리셋됨)
+const explorationTotalClicks = ref(0) // 총 클릭 수 (누적, 레벨업용)
+const explorationLevel = ref(1) // 탐험 레벨
 const isExplorationComplete = ref(false)
 const showNewExplorationButton = ref(true)
 
 // 사냥 클릭 카운터
-const huntingClickCount = ref(0)
+const huntingClickCount = ref(0) // 10번 클릭용 (리셋됨)
+const huntingTotalClicks = ref(0) // 총 클릭 수 (누적, 레벨업용)
+const huntingLevel = ref(1) // 사냥 레벨
 const isHuntingComplete = ref(false)
 const showNewHuntingButton = ref(true)
 
 // 생산 클릭 카운터
-const productionClickCount = ref(0)
+const productionClickCount = ref(0) // 10번 클릭용 (리셋됨)
+const productionTotalClicks = ref(0) // 총 클릭 수 (누적, 레벨업용)
+const productionLevel = ref(1) // 생산 레벨
 const isProductionComplete = ref(false)
 const showNewProductionButton = ref(true)
+
+// 레벨에 따른 포인트 배수 계산 (2의 제곱)
+const getPointMultiplier = (level) => {
+  return Math.pow(2, level - 1) // 레벨 1 = 1배, 레벨 2 = 2배, 레벨 3 = 4배...
+}
 
 // 게임 모드 변경 함수
 const setActiveMode = (mode) => {
@@ -105,10 +118,19 @@ onMounted(() => {
     // 포인트 = 헤더 맨 왼쪽 값 (현재 coinCount로 전달되는 값)
     pointCount.value = currentUser.value.gameData?.coins || 0
     // 코인 = 헤더 두번째 값 (나중에 별도로 관리 가능)
-    totalCoin.value = 0 // 현재는 0으로 설정
+    totalCoin.value = currentUser.value.gameData?.totalCoin || 0
     coinCount.value = pointCount.value
     // 고양이 파편 로드
     catFragments.value = currentUser.value.gameData?.catFragments || 50
+    // 각 모드별 레벨 및 총 클릭 수 로드
+    miningLevel.value = currentUser.value.gameData?.miningLevel || 1
+    miningTotalClicks.value = currentUser.value.gameData?.miningTotalClicks || 0
+    huntingLevel.value = currentUser.value.gameData?.huntingLevel || 1
+    huntingTotalClicks.value = currentUser.value.gameData?.huntingTotalClicks || 0
+    explorationLevel.value = currentUser.value.gameData?.explorationLevel || 1
+    explorationTotalClicks.value = currentUser.value.gameData?.explorationTotalClicks || 0
+    productionLevel.value = currentUser.value.gameData?.productionLevel || 1
+    productionTotalClicks.value = currentUser.value.gameData?.productionTotalClicks || 0
     // 각 모드별 냥이 목록 로드
     if (currentUser.value.gameData?.miningCats) {
       // 빈 배열이면 null 배열로 변환 (기존 Firebase 사용자 호환)
@@ -215,9 +237,42 @@ const handleClick = (mode) => {
   // 각 모드별로 10번 클릭해야 돈 획득
   if (mode === 'mining') {
     miningClickCount.value++
+    miningTotalClicks.value++
+    
+    // 레벨업 체크 (1000번 클릭마다 레벨 증가)
+    if (miningTotalClicks.value >= miningLevel.value * 1000) {
+      miningLevel.value++
+      // 레벨업 알림
+      const bubble = {
+        id: Date.now(),
+        text: `채굴 레벨업! Lv.${miningLevel.value}`,
+        x: Math.random() * (Math.min(window.innerWidth || 500, 500) - 220 - 40) + 20,
+        y: Math.random() * (window.innerHeight || 800 - 60 - 40 - 200) + 100
+      }
+      speechBubbles.value.push(bubble)
+      setTimeout(() => {
+        const index = speechBubbles.value.findIndex(b => b.id === bubble.id)
+        if (index > -1) {
+          speechBubbles.value.splice(index, 1)
+        }
+      }, 3000)
+      
+      // 레벨 정보 저장
+      if (currentUser.value) {
+        updateUserGameData(currentUser.value.id, {
+          miningLevel: miningLevel.value,
+          miningTotalClicks: miningTotalClicks.value
+        })
+      }
+    }
     
     if (miningClickCount.value >= 10) {
-      coinCount.value += 100
+      // 레벨에 따른 포인트 배수 적용
+      const basePoints = 100
+      const multiplier = getPointMultiplier(miningLevel.value)
+      const pointsGained = basePoints * multiplier
+      
+      coinCount.value += pointsGained
       pointCount.value = coinCount.value
       miningClickCount.value = 0
       isMiningComplete.value = true
@@ -265,7 +320,9 @@ const handleClick = (mode) => {
       if (currentUser.value) {
         updateUserGameData(currentUser.value.id, {
           coins: coinCount.value,
-          catFragments: catFragments.value
+          catFragments: catFragments.value,
+          miningTotalClicks: miningTotalClicks.value,
+          miningLevel: miningLevel.value
         })
       }
       
@@ -278,7 +335,7 @@ const handleClick = (mode) => {
       
       const bubble = {
         id: Date.now(),
-        text: '채굴 완료! 100원 획득!',
+        text: `채굴 완료! ${pointsGained.toLocaleString()}원 획득! (x${multiplier})`,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -320,9 +377,42 @@ const handleClick = (mode) => {
     }
   } else if (mode === 'exploration') {
     explorationClickCount.value++
+    explorationTotalClicks.value++
+    
+    // 레벨업 체크 (1000번 클릭마다 레벨 증가)
+    if (explorationTotalClicks.value >= explorationLevel.value * 1000) {
+      explorationLevel.value++
+      // 레벨업 알림
+      const bubble = {
+        id: Date.now(),
+        text: `탐험 레벨업! Lv.${explorationLevel.value}`,
+        x: Math.random() * (Math.min(window.innerWidth || 500, 500) - 220 - 40) + 20,
+        y: Math.random() * (window.innerHeight || 800 - 60 - 40 - 200) + 100
+      }
+      speechBubbles.value.push(bubble)
+      setTimeout(() => {
+        const index = speechBubbles.value.findIndex(b => b.id === bubble.id)
+        if (index > -1) {
+          speechBubbles.value.splice(index, 1)
+        }
+      }, 3000)
+      
+      // 레벨 정보 저장
+      if (currentUser.value) {
+        updateUserGameData(currentUser.value.id, {
+          explorationLevel: explorationLevel.value,
+          explorationTotalClicks: explorationTotalClicks.value
+        })
+      }
+    }
     
     if (explorationClickCount.value >= 10) {
-      coinCount.value += 100
+      // 레벨에 따른 포인트 배수 적용
+      const basePoints = 100
+      const multiplier = getPointMultiplier(explorationLevel.value)
+      const pointsGained = basePoints * multiplier
+      
+      coinCount.value += pointsGained
       pointCount.value = coinCount.value
       explorationClickCount.value = 0
       isExplorationComplete.value = true
@@ -370,7 +460,9 @@ const handleClick = (mode) => {
       if (currentUser.value) {
         updateUserGameData(currentUser.value.id, {
           coins: coinCount.value,
-          catFragments: catFragments.value
+          catFragments: catFragments.value,
+          explorationTotalClicks: explorationTotalClicks.value,
+          explorationLevel: explorationLevel.value
         })
       }
       
@@ -383,7 +475,7 @@ const handleClick = (mode) => {
       
       const bubble = {
         id: Date.now(),
-        text: '탐험 완료! 100원 획득!',
+        text: `탐험 완료! ${pointsGained.toLocaleString()}원 획득! (x${multiplier})`,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -425,9 +517,42 @@ const handleClick = (mode) => {
     }
   } else if (mode === 'hunting') {
     huntingClickCount.value++
+    huntingTotalClicks.value++
+    
+    // 레벨업 체크 (1000번 클릭마다 레벨 증가)
+    if (huntingTotalClicks.value >= huntingLevel.value * 1000) {
+      huntingLevel.value++
+      // 레벨업 알림
+      const bubble = {
+        id: Date.now(),
+        text: `사냥 레벨업! Lv.${huntingLevel.value}`,
+        x: Math.random() * (Math.min(window.innerWidth || 500, 500) - 220 - 40) + 20,
+        y: Math.random() * (window.innerHeight || 800 - 60 - 40 - 200) + 100
+      }
+      speechBubbles.value.push(bubble)
+      setTimeout(() => {
+        const index = speechBubbles.value.findIndex(b => b.id === bubble.id)
+        if (index > -1) {
+          speechBubbles.value.splice(index, 1)
+        }
+      }, 3000)
+      
+      // 레벨 정보 저장
+      if (currentUser.value) {
+        updateUserGameData(currentUser.value.id, {
+          huntingLevel: huntingLevel.value,
+          huntingTotalClicks: huntingTotalClicks.value
+        })
+      }
+    }
     
     if (huntingClickCount.value >= 10) {
-      coinCount.value += 100
+      // 레벨에 따른 포인트 배수 적용
+      const basePoints = 100
+      const multiplier = getPointMultiplier(huntingLevel.value)
+      const pointsGained = basePoints * multiplier
+      
+      coinCount.value += pointsGained
       pointCount.value = coinCount.value
       huntingClickCount.value = 0
       isHuntingComplete.value = true
@@ -475,7 +600,9 @@ const handleClick = (mode) => {
       if (currentUser.value) {
         updateUserGameData(currentUser.value.id, {
           coins: coinCount.value,
-          catFragments: catFragments.value
+          catFragments: catFragments.value,
+          huntingTotalClicks: huntingTotalClicks.value,
+          huntingLevel: huntingLevel.value
         })
       }
       
@@ -488,7 +615,7 @@ const handleClick = (mode) => {
       
       const bubble = {
         id: Date.now(),
-        text: '사냥 완료! 100원 획득!',
+        text: `사냥 완료! ${pointsGained.toLocaleString()}원 획득! (x${multiplier})`,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -530,9 +657,42 @@ const handleClick = (mode) => {
     }
   } else if (mode === 'production') {
     productionClickCount.value++
+    productionTotalClicks.value++
+    
+    // 레벨업 체크 (1000번 클릭마다 레벨 증가)
+    if (productionTotalClicks.value >= productionLevel.value * 1000) {
+      productionLevel.value++
+      // 레벨업 알림
+      const bubble = {
+        id: Date.now(),
+        text: `생산 레벨업! Lv.${productionLevel.value}`,
+        x: Math.random() * (Math.min(window.innerWidth || 500, 500) - 220 - 40) + 20,
+        y: Math.random() * (window.innerHeight || 800 - 60 - 40 - 200) + 100
+      }
+      speechBubbles.value.push(bubble)
+      setTimeout(() => {
+        const index = speechBubbles.value.findIndex(b => b.id === bubble.id)
+        if (index > -1) {
+          speechBubbles.value.splice(index, 1)
+        }
+      }, 3000)
+      
+      // 레벨 정보 저장
+      if (currentUser.value) {
+        updateUserGameData(currentUser.value.id, {
+          productionLevel: productionLevel.value,
+          productionTotalClicks: productionTotalClicks.value
+        })
+      }
+    }
     
     if (productionClickCount.value >= 10) {
-      coinCount.value += 100
+      // 레벨에 따른 포인트 배수 적용
+      const basePoints = 100
+      const multiplier = getPointMultiplier(productionLevel.value)
+      const pointsGained = basePoints * multiplier
+      
+      coinCount.value += pointsGained
       pointCount.value = coinCount.value
       productionClickCount.value = 0
       isProductionComplete.value = true
@@ -580,7 +740,9 @@ const handleClick = (mode) => {
       if (currentUser.value) {
         updateUserGameData(currentUser.value.id, {
           coins: coinCount.value,
-          catFragments: catFragments.value
+          catFragments: catFragments.value,
+          productionTotalClicks: productionTotalClicks.value,
+          productionLevel: productionLevel.value
         })
       }
       
@@ -593,7 +755,7 @@ const handleClick = (mode) => {
       
       const bubble = {
         id: Date.now(),
-        text: '생산 완료! 100원 획득!',
+        text: `생산 완료! ${pointsGained.toLocaleString()}원 획득! (x${multiplier})`,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -648,8 +810,7 @@ const getRandomMessage = (mode) => {
   return modeMessages[Math.floor(Math.random() * modeMessages.length)]
 }
 
-// 채굴 관련 상태
-const miningLevel = ref(1)
+// 채굴 관련 상태 (miningLevel은 위에서 이미 선언됨)
 const miningProgress = ref(0)
 const isMining = ref(false)
 const resources = ref({
@@ -1248,8 +1409,7 @@ const startMining = () => {
   }, 200)
 }
 
-// 사냥 관련 상태
-const huntingLevel = ref(1)
+// 사냥 관련 상태 (huntingLevel은 위에서 이미 선언됨)
 const huntingProgress = ref(0)
 const isHunting = ref(false)
 const monsters = ref([
@@ -1308,8 +1468,7 @@ const startHunting = () => {
   }, 500)
 }
 
-// 탐험 관련 상태
-const explorationLevel = ref(1)
+// 탐험 관련 상태 (explorationLevel은 위에서 이미 선언됨)
 const explorationProgress = ref(0)
 const isExploring = ref(false)
 const currentLocation = ref(null)
@@ -1407,8 +1566,7 @@ const startExploration = () => {
   }, 300)
 }
 
-// 생산 관련 상태
-const productionLevel = ref(1)
+// 생산 관련 상태 (productionLevel은 위에서 이미 선언됨)
 const productionProgress = ref(0)
 const isProducing = ref(false)
 const currentRecipe = ref(null)
@@ -1552,22 +1710,22 @@ const canProduce = (recipe) => {
           <div class="modeCard miningCard" @click="setActiveMode('mining')">
             <div class="mainmenuBtns"></div>
             <div class="modeTitle">채굴</div>
-            <div class="modeLevel">Level 01</div>
+            <div class="modeLevel">Level {{ String(miningLevel).padStart(2, '0') }}</div>
           </div>
           <div class="modeCard huntingCard" @click="setActiveMode('hunting')">
             <div class="mainmenuBtns"></div>
             <div class="modeTitle">사냥</div>
-            <div class="modeLevel">Level 01</div>
+            <div class="modeLevel">Level {{ String(huntingLevel).padStart(2, '0') }}</div>
           </div>
           <div class="modeCard explorationCard" @click="setActiveMode('exploration')">
             <div class="mainmenuBtns"></div>
             <div class="modeTitle">탐험</div>
-            <div class="modeLevel">Level 01</div>
+            <div class="modeLevel">Level {{ String(explorationLevel).padStart(2, '0') }}</div>
           </div>
           <div class="modeCard productionCard" @click="setActiveMode('production')">
             <div class="mainmenuBtns"></div>
             <div class="modeTitle">생산</div>
-            <div class="modeLevel">Level 01</div>
+            <div class="modeLevel">Level {{ String(productionLevel).padStart(2, '0') }}</div>
           </div>
         </div>
       </article>

@@ -478,6 +478,7 @@ onMounted(() => {
   cursor: pointer;
   color: #7C7D82;
   background: transparent;
+  font-size: 0.95rem;
   font-weight: 500;
   transition: all 0.3s;
 }
@@ -506,7 +507,8 @@ onMounted(() => {
   border: none;
   border-radius: 20px;
   color: #7C7D82;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
   background: transparent;
@@ -549,16 +551,18 @@ onMounted(() => {
 }
 
 .questTitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   margin: 0 0 0.5rem 0;
+  line-height: 1.4;
 }
 
 .questDescription {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.7);
   margin: 0;
+  line-height: 1.4;
 }
 
 .questCharacter {
@@ -586,6 +590,7 @@ onMounted(() => {
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -632,7 +637,46 @@ onMounted(() => {
   border-radius: 8px;
   text-align: center;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .mainContent {
+    padding: 1.2rem;
+  }
+  
+  .filterTab {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .mainTab {
+    font-size: 0.9rem;
+    padding: 0.7rem;
+  }
+  
+  .questTitle {
+    font-size: 0.95rem;
+  }
+  
+  .questDescription {
+    font-size: 0.8rem;
+  }
+  
+  .rewardBtn {
+    font-size: 0.9rem;
+    padding: 0.7rem;
+  }
+  
+  .completedBadge {
+    font-size: 0.8rem;
+    padding: 0.7rem;
+  }
+  
+  .progressText {
+    font-size: 0.7rem;
+  }
 }
 </style>

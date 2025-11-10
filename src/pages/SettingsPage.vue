@@ -282,7 +282,34 @@ const checkAttendanceStatus = () => {
   min-height: calc(100vh - 130px);
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .mainContent {
+    padding: 1.2rem;
+    gap: 1.2rem;
+  }
+  
+  .settingLabel {
+    font-size: 0.85rem;
+  }
+  
+  .userProfileBtn,
+  .checkInBtn,
+  .nftBtn {
+    font-size: 0.95rem;
+    padding: 1rem 1.2rem;
+  }
+  
+  .sectionTitle {
+    font-size: 0.95rem;
+  }
+  
+  .toggleLabel {
+    font-size: 0.85rem;
+  }
 }
 
 /* 설정 그룹 */
@@ -294,8 +321,9 @@ const checkAttendanceStatus = () => {
 
 .settingLabel {
   color: white;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
+  margin-bottom: 0.5rem;
 }
 
 .settingInputWrapper {
@@ -353,7 +381,7 @@ const checkAttendanceStatus = () => {
   border: 2px solid rgba(125, 211, 252, 0.3);
   border-radius: 12px;
   color: white;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -393,9 +421,9 @@ const checkAttendanceStatus = () => {
 
 .sectionTitle {
   color: white;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
-  margin: 0;
+  margin: 0 0 0.5rem 0;
 }
 
 /* 토글 스위치 */
@@ -410,7 +438,7 @@ const checkAttendanceStatus = () => {
 
 .toggleLabel {
   color: white;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
 }
 
@@ -468,7 +496,7 @@ const checkAttendanceStatus = () => {
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -495,7 +523,7 @@ const checkAttendanceStatus = () => {
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;

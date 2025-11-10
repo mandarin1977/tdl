@@ -315,14 +315,14 @@ const gameStats = computed(() => {
 
 .userName {
   color: white;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 600;
   margin: 0 0 0.5rem 0;
 }
 
 .userEmail {
   color: #94A3B8;
-  font-size: 1rem;
+  font-size: 0.9rem;
   margin: 0;
 }
 
@@ -335,8 +335,9 @@ const gameStats = computed(() => {
 
 .settingLabel {
   color: white;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
+  margin-bottom: 0.5rem;
 }
 
 .settingInput {
@@ -383,9 +384,9 @@ const gameStats = computed(() => {
 
 .sectionTitle {
   color: white;
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
-  margin: 0;
+  margin: 0 0 0.5rem 0;
 }
 
 .statsGrid {
@@ -434,11 +435,12 @@ const gameStats = computed(() => {
   color: #94A3B8;
   font-size: 0.85rem;
   font-weight: 500;
+  margin-bottom: 0.3rem;
 }
 
 .statValue {
   color: white;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 700;
 }
 
@@ -455,7 +457,7 @@ const gameStats = computed(() => {
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -489,7 +491,19 @@ const gameStats = computed(() => {
   }
   
   .userName {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
+  }
+  
+  .userEmail {
+    font-size: 0.85rem;
+  }
+  
+  .settingLabel {
+    font-size: 0.85rem;
+  }
+  
+  .sectionTitle {
+    font-size: 0.95rem;
   }
   
   .statsGrid {
@@ -506,8 +520,17 @@ const gameStats = computed(() => {
     height: 40px;
   }
   
+  .statLabel {
+    font-size: 0.8rem;
+  }
+  
   .statValue {
     font-size: 1.1rem;
+  }
+  
+  .logoutBtn {
+    font-size: 0.95rem;
+    padding: 1rem;
   }
 }
 
