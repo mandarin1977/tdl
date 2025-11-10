@@ -224,7 +224,7 @@ footer {
 .tabLabel {
   color: #fff;
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: 1rem;
   transition: all 0.3s ease;
   position: relative;
   z-index: 2;
@@ -237,13 +237,23 @@ footer {
 /* 반응형 */
 @media (max-width: 480px) {
   .tabLabel {
-    font-size:1.2rem;
+    font-size: 0.9rem;
   }
   
   .tabIcon {
     width: 24px;
     height: 24px;
   }
+}
+
+@media (max-width: 360px) {
+  .tabLabel {
+    font-size: 0.8rem;
+  }
   
+  .tabIcon {
+    width: 22px;
+    height: 22px;
+  }
 }
 </style>

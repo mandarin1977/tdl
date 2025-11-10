@@ -53,7 +53,7 @@
 
 .menuLabel {
   color: white;
-  font-size: 1.2em;
+  font-size: 1.4rem;
   font-weight: 500;
   text-align: center;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
@@ -93,9 +93,22 @@
 .totalPointsDisplay {
   text-align: center;
   color: white;
-  font-size: 2.5rem;
+  font-size: 2.4rem;
   font-weight: bold;
   margin-top: 1rem;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .totalPointsDisplay {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .totalPointsDisplay {
+    font-size: 1.8rem;
+  }
 }
 
 .miningButtonContainer {
@@ -121,7 +134,7 @@
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  font-size: 1.2em;
+  font-size: 1.4rem;
   font-weight: 500;
   margin: 0;
 }
@@ -138,10 +151,23 @@
 
 .completeMessageText {
   color: white;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: bold;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   text-align: center;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .completeMessageText {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .completeMessageText {
+    font-size: 1.4rem;
+  }
 }
 
 
@@ -182,13 +208,27 @@
 }
 
 .energyIcon {
-  font-size: 1.2rem;
+  font-size: 1.6rem;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .energyIcon {
+    font-size: 1.4rem;
+  }
 }
 
 .energyText {
   color: white;
-  font-size: 1rem;
+  font-size: 1.4rem;
   font-weight: 500;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .energyText {
+    font-size: 1.2rem;
+  }
 }
 
 .energyBar {
@@ -216,10 +256,18 @@
   color: white;
   padding: 0.8rem 1.2rem;
   border-radius: 12px;
-  font-size: 0.9rem;
+  font-size: 1.4rem;
   font-weight: 500;
   margin-bottom: 1rem;
   text-align: center;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .catsListLabel {
+    font-size: 1.2rem;
+    padding: 0.6rem 1rem;
+  }
 }
 
 .catsListScroll {
@@ -293,15 +341,35 @@
 
 .emptySlotText {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 2rem;
+  font-size: 2.4rem;
   font-weight: bold;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .emptySlotText {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .emptySlotText {
+    font-size: 1.8rem;
+  }
 }
 
 .catLevel {
   color: white;
-  font-size: 0.85rem;
+  font-size: 1.2rem;
   font-weight: 500;
   align-self: flex-start;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .catLevel {
+    font-size: 1rem;
+  }
 }
 
 .catImage {
@@ -324,8 +392,15 @@
 }
 
 .star {
-  font-size: 0.7rem;
+  font-size: 1rem;
   color: #10B981;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .star {
+    font-size: 0.9rem;
+  }
 }
 
 /* 고양이 선택 팝업 */
@@ -364,16 +439,23 @@
 
 .catSelectPopupHeader h3 {
   color: white;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
   margin: 0;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .catSelectPopupHeader h3 {
+    font-size: 1.6rem;
+  }
 }
 
 .closePopupBtn {
   background: transparent;
   border: none;
   color: white;
-  font-size: 2rem;
+  font-size: 2.4rem;
   cursor: pointer;
   width: 40px;
   height: 40px;
@@ -382,6 +464,15 @@
   justify-content: center;
   border-radius: 50%;
   transition: all 0.3s;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .closePopupBtn {
+    font-size: 2rem;
+    width: 36px;
+    height: 36px;
+  }
 }
 
 .closePopupBtn:hover {
@@ -407,10 +498,18 @@
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 1.4rem;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .removeCatBtn {
+    font-size: 1.2rem;
+    padding: 0.8rem;
+  }
 }
 
 .removeCatBtn:hover {
@@ -466,14 +565,28 @@
 
 .availableCatName {
   color: white;
-  font-size: 0.85rem;
+  font-size: 1.2rem;
   font-weight: 500;
   text-align: center;
 }
 
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .availableCatName {
+    font-size: 1rem;
+  }
+}
+
 .availableCatLevel {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.75rem;
+  font-size: 1rem;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .availableCatLevel {
+    font-size: 0.9rem;
+  }
 }
 
 .availableCatStars {
@@ -484,7 +597,14 @@
 
 .availableCatStars .star {
   color: #FFD700;
-  font-size: 0.7rem;
+  font-size: 1rem;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .availableCatStars .star {
+    font-size: 0.9rem;
+  }
 }
 
 /* 사냥 버튼 컨테이너 */
@@ -506,10 +626,17 @@
 
 .huntingLabel {
   color: white;
-  font-size: 1.5em;
+  font-size: 1.6rem;
   font-weight: bold;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
   text-align: center;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .huntingLabel {
+    font-size: 1.4rem;
+  }
 }
 
 /* 탐험 버튼 컨테이너 */
@@ -532,10 +659,17 @@
 
 .explorationLabel {
   color: white;
-  font-size: 1.5em;
+  font-size: 1.6rem;
   font-weight: bold;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
   text-align: center;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .explorationLabel {
+    font-size: 1.4rem;
+  }
 }
 
 /* 생산 버튼 컨테이너 */
@@ -558,10 +692,17 @@
 
 .productionLabel {
   color: white;
-  font-size: 1.5em;
+  font-size: 1.6rem;
   font-weight: bold;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
   text-align: center;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .productionLabel {
+    font-size: 1.4rem;
+  }
 }
 
 
@@ -591,8 +732,15 @@
 
 .statLabel {
   color: white;
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 500;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .statLabel {
+    font-size: 1rem;
+  }
 }
 
 .statValue {
@@ -619,8 +767,21 @@
 
 .statNumber {
   color: white;
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: bold;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .statNumber {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .statNumber {
+    font-size: 1.4rem;
+  }
 }
 
 .divider {
@@ -667,13 +828,34 @@
   margin-bottom: 1rem;
 }
 
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .modeTitle {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .modeTitle {
+    font-size: 1.4rem;
+  }
+}
+
 .modeLevel {
   background: rgba(0, 0, 0, 0.2);
   color: white;
   padding: 0.4rem 1rem;
   border-radius: 20px;
-  font-size: 1em;
+  font-size: 1.2rem;
   font-weight: 500;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .modeLevel {
+    font-size: 1rem;
+    padding: 0.3rem 0.8rem;
+  }
 }
 
 .mainmenuBtns{
@@ -719,13 +901,73 @@
 }
 
 /* 반응형 */
-@media (max-width: 319px) {
-  .miningButtonContainer{
-    max-width: unset;
-    width: 220px;
+@media (max-width: 480px) {
+  .miningButtonContainer {
+    min-height: 250px;
+    height: 250px;
   }
-  .clickerBtn{
+  
+  .clickerBtn {
+    width: 250px;
+    height: 250px;
+    max-width: 250px;
+  }
+  
+  .mainContent {
+    padding: 1.2rem;
+  }
+  
+  .miningMode {
+    padding: 0.8rem;
+  }
+  
+  .totalStats {
+    padding: 1.2rem;
+    gap: 0.8rem;
+  }
+  
+  .iconCircle {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .gameModeGrid {
+    gap: 1rem;
+  }
+  
+  .modeCard {
+    width: calc(50% - 0.5rem);
+  }
+}
+
+@media (max-width: 360px) {
+  .miningButtonContainer {
+    min-height: 200px;
+    height: 200px;
+  }
+  
+  .clickerBtn {
+    width: 200px;
+    height: 200px;
+    max-width: 200px;
+  }
+  
+  .mainContent {
+    padding: 1rem;
+  }
+  
+  .totalStats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .divider {
     width: 100%;
-    height: auto;
+    height: 1px;
+  }
+  
+  .iconCircle {
+    width: 36px;
+    height: 36px;
   }
 }

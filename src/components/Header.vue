@@ -249,7 +249,7 @@ header {
 
 .headerValue {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1.4rem;
 }
 
 .divider {
@@ -307,12 +307,23 @@ header {
   }
   
   .headerValue {
-    font-size: 0.85rem;
+    font-size: 1.2rem;
   }
   
   .pointIcon, .coinIcon, .catIcon, .energyIcon {
     width: 20px;
     height: 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  .headerValue {
+    font-size: 1rem;
+  }
+  
+  .pointIcon, .coinIcon, .catIcon, .energyIcon {
+    width: 18px;
+    height: 18px;
   }
 }
 </style>
