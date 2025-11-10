@@ -3,13 +3,16 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserCoins } from '@/utils/userUtils'
+import { getCurrentUser, updateUserCoins, updateUserGameData } from '@/utils/userUtils'
+import { getUserGameData } from '@/firebase/config'
 
 const router = useRouter()
 const coinCount = ref(0)
 const currentUser = ref(null)
 const attendanceDays = ref(0) // 출석 일수
 const checkedDays = ref([]) // 체크된 날짜들
+const lastCheckInDate = ref(null) // 마지막 출석체크 날짜
+const consecutiveDays = ref(0) // 연속 출석 일수
 
 // 20일 출석체크 데이터
 const attendanceData = ref(
@@ -22,24 +25,39 @@ const attendanceData = ref(
   }))
 )
 
+// 날짜 비교 함수 (하루 차이 확인)
+const isNextDay = (date1, date2) => {
+  const d1 = new Date(date1)
+  const d2 = new Date(date2)
+  const diffTime = d2 - d1
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays === 1
+}
+
+// 날짜가 같은지 확인
+const isSameDay = (date1, date2) => {
+  return new Date(date1).toDateString() === new Date(date2).toDateString()
+}
+
 // 뒤로가기
 const goBack = () => {
   router.go(-1)
 }
 
 // 출석체크 처리
-const checkAttendance = (dayIndex) => {
+const checkAttendance = async (dayIndex) => {
   if (!currentUser.value) {
     alert('로그인이 필요합니다.')
     return
   }
   
-  // 오늘 날짜 확인
-  const today = new Date().toDateString()
-  const lastCheckInDate = localStorage.getItem(`attendance_checkIn_${currentUser.value.id}`)
+  // 오늘 날짜
+  const today = new Date()
+  const todayString = today.toDateString()
+  const todayISO = today.toISOString()
   
-  // 하루에 한 번만 출석체크 가능
-  if (lastCheckInDate === today) {
+  // 오늘 이미 출석체크 했는지 확인
+  if (lastCheckInDate.value && isSameDay(lastCheckInDate.value, todayISO)) {
     alert('오늘 이미 출석체크를 완료했습니다! 내일 다시 시도해주세요.')
     return
   }
@@ -47,55 +65,132 @@ const checkAttendance = (dayIndex) => {
   const day = attendanceData.value[dayIndex]
   if (day.isChecked) {
     alert('이미 체크된 날짜입니다.')
-    return // 이미 체크된 날짜
+    return
   }
   
-  // 연속 출석일 계산 (첫 번째 날이거나 다음 순서의 날만 체크 가능)
-  if (checkedDays.value.length === 0 || dayIndex === checkedDays.value.length) {
-    day.isChecked = true
-    checkedDays.value.push(day.day)
+  // 다음 순서의 날짜만 체크 가능 (연속 출석이 끊겨도 다음 날은 체크 가능)
+  const nextDayIndex = checkedDays.value.length
+  
+  // 하루를 건너뛰었는지 확인
+  if (lastCheckInDate.value) {
+    const lastDate = new Date(lastCheckInDate.value)
+    const daysDiff = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
     
-    // 보상 지급
-    const reward = 1000 // 1K
-    coinCount.value += reward
-    
-    // 오늘 출석체크 날짜 저장
-    localStorage.setItem(`attendance_checkIn_${currentUser.value.id}`, today)
-    isCheckedInToday.value = true
-    
-    // 사용자 데이터 업데이트
-    if (currentUser.value) {
-      updateUserCoins(currentUser.value.id, coinCount.value)
+    // 하루 이상 지났고, 다음 순서의 날짜가 아니면 체크 불가
+    if (daysDiff > 0 && dayIndex !== nextDayIndex) {
+      alert('다음 순서의 출석체크만 가능합니다.')
+      return
     }
     
-    // localStorage에 저장
-    saveAttendanceData()
-    alert(`Day ${day.day} 출석체크 완료! ${reward} 포인트 획득!`)
+    // 연속 출석일수 계산 (하루 차이면 연속, 아니면 리셋)
+    if (daysDiff === 1) {
+      consecutiveDays.value += 1
+    } else if (daysDiff > 1) {
+      consecutiveDays.value = 1 // 연속 출석 리셋
+    }
   } else {
-    alert('연속 출석체크만 가능합니다.')
+    // 첫 출석체크
+    consecutiveDays.value = 1
   }
+  
+  // 체크 처리
+  day.isChecked = true
+  checkedDays.value.push(day.day)
+  attendanceDays.value = checkedDays.value.length
+  
+  // 보상 지급
+  const reward = 1000 // 1K
+  coinCount.value += reward
+  
+  // 오늘 날짜 저장
+  lastCheckInDate.value = todayISO
+  
+  // 사용자 데이터 업데이트
+  if (currentUser.value) {
+    await updateUserCoins(currentUser.value.id, coinCount.value)
+    await saveAttendanceData()
+  }
+  
+  alert(`Day ${day.day} 출석체크 완료! ${reward} 포인트 획득!`)
+  
+  // 헤더 업데이트 이벤트 발생
+  window.dispatchEvent(new Event('userDataUpdated'))
 }
 
-// 출석체크 데이터 저장
-const saveAttendanceData = () => {
+// 출석체크 데이터 저장 (Firebase + localStorage)
+const saveAttendanceData = async () => {
   if (currentUser.value) {
     const data = {
       checkedDays: checkedDays.value,
-      attendanceDays: checkedDays.value.length,
+      attendanceDays: attendanceDays.value,
+      consecutiveDays: consecutiveDays.value,
+      lastCheckInDate: lastCheckInDate.value,
       lastUpdate: new Date().toISOString()
     }
+    
+    // localStorage에 저장
     localStorage.setItem(`attendance_${currentUser.value.id}`, JSON.stringify(data))
+    
+    // Firebase에도 저장 (gameData에 포함)
+    await updateUserGameData(currentUser.value.id, {
+      attendance: data
+    })
   }
 }
 
 // 출석체크 데이터 로드
-const loadAttendanceData = () => {
+const loadAttendanceData = async () => {
   if (currentUser.value) {
-    const saved = localStorage.getItem(`attendance_${currentUser.value.id}`)
-    if (saved) {
-      const data = JSON.parse(saved)
+    let data = null
+    
+    // Firebase 사용자인지 확인 (uid가 길거나 Firebase 형식인 경우)
+    const isFirebaseUser = currentUser.value.id?.length > 20 || currentUser.value.uid
+    
+    if (isFirebaseUser) {
+      // Firebase 사용자인 경우 Firebase에서 최신 데이터 가져오기
+      try {
+        const firebaseData = await getUserGameData(currentUser.value.id)
+        if (firebaseData?.gameData?.attendance) {
+          data = firebaseData.gameData.attendance
+          
+          // sessionStorage의 currentUser도 업데이트
+          const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || '{}')
+          if (currentUserData.id === currentUser.value.id) {
+            currentUserData.gameData = { ...currentUserData.gameData, ...firebaseData.gameData }
+            sessionStorage.setItem('currentUser', JSON.stringify(currentUserData))
+            currentUser.value = currentUserData
+          }
+        }
+      } catch (error) {
+        console.error('Firebase에서 출석체크 데이터 가져오기 실패:', error)
+      }
+    }
+    
+    // Firebase 데이터가 없으면 sessionStorage에서 확인
+    if (!data && currentUser.value.gameData?.attendance) {
+      data = currentUser.value.gameData.attendance
+    }
+    
+    // sessionStorage에도 없으면 localStorage에서 확인
+    if (!data) {
+      const localSaved = localStorage.getItem(`attendance_${currentUser.value.id}`)
+      if (localSaved) {
+        data = JSON.parse(localSaved)
+        
+        // localStorage 데이터를 Firebase에도 저장 (동기화)
+        if (isFirebaseUser && data) {
+          await updateUserGameData(currentUser.value.id, {
+            attendance: data
+          })
+        }
+      }
+    }
+    
+    if (data) {
       checkedDays.value = data.checkedDays || []
       attendanceDays.value = data.attendanceDays || 0
+      consecutiveDays.value = data.consecutiveDays || 0
+      lastCheckInDate.value = data.lastCheckInDate || null
       
       // 체크된 날짜 표시
       checkedDays.value.forEach(dayNum => {
@@ -108,20 +203,30 @@ const loadAttendanceData = () => {
   }
 }
 
-// 오늘 출석체크 여부 확인
-const isCheckedInToday = ref(false)
+// 오늘 출석체크 가능 여부 확인
+const canCheckInToday = computed(() => {
+  if (!lastCheckInDate.value) return true
+  
+  const today = new Date()
+  const lastDate = new Date(lastCheckInDate.value)
+  const todayString = today.toDateString()
+  const lastDateString = lastDate.toDateString()
+  
+  // 오늘 날짜가 아니면 체크 가능
+  return todayString !== lastDateString
+})
 
-onMounted(() => {
+// 다음 체크 가능한 날짜 인덱스
+const nextCheckableDayIndex = computed(() => {
+  return checkedDays.value.length
+})
+
+onMounted(async () => {
   currentUser.value = getCurrentUser()
   if (currentUser.value) {
     coinCount.value = currentUser.value.gameData?.coins || 0
-    
-    // 오늘 출석체크 여부 확인
-    const today = new Date().toDateString()
-    const lastCheckInDate = localStorage.getItem(`attendance_checkIn_${currentUser.value.id}`)
-    isCheckedInToday.value = lastCheckInDate === today
+    await loadAttendanceData()
   }
-  loadAttendanceData()
 })
 </script>
 
@@ -136,8 +241,20 @@ onMounted(() => {
       <!-- 타이틀 -->
       <h1 class="pageTitle">출석체크</h1>
       
+      <!-- 출석체크 정보 -->
+      <div class="attendanceInfo">
+        <div class="infoItem">
+          <span class="infoLabel">연속 출석:</span>
+          <span class="infoValue">{{ consecutiveDays }}일</span>
+        </div>
+        <div class="infoItem">
+          <span class="infoLabel">총 출석:</span>
+          <span class="infoValue">{{ attendanceDays }}일</span>
+        </div>
+      </div>
+      
       <!-- 오늘 출석체크 완료 메시지 -->
-      <div v-if="isCheckedInToday" class="attendanceMessage">
+      <div v-if="!canCheckInToday" class="attendanceMessage">
         오늘 출석체크를 완료했습니다! 내일 다시 시도해주세요.
       </div>
       
@@ -147,8 +264,12 @@ onMounted(() => {
           v-for="(day, index) in attendanceData" 
           :key="day.day"
           class="dayCell"
-          :class="{ checked: day.isChecked, disabled: isCheckedInToday && !day.isChecked }"
-          @click="!isCheckedInToday || day.isChecked ? checkAttendance(index) : null"
+          :class="{ 
+            checked: day.isChecked, 
+            disabled: (!canCheckInToday && !day.isChecked) || (index !== nextCheckableDayIndex && !day.isChecked),
+            nextCheckable: canCheckInToday && index === nextCheckableDayIndex && !day.isChecked
+          }"
+          @click="canCheckInToday && (index === nextCheckableDayIndex || day.isChecked) ? checkAttendance(index) : null"
         >
           <div class="dayNumber">Day {{ day.day }}</div>
           <div class="rewardIcon">
@@ -194,7 +315,8 @@ onMounted(() => {
 .pageTitle {
   color: white;
   font-size: 2rem;
-  font-weight: bold;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   text-align: center;
   margin: 1rem 0 2rem 0;
 }
@@ -231,6 +353,51 @@ onMounted(() => {
   pointer-events: none;
 }
 
+.dayCell.nextCheckable {
+  background: rgba(125, 211, 252, 0.2);
+  border: 2px solid rgba(125, 211, 252, 0.5);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(125, 211, 252, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(125, 211, 252, 0);
+  }
+}
+
+.attendanceInfo {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.infoLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.infoValue {
+  color: #7DD3FC;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
 .attendanceMessage {
   background: rgba(16, 185, 129, 0.2);
   color: #10B981;
@@ -238,7 +405,8 @@ onMounted(() => {
   border-radius: 12px;
   text-align: center;
   margin-bottom: 1.5rem;
-  font-weight: 500;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 

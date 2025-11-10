@@ -15,3 +15,21 @@ button {
     cursor: pointer;
     background: none;
 }
+
+/* 타이틀 기본 스타일 (강) */
+h1, h2, h3,
+.pageTitle, .login-title, .signup-title, .sectionTitle,
+.popupTitle, .modeTitle, .questTitle, .notificationTitle,
+.itemName, .userName {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* 본문 기본 스타일 (약) */
+p, span, div, label,
+.input-label, .input-field, .toggleLabel,
+.notificationMessage, .notificationTime,
+.menuLabel, .statLabel, .modeLevel {
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}

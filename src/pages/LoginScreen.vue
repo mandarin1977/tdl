@@ -277,7 +277,8 @@ onMounted(() => {
 .login-title {
   color: white;
   font-size: 1.8rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   text-align: left;
   margin: 2rem 0 2rem 0;
   position: relative;
@@ -303,7 +304,8 @@ onMounted(() => {
 .input-label {
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   margin-bottom: 0.5rem;
 }
 
@@ -328,6 +330,8 @@ onMounted(() => {
   border: none;
   color: white;
   font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   outline: none;
   padding: 0.5rem 0;
 }
@@ -360,6 +364,7 @@ onMounted(() => {
   padding: 1.2rem;
   font-size: 1.1rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;

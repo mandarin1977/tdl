@@ -485,12 +485,24 @@ onMounted(() => {
 @media (max-width: 450px) {
   .magicPanel{
         padding-left: 5vw;
+        background: none;
     }
     .profilePanel{
       padding-right: 5vw;
+      background: none;
     }
     .inventoryItem {
       width: calc(50% - 20px);
+  }
+}
+@media (max-width: 350px) {
+  .magicPanel{
+    padding-top: 3vw;
+    padding-bottom: 3vw;
+  }
+  .profilePanel{
+    padding-top: 3vw;
+    padding-bottom: 3vw;
   }
 }
 </style>

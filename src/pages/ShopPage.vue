@@ -185,13 +185,16 @@ onMounted(() => {
 
 .itemName {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: #fff;
   margin: 0 0 0.5rem 0;
 }
 
 .itemDescription {
   font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   color: rgba(255, 255, 255, 0.7);
   margin: 0;
   line-height: 1.4;

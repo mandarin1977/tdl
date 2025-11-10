@@ -171,7 +171,8 @@ const handleNotificationClick = (notification) => {
 .pageTitle {
   color: #fff;
   font-size: 1.8rem;
-  font-weight: bold;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -230,13 +231,16 @@ const handleNotificationClick = (notification) => {
 .notificationTitle {
   color: #fff;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin-bottom: 0.5rem;
 }
 
 .notificationMessage {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   margin-bottom: 0.5rem;
   line-height: 1.4;
 }
@@ -244,6 +248,8 @@ const handleNotificationClick = (notification) => {
 .notificationTime {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
 }
 
 .unreadDot {

@@ -206,7 +206,8 @@ const closePopup = () => {
 .pageTitle {
   color: white;
   font-size: 1.8rem;
-  font-weight: bold;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   text-align: center;
   margin: 0;
 }

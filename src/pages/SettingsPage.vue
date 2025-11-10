@@ -422,7 +422,8 @@ const checkAttendanceStatus = () => {
 .sectionTitle {
   color: white;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0 0 0.5rem 0;
 }
 
@@ -439,7 +440,8 @@ const checkAttendanceStatus = () => {
 .toggleLabel {
   color: white;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 400;
+  letter-spacing: 0.01em;
 }
 
 .toggleSwitch {
