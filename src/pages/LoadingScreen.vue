@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getCurrentUser } from '@/utils/userUtils'
 
 const router = useRouter()
 const progress = ref(0)
@@ -16,9 +17,16 @@ onMounted(() => {
     if (progress.value >= 100) {
       progress.value = 100
       clearInterval(timer)
-      // 로딩 완료 후 로그인 화면으로 이동
+      // 로딩 완료 후 인증 상태에 따라 이동
       setTimeout(() => {
-        router.push('/login')
+        const currentUser = getCurrentUser()
+        if (currentUser) {
+          // 로그인된 상태면 메인 화면으로
+          router.push('/main')
+        } else {
+          // 로그인하지 않은 상태면 로그인 화면으로
+          router.push('/login')
+        }
       }, 200)
     }
   }, interval)

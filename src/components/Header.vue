@@ -34,8 +34,10 @@ const checkAndResetEnergy = () => {
     const saved = parseInt(savedEnergy) || 0
     currentEnergy.value = Math.max(0, Math.min(saved, maxEnergy.value))
   } else {
-    // 저장된 에너지가 없으면 0으로 설정
-    currentEnergy.value = 0
+    // 저장된 에너지가 없으면 (새 사용자 또는 소셜 로그인) 최대 에너지로 설정
+    currentEnergy.value = maxEnergy.value // 4000
+    localStorage.setItem('energyLastDate', today)
+    localStorage.setItem('currentEnergy', maxEnergy.value.toString())
   }
 }
 
@@ -128,7 +130,7 @@ const formatNumber = (num) => {
         <!-- 번개 아이콘 + 숫자 -->
         <button class="headerItem energyItem" @click="goToShop">
           <img src="@/assets/img/lighting.png" alt="에너지" class="energyIcon" />
-          <span class="headerValue">{{ formatNumber(currentEnergy) }}</span>
+          <span class="headerValue">{{ formatNumber(currentEnergy) }} / {{ formatNumber(maxEnergy) }}</span>
         </button>
         <div class="divider"></div>
         

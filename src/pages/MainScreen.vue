@@ -53,6 +53,7 @@ const miningLevel = ref(1) // 채굴 레벨
 // 채굴 버튼 상태 관리
 const isMiningComplete = ref(false)
 const showNewMiningButton = ref(true)
+const miningReward = ref({ points: 0, fragments: 0 }) // 채굴 보상 정보
 
 // 탐험 클릭 카운터
 const explorationClickCount = ref(0) // 10번 클릭용 (리셋됨)
@@ -60,6 +61,7 @@ const explorationTotalClicks = ref(0) // 총 클릭 수 (누적, 레벨업용)
 const explorationLevel = ref(1) // 탐험 레벨
 const isExplorationComplete = ref(false)
 const showNewExplorationButton = ref(true)
+const explorationReward = ref({ points: 0, fragments: 0 }) // 탐험 보상 정보
 
 // 사냥 클릭 카운터
 const huntingClickCount = ref(0) // 10번 클릭용 (리셋됨)
@@ -67,6 +69,7 @@ const huntingTotalClicks = ref(0) // 총 클릭 수 (누적, 레벨업용)
 const huntingLevel = ref(1) // 사냥 레벨
 const isHuntingComplete = ref(false)
 const showNewHuntingButton = ref(true)
+const huntingReward = ref({ points: 0, fragments: 0 }) // 사냥 보상 정보
 
 // 생산 클릭 카운터
 const productionClickCount = ref(0) // 10번 클릭용 (리셋됨)
@@ -74,6 +77,7 @@ const productionTotalClicks = ref(0) // 총 클릭 수 (누적, 레벨업용)
 const productionLevel = ref(1) // 생산 레벨
 const isProductionComplete = ref(false)
 const showNewProductionButton = ref(true)
+const productionReward = ref({ points: 0, fragments: 0 }) // 생산 보상 정보
 
 // 레벨에 따른 포인트 배수 계산 (2의 제곱)
 const getPointMultiplier = (level) => {
@@ -131,6 +135,9 @@ onMounted(() => {
     explorationTotalClicks.value = currentUser.value.gameData?.explorationTotalClicks || 0
     productionLevel.value = currentUser.value.gameData?.productionLevel || 1
     productionTotalClicks.value = currentUser.value.gameData?.productionTotalClicks || 0
+    // 행성 에너지 및 레벨 로드
+    planetLevel.value = currentUser.value.gameData?.planetLevel || 1
+    planetEnergy.value = currentUser.value.gameData?.planetEnergy || 0
     // 각 모드별 냥이 목록 로드
     if (currentUser.value.gameData?.miningCats) {
       // 빈 배열이면 null 배열로 변환 (기존 Firebase 사용자 호환)
@@ -278,6 +285,9 @@ const handleClick = (mode) => {
       isMiningComplete.value = true
       showNewMiningButton.value = false
       
+      // 행성 에너지 증가 (10번 클릭마다 50씩 증가)
+      increasePlanetEnergy()
+      
       // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
       const fragmentChance = Math.random()
       let fragmentsGained = 0
@@ -286,6 +296,9 @@ const handleClick = (mode) => {
       } else if (fragmentChance < 0.4) {
         fragmentsGained = 2
       }
+      
+      // 보상 정보 저장
+      miningReward.value = { points: pointsGained, fragments: fragmentsGained }
       
       if (fragmentsGained > 0) {
         catFragments.value += fragmentsGained
@@ -330,12 +343,18 @@ const handleClick = (mode) => {
       const maxWidth = Math.min(window.innerWidth || 500, 500)
       const maxHeight = window.innerHeight || 800
       const bubbleWidth = 220 // 말풍선 최대 너비
-      const bubbleHeight = 60 // 말풍선 예상 높이
+      const bubbleHeight = fragmentsGained > 0 ? 80 : 60 // 말풍선 예상 높이 (고양이 파편이 있으면 더 높게)
       const padding = 20 // 여백
+      
+      // 보상 텍스트 생성
+      let rewardText = `채굴 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      if (fragmentsGained > 0) {
+        rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
+      }
       
       const bubble = {
         id: Date.now(),
-        text: `채굴 완료! ${pointsGained.toLocaleString()}원 획득! (x${multiplier})`,
+        text: rewardText,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -351,6 +370,7 @@ const handleClick = (mode) => {
       setTimeout(() => {
         isMiningComplete.value = false
         showNewMiningButton.value = true
+        miningReward.value = { points: 0, fragments: 0 }
       }, 1500)
     } else {
       // 말풍선 위치 계산 (화면 안에 들어오도록)
@@ -418,6 +438,9 @@ const handleClick = (mode) => {
       isExplorationComplete.value = true
       showNewExplorationButton.value = false
       
+      // 행성 에너지 증가 (10번 클릭마다 50씩 증가)
+      increasePlanetEnergy()
+      
       // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
       const fragmentChance = Math.random()
       let fragmentsGained = 0
@@ -426,6 +449,9 @@ const handleClick = (mode) => {
       } else if (fragmentChance < 0.4) {
         fragmentsGained = 2
       }
+      
+      // 보상 정보 저장
+      explorationReward.value = { points: pointsGained, fragments: fragmentsGained }
       
       if (fragmentsGained > 0) {
         catFragments.value += fragmentsGained
@@ -470,12 +496,18 @@ const handleClick = (mode) => {
       const maxWidth = Math.min(window.innerWidth || 500, 500)
       const maxHeight = window.innerHeight || 800
       const bubbleWidth = 220
-      const bubbleHeight = 60
+      const bubbleHeight = fragmentsGained > 0 ? 80 : 60 // 말풍선 예상 높이 (고양이 파편이 있으면 더 높게)
       const padding = 20
+      
+      // 보상 텍스트 생성
+      let rewardText = `탐험 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      if (fragmentsGained > 0) {
+        rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
+      }
       
       const bubble = {
         id: Date.now(),
-        text: `탐험 완료! ${pointsGained.toLocaleString()}원 획득! (x${multiplier})`,
+        text: rewardText,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -491,6 +523,7 @@ const handleClick = (mode) => {
       setTimeout(() => {
         isExplorationComplete.value = false
         showNewExplorationButton.value = true
+        explorationReward.value = { points: 0, fragments: 0 }
       }, 1500)
     } else {
       // 말풍선 위치 계산 (화면 안에 들어오도록)
@@ -558,6 +591,9 @@ const handleClick = (mode) => {
       isHuntingComplete.value = true
       showNewHuntingButton.value = false
       
+      // 행성 에너지 증가 (10번 클릭마다 50씩 증가)
+      increasePlanetEnergy()
+      
       // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
       const fragmentChance = Math.random()
       let fragmentsGained = 0
@@ -566,6 +602,9 @@ const handleClick = (mode) => {
       } else if (fragmentChance < 0.4) {
         fragmentsGained = 2
       }
+      
+      // 보상 정보 저장
+      huntingReward.value = { points: pointsGained, fragments: fragmentsGained }
       
       if (fragmentsGained > 0) {
         catFragments.value += fragmentsGained
@@ -610,12 +649,18 @@ const handleClick = (mode) => {
       const maxWidth = Math.min(window.innerWidth || 500, 500)
       const maxHeight = window.innerHeight || 800
       const bubbleWidth = 220
-      const bubbleHeight = 60
+      const bubbleHeight = fragmentsGained > 0 ? 80 : 60 // 말풍선 예상 높이 (고양이 파편이 있으면 더 높게)
       const padding = 20
+      
+      // 보상 텍스트 생성
+      let rewardText = `사냥 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      if (fragmentsGained > 0) {
+        rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
+      }
       
       const bubble = {
         id: Date.now(),
-        text: `사냥 완료! ${pointsGained.toLocaleString()}원 획득! (x${multiplier})`,
+        text: rewardText,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -631,6 +676,7 @@ const handleClick = (mode) => {
       setTimeout(() => {
         isHuntingComplete.value = false
         showNewHuntingButton.value = true
+        huntingReward.value = { points: 0, fragments: 0 }
       }, 1500)
     } else {
       // 말풍선 위치 계산 (화면 안에 들어오도록)
@@ -698,6 +744,9 @@ const handleClick = (mode) => {
       isProductionComplete.value = true
       showNewProductionButton.value = false
       
+      // 행성 에너지 증가 (10번 클릭마다 50씩 증가)
+      increasePlanetEnergy()
+      
       // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
       const fragmentChance = Math.random()
       let fragmentsGained = 0
@@ -706,6 +755,9 @@ const handleClick = (mode) => {
       } else if (fragmentChance < 0.4) {
         fragmentsGained = 2
       }
+      
+      // 보상 정보 저장
+      productionReward.value = { points: pointsGained, fragments: fragmentsGained }
       
       if (fragmentsGained > 0) {
         catFragments.value += fragmentsGained
@@ -750,12 +802,18 @@ const handleClick = (mode) => {
       const maxWidth = Math.min(window.innerWidth || 500, 500)
       const maxHeight = window.innerHeight || 800
       const bubbleWidth = 220
-      const bubbleHeight = 60
+      const bubbleHeight = fragmentsGained > 0 ? 80 : 60 // 말풍선 예상 높이 (고양이 파편이 있으면 더 높게)
       const padding = 20
+      
+      // 보상 텍스트 생성
+      let rewardText = `생산 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      if (fragmentsGained > 0) {
+        rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
+      }
       
       const bubble = {
         id: Date.now(),
-        text: `생산 완료! ${pointsGained.toLocaleString()}원 획득! (x${multiplier})`,
+        text: rewardText,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -771,6 +829,7 @@ const handleClick = (mode) => {
       setTimeout(() => {
         isProductionComplete.value = false
         showNewProductionButton.value = true
+        productionReward.value = { points: 0, fragments: 0 }
       }, 1500)
     } else {
       // 말풍선 위치 계산 (화면 안에 들어오도록)
@@ -826,6 +885,51 @@ const currentEnergy = ref(4000)
 const maxEnergy = ref(4000)
 const energyPerClick = ref(1) // 클릭당 소모 에너지
 
+// 행성 에너지 관련
+const planetEnergy = ref(0) // 행성 에너지 (0에서 시작)
+const maxPlanetEnergy = ref(2000) // 행성 에너지 최대값
+const planetLevel = ref(1) // 행성 레벨
+
+// 행성 에너지 증가 함수 (10번 클릭마다 50씩 증가)
+const increasePlanetEnergy = () => {
+  planetEnergy.value = Math.min(maxPlanetEnergy.value, planetEnergy.value + 50)
+  
+  // 행성 에너지가 2000이 되면 현재 활성화된 모드의 레벨업하고 0으로 리셋
+  if (planetEnergy.value >= maxPlanetEnergy.value) {
+    // 현재 활성화된 모드에 따라 해당 모드의 레벨만 증가
+    if (activeMode.value === 'mining') {
+      miningLevel.value++
+    } else if (activeMode.value === 'hunting') {
+      huntingLevel.value++
+    } else if (activeMode.value === 'exploration') {
+      explorationLevel.value++
+    } else if (activeMode.value === 'production') {
+      productionLevel.value++
+    }
+    
+    planetEnergy.value = 0
+    
+    // 사용자 데이터 업데이트
+    if (currentUser.value) {
+      const updateData = {
+        planetEnergy: planetEnergy.value,
+        miningLevel: miningLevel.value,
+        huntingLevel: huntingLevel.value,
+        explorationLevel: explorationLevel.value,
+        productionLevel: productionLevel.value
+      }
+      updateUserGameData(currentUser.value.id, updateData)
+    }
+  } else {
+    // 사용자 데이터 업데이트 (행성 에너지만)
+    if (currentUser.value) {
+      updateUserGameData(currentUser.value.id, {
+        planetEnergy: planetEnergy.value
+      })
+    }
+  }
+}
+
 // 에너지 체크 및 리셋 함수
 const checkAndResetEnergy = () => {
   const today = new Date().toDateString()
@@ -842,8 +946,10 @@ const checkAndResetEnergy = () => {
     const saved = parseInt(savedEnergy) || 0
     currentEnergy.value = Math.max(0, Math.min(saved, maxEnergy.value))
   } else {
-    // 저장된 에너지가 없으면 0으로 설정
-    currentEnergy.value = 0
+    // 저장된 에너지가 없으면 (새 사용자 또는 소셜 로그인) 최대 에너지로 설정
+    currentEnergy.value = maxEnergy.value // 4000
+    localStorage.setItem('energyLastDate', today)
+    localStorage.setItem('currentEnergy', maxEnergy.value.toString())
   }
 }
 
@@ -878,6 +984,14 @@ const getTulImage = (id) => {
     return new URL(`../assets/img/tul${id}.png`, import.meta.url).href
   } catch (error) {
     return `/src/assets/img/tul${id}.png`
+  }
+}
+
+// 이미지 로드 실패 시 처리 함수
+const handleImageError = (emojiId) => {
+  const index = catEmojis.value.findIndex(e => e.id === emojiId)
+  if (index > -1) {
+    catEmojis.value.splice(index, 1)
   }
 }
 
@@ -1250,6 +1364,9 @@ const startAutoPointGeneration = (mode) => {
         
         // 카운터 리셋 (다시 시작)
         catClickCounters.value[mode][catKey] = 0
+        
+        // 행성 에너지 감소 (10번 클릭마다 50씩 감소)
+        consumePlanetEnergy()
         
         // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
         const fragmentChance = Math.random()
@@ -1752,17 +1869,21 @@ const canProduce = (recipe) => {
           </button>
           <div v-if="isMiningComplete" class="completeMessageContainer">
             <div class="completeMessageText">채굴 완료!</div>
+            <div class="rewardInfo">
+              <div class="rewardItem">{{ miningReward.points.toLocaleString() }}point 획득!</div>
+              <div v-if="miningReward.fragments > 0" class="rewardItem">고양이 파편 {{ miningReward.fragments }}개 획득!</div>
+            </div>
           </div>
         </div>
         
-        <!-- 에너지 섹션 -->
+        <!-- 행성 에너지 섹션 -->
         <div class="energySection">
           <div class="energyInfo">
             <span class="energyIcon">⚡</span>
-            <span class="energyText">{{ currentEnergy.toLocaleString() }}/{{ maxEnergy.toLocaleString() }}</span>
+            <span class="energyText">{{ planetEnergy.toLocaleString() }}/{{ maxPlanetEnergy.toLocaleString() }}</span>
           </div>
           <div class="energyBar">
-            <div class="energyFill" :style="{ width: (currentEnergy / maxEnergy * 100) + '%' }"></div>
+            <div class="energyFill" :style="{ width: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
           </div>
         </div>
         
@@ -1814,17 +1935,21 @@ const canProduce = (recipe) => {
           </button>
           <div v-if="isHuntingComplete" class="completeMessageContainer">
             <div class="completeMessageText">사냥 완료!</div>
+            <div class="rewardInfo">
+              <div class="rewardItem">{{ huntingReward.points.toLocaleString() }}point 획득!</div>
+              <div v-if="huntingReward.fragments > 0" class="rewardItem">고양이 파편 {{ huntingReward.fragments }}개 획득!</div>
+            </div>
           </div>
         </div>
         
-        <!-- 에너지 섹션 -->
+        <!-- 행성 에너지 섹션 -->
         <div class="energySection">
           <div class="energyInfo">
             <span class="energyIcon">⚡</span>
-            <span class="energyText">{{ currentEnergy.toLocaleString() }}/{{ maxEnergy.toLocaleString() }}</span>
+            <span class="energyText">{{ planetEnergy.toLocaleString() }}/{{ maxPlanetEnergy.toLocaleString() }}</span>
           </div>
           <div class="energyBar">
-            <div class="energyFill" :style="{ width: (currentEnergy / maxEnergy * 100) + '%' }"></div>
+            <div class="energyFill" :style="{ width: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
           </div>
         </div>
         
@@ -1876,17 +2001,21 @@ const canProduce = (recipe) => {
           </button>
           <div v-if="isExplorationComplete" class="completeMessageContainer">
             <div class="completeMessageText">탐험 완료!</div>
+            <div class="rewardInfo">
+              <div class="rewardItem">{{ explorationReward.points.toLocaleString() }}point 획득!</div>
+              <div v-if="explorationReward.fragments > 0" class="rewardItem">고양이 파편 {{ explorationReward.fragments }}개 획득!</div>
+            </div>
           </div>
         </div>
         
-        <!-- 에너지 섹션 -->
+        <!-- 행성 에너지 섹션 -->
         <div class="energySection">
           <div class="energyInfo">
             <span class="energyIcon">⚡</span>
-            <span class="energyText">{{ currentEnergy.toLocaleString() }}/{{ maxEnergy.toLocaleString() }}</span>
+            <span class="energyText">{{ planetEnergy.toLocaleString() }}/{{ maxPlanetEnergy.toLocaleString() }}</span>
           </div>
           <div class="energyBar">
-            <div class="energyFill" :style="{ width: (currentEnergy / maxEnergy * 100) + '%' }"></div>
+            <div class="energyFill" :style="{ width: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
           </div>
         </div>
         
@@ -1938,17 +2067,21 @@ const canProduce = (recipe) => {
           </button>
           <div v-if="isProductionComplete" class="completeMessageContainer">
             <div class="completeMessageText">생산 완료!</div>
+            <div class="rewardInfo">
+              <div class="rewardItem">{{ productionReward.points.toLocaleString() }}point 획득!</div>
+              <div v-if="productionReward.fragments > 0" class="rewardItem">고양이 파편 {{ productionReward.fragments }}개 획득!</div>
+            </div>
           </div>
         </div>
         
-        <!-- 에너지 섹션 -->
+        <!-- 행성 에너지 섹션 -->
         <div class="energySection">
           <div class="energyInfo">
             <span class="energyIcon">⚡</span>
-            <span class="energyText">{{ currentEnergy.toLocaleString() }}/{{ maxEnergy.toLocaleString() }}</span>
+            <span class="energyText">{{ planetEnergy.toLocaleString() }}/{{ maxPlanetEnergy.toLocaleString() }}</span>
           </div>
           <div class="energyBar">
-            <div class="energyFill" :style="{ width: (currentEnergy / maxEnergy * 100) + '%' }"></div>
+            <div class="energyFill" :style="{ width: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
           </div>
         </div>
         
@@ -2002,7 +2135,12 @@ const canProduce = (recipe) => {
         class="catEmoji"
         :style="{ left: emoji.x + 'px', top: emoji.y + 'px' }"
       >
-        <img :src="getTulImage(emoji.imageId)" alt="" class="tulImage" />
+        <img 
+          :src="getTulImage(emoji.imageId)" 
+          alt="" 
+          class="tulImage"
+          @error="handleImageError(emoji.id)"
+        />
       </div>
     </div>
     
@@ -2091,11 +2229,13 @@ const canProduce = (recipe) => {
   font-weight: bold;
   box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
   animation: bubbleAppear 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), bubbleFloat 2.5s ease-out 0.4s forwards;
-  white-space: nowrap;
+  white-space: pre-line;
   max-width: 220px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
   transform-origin: center;
+  text-align: center;
+  line-height: 1.4;
 }
 
 /* 모바일 반응형 */
@@ -2347,10 +2487,30 @@ const canProduce = (recipe) => {
   animation: bounce 1s ease-in-out infinite;
 }
 
+.rewardInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.rewardItem {
+  color: #FFD700;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 /* 모바일 반응형 */
 @media (max-width: 480px) {
   .catsListScroll .completeMessageContainer .completeMessageText {
     font-size: 1.2rem;
+  }
+  
+  .rewardItem {
+    font-size: 0.9rem;
   }
 }
 
