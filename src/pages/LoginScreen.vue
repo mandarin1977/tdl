@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
 import { loginWithGoogle, handleGoogleRedirect } from '@/utils/firebaseAuth'
+import { getCurrentUser } from '@/utils/userUtils'
 
 const router = useRouter()
 const { setWalletConnected, setLoading } = useAppStore()
