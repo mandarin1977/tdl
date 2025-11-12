@@ -64,54 +64,11 @@ const saveUserToFirestore = async (user) => {
   }
 }
 
-// 모바일/WebView 환경 감지 함수
-const isMobileOrWebView = () => {
-  try {
-    if (typeof navigator === 'undefined') return false
-    const userAgent = navigator.userAgent || navigator.vendor || ''
-    
-    // 모바일 기기 감지
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
-    
-    // WebView 감지 (카카오톡, 네이버, 라인 등)
-    const isWebView = /KAKAOTALK|KakaoTalk|NAVER|Line|Daum/i.test(userAgent)
-    
-    // 화면 크기로도 판단 (작은 화면이면 모바일로 간주)
-    const isSmallScreen = window.innerWidth <= 768
-    
-    return isMobile || isWebView || isSmallScreen
-  } catch (error) {
-    console.error('환경 감지 오류:', error)
-    return false
-  }
-}
-
-// Google 로그인 함수 (환경에 따라 popup/redirect 선택)
+// Google 로그인 함수 (모든 환경에서 redirect 사용)
 export const signInWithGoogle = async () => {
   try {
-    // 모바일/WebView 환경이면 redirect 사용
-    if (isMobileOrWebView()) {
-      await signInWithRedirect(auth, googleProvider)
-      return { success: true, redirect: true }
-    } else {
-      // 데스크톱 환경이면 popup 사용 (더 나은 UX)
-      try {
-        const result = await signInWithPopup(auth, googleProvider)
-        const user = result.user
-        await saveUserToFirestore(user)
-        return { success: true, user }
-      } catch (popupError) {
-        // popup이 차단되거나 실패한 경우 redirect로 폴백
-        if (popupError.code === 'auth/popup-blocked' || 
-            popupError.code === 'auth/popup-closed-by-user' ||
-            popupError.message?.includes('disallowed_useragent')) {
-          console.log('Popup 실패, redirect로 전환:', popupError.message)
-          await signInWithRedirect(auth, googleProvider)
-          return { success: true, redirect: true }
-        }
-        throw popupError
-      }
-    }
+    await signInWithRedirect(auth, googleProvider)
+    return { success: true, redirect: true }
   } catch (error) {
     console.error('Google 로그인 오류:', error)
     return { success: false, error: error.message }

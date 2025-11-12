@@ -65,62 +65,48 @@ export const loginWithGoogle = async () => {
 // 리다이렉트 후 결과 처리 (페이지 로드 시 호출)
 export const handleGoogleRedirect = async () => {
   try {
-    console.log('handleGoogleRedirect 호출됨')
-    
     // 방법 1: getRedirectResult 사용
     const result = await handleRedirectResult()
-    console.log('handleRedirectResult 결과:', result)
     
     if (result && result.success && result.user) {
       const firebaseUser = result.user
-      console.log('Firebase 사용자:', firebaseUser.email)
-      
       const gameData = await getUserGameData(firebaseUser.uid)
-      console.log('게임 데이터:', gameData)
-      
       const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
-      console.log('변환된 사용자:', appUser)
       
-      // 세션 스토리지에 저장 (기존 시스템과 호환)
+      // 세션 스토리지에 저장
       sessionStorage.setItem('currentUser', JSON.stringify(appUser))
-      console.log('세션 스토리지에 저장 완료')
       
       return { success: true, user: appUser }
     }
     
     // 방법 2: Firebase 인증 상태 직접 확인 (모바일 대응)
     // getRedirectResult가 실패했지만 Firebase 인증 상태가 있을 수 있음
-    const firebaseUser = auth.currentUser
-    if (firebaseUser) {
-      console.log('Firebase 인증 상태 직접 확인됨:', firebaseUser.email)
-      
+    if (auth.currentUser) {
+      const firebaseUser = auth.currentUser
       const gameData = await getUserGameData(firebaseUser.uid)
       const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
       
       // 세션 스토리지에 저장
       sessionStorage.setItem('currentUser', JSON.stringify(appUser))
-      console.log('세션 스토리지에 저장 완료 (Firebase 인증 상태 확인)')
       
       return { success: true, user: appUser }
     }
     
-    console.log('리다이렉트 결과 없음:', result?.error)
     return { success: false, error: result?.error || '리다이렉트 결과가 없습니다.' }
   } catch (error) {
     console.error('리다이렉트 처리 오류:', error)
     
     // 오류 발생 시에도 Firebase 인증 상태 확인
-    try {
-      const firebaseUser = auth.currentUser
-      if (firebaseUser) {
-        console.log('오류 발생 후 Firebase 인증 상태 확인됨:', firebaseUser.email)
+    if (auth.currentUser) {
+      try {
+        const firebaseUser = auth.currentUser
         const gameData = await getUserGameData(firebaseUser.uid)
         const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
         sessionStorage.setItem('currentUser', JSON.stringify(appUser))
         return { success: true, user: appUser }
+      } catch (fallbackError) {
+        console.error('Fallback 처리 오류:', fallbackError)
       }
-    } catch (fallbackError) {
-      console.error('Fallback 처리 오류:', fallbackError)
     }
     
     return { success: false, error: error.message }

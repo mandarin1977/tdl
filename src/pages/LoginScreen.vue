@@ -115,23 +115,47 @@ onMounted(async () => {
   isGoogleLoading.value = false
   
   // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
-  try {
-    const redirectResult = await handleGoogleRedirect()
-    if (redirectResult && redirectResult.success && redirectResult.user) {
-      // 리다이렉트 로그인 성공
-      walletConnected.value = true
-      setWalletConnected(redirectResult.user.email, `${redirectResult.user.gameData?.coins || 0} 코인`)
-      setLoading(false)
+  // 모바일에서 타이밍 문제를 해결하기 위해 약간의 지연 후 재시도
+  const checkRedirect = async (retryCount = 0) => {
+    try {
+      const redirectResult = await handleGoogleRedirect()
+      if (redirectResult && redirectResult.success && redirectResult.user) {
+        // 리다이렉트 로그인 성공
+        walletConnected.value = true
+        setWalletConnected(redirectResult.user.email, `${redirectResult.user.gameData?.coins || 0} 코인`)
+        setLoading(false)
+        
+        // 로그인 완료 후 메인 화면으로 이동
+        setTimeout(() => {
+          router.push('/main')
+        }, 500)
+        return true
+      }
       
-      // 로그인 완료 후 메인 화면으로 이동
-      setTimeout(() => {
-        router.push('/main')
-      }, 500)
-      return
+      // 재시도 (최대 2번, 모바일에서 Firebase 인증 상태가 늦게 설정될 수 있음)
+      if (retryCount < 2) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+        return await checkRedirect(retryCount + 1)
+      }
+      
+      return false
+    } catch (error) {
+      console.log('리다이렉트 결과 확인 오류:', error.message)
+      
+      // 재시도
+      if (retryCount < 2) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+        return await checkRedirect(retryCount + 1)
+      }
+      
+      return false
     }
-  } catch (error) {
-    // 리다이렉트 결과가 없거나 오류인 경우 무시 (정상적인 로그인 페이지 접근)
-    console.log('리다이렉트 결과 없음:', error.message)
+  }
+  
+  // 리다이렉트 결과 확인
+  const redirectSuccess = await checkRedirect()
+  if (redirectSuccess) {
+    return
   }
   
   // 이미 로그인된 상태인지 확인
