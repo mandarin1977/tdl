@@ -2,7 +2,6 @@ import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
 import { getCurrentUser } from './utils/userUtils'
-import { onAuthStateChange } from './utils/firebaseAuth'
 
 // 페이지 컴포넌트들 import
 import LoadingScreen from './pages/LoadingScreen.vue'
@@ -54,32 +53,6 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes
 })
-
-// Firebase 인증 상태 변경 리스너 설정 (모바일 리다이렉트 대응)
-let authStateListenerSetup = false
-
-if (!authStateListenerSetup) {
-  authStateListenerSetup = true
-  
-  onAuthStateChange(async (appUser) => {
-    if (appUser) {
-      // 세션 스토리지에 저장
-      const currentUser = getCurrentUser()
-      if (!currentUser || currentUser.id !== appUser.id) {
-        sessionStorage.setItem('currentUser', JSON.stringify(appUser))
-        
-        // 로그인/회원가입 페이지에 있다면 메인으로 이동
-        const currentPath = router.currentRoute.value.path
-        if (currentPath === '/login' || currentPath === '/signup') {
-          router.push('/main')
-        }
-      }
-    } else {
-      // 로그아웃 처리
-      sessionStorage.removeItem('currentUser')
-    }
-  })
-}
 
 // 라우터 가드: 인증 상태에 따른 리다이렉트
 router.beforeEach((to, from, next) => {
