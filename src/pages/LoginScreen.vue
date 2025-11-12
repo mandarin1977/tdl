@@ -75,8 +75,14 @@ const togglePasswordVisibility = () => {
 
 // 카카오톡 WebView 감지 함수
 const isKakaoTalkWebView = () => {
-  const userAgent = navigator.userAgent || navigator.vendor || window.opera
-  return /KAKAOTALK/i.test(userAgent) || /KakaoTalk/i.test(userAgent)
+  try {
+    if (typeof navigator === 'undefined') return false
+    const userAgent = navigator.userAgent || navigator.vendor || ''
+    return /KAKAOTALK/i.test(userAgent) || /KakaoTalk/i.test(userAgent)
+  } catch (error) {
+    console.error('카카오톡 WebView 감지 오류:', error)
+    return false
+  }
 }
 
 // Google 소셜 로그인
@@ -134,51 +140,58 @@ const handleGoogleLogin = async () => {
 }
 
 onMounted(async () => {
-  // 카카오톡 WebView 감지 및 안내
-  if (isKakaoTalkWebView()) {
-    setTimeout(() => {
-      alert(
-        '⚠️ 카카오톡 인앱 브라우저에서는 Google 로그인이 제한됩니다.\n\n' +
-        'Google의 보안 정책상 카카오톡 WebView에서는 로그인이 차단됩니다.\n\n' +
-        '✅ 해결 방법:\n' +
-        '1. 카카오톡에서 "외부 브라우저로 열기" 선택\n' +
-        '2. 또는 Chrome, Safari 등 외부 브라우저에서 직접 접속\n\n' +
-        '현재 페이지를 외부 브라우저로 열어주세요.'
-      )
-    }, 500)
-  }
-  
-  // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
   try {
-    const redirectResult = await handleGoogleRedirect()
-    if (redirectResult.success && redirectResult.user) {
-      // 리다이렉트 로그인 성공
-      walletConnected.value = true
-      setWalletConnected(redirectResult.user.email, `${redirectResult.user.gameData?.coins || 0} 코인`)
-      setLoading(false)
-      
-      // 로그인 완료 후 메인 화면으로 이동
+    // 카카오톡 WebView 감지 및 안내
+    if (isKakaoTalkWebView()) {
       setTimeout(() => {
-        router.push('/main')
+        alert(
+          '⚠️ 카카오톡 인앱 브라우저에서는 Google 로그인이 제한됩니다.\n\n' +
+          'Google의 보안 정책상 카카오톡 WebView에서는 로그인이 차단됩니다.\n\n' +
+          '✅ 해결 방법:\n' +
+          '1. 카카오톡에서 "외부 브라우저로 열기" 선택\n' +
+          '2. 또는 Chrome, Safari 등 외부 브라우저에서 직접 접속\n\n' +
+          '현재 페이지를 외부 브라우저로 열어주세요.'
+        )
       }, 500)
-      return
     }
-  } catch (error) {
-    // 리다이렉트 결과가 없거나 오류인 경우 무시 (정상적인 로그인 페이지 접근)
-    console.log('리다이렉트 결과 없음:', error.message)
-  }
-  
-  // 페이지 진입 시 애니메이션 효과
-  const loginCont = document.querySelector('.loginCont')
-  if (loginCont) {
-    loginCont.style.opacity = '0'
-    loginCont.style.transform = 'translateY(30px)'
     
+    // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
+    try {
+      const redirectResult = await handleGoogleRedirect()
+      if (redirectResult && redirectResult.success && redirectResult.user) {
+        // 리다이렉트 로그인 성공
+        walletConnected.value = true
+        setWalletConnected(redirectResult.user.email, `${redirectResult.user.gameData?.coins || 0} 코인`)
+        setLoading(false)
+        
+        // 로그인 완료 후 메인 화면으로 이동
+        setTimeout(() => {
+          router.push('/main')
+        }, 500)
+        return
+      }
+    } catch (error) {
+      // 리다이렉트 결과가 없거나 오류인 경우 무시 (정상적인 로그인 페이지 접근)
+      console.log('리다이렉트 결과 없음:', error.message)
+    }
+    
+    // 페이지 진입 시 애니메이션 효과
     setTimeout(() => {
-      loginCont.style.transition = 'all 0.6s ease'
-      loginCont.style.opacity = '1'
-      loginCont.style.transform = 'translateY(0)'
+      const loginCont = document.querySelector('.loginCont')
+      if (loginCont) {
+        loginCont.style.opacity = '0'
+        loginCont.style.transform = 'translateY(30px)'
+        
+        setTimeout(() => {
+          loginCont.style.transition = 'all 0.6s ease'
+          loginCont.style.opacity = '1'
+          loginCont.style.transform = 'translateY(0)'
+        }, 100)
+      }
     }, 100)
+  } catch (error) {
+    console.error('onMounted 오류:', error)
+    // 오류가 발생해도 페이지는 정상적으로 표시되어야 함
   }
 })
 </script>
