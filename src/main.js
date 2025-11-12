@@ -56,11 +56,9 @@ const router = createRouter({
   routes
 })
 
-// 리다이렉트 결과 처리 플래그 (중복 처리 방지)
-let redirectResultProcessed = false
+// Firebase 인증 상태 변경 리스너 설정
 let authStateListenerSetup = false
 
-// Firebase 인증 상태 변경 리스너 설정
 if (!authStateListenerSetup) {
   authStateListenerSetup = true
   
@@ -77,7 +75,7 @@ if (!authStateListenerSetup) {
         
         // 로그인 페이지에 있다면 메인으로 이동
         if (router.currentRoute.value.path === '/login' || router.currentRoute.value.path === '/signup') {
-          console.log('로그인 페이지에서 메인으로 이동')
+          console.log('Firebase 인증 상태 변경: 로그인 페이지에서 메인으로 이동')
           router.push('/main')
         }
       }
@@ -91,51 +89,53 @@ if (!authStateListenerSetup) {
 
 // 라우터 가드: 인증 상태에 따른 리다이렉트
 router.beforeEach(async (to, from, next) => {
+  // 먼저 Firebase 인증 상태 확인 (모바일 리다이렉트 대응)
+  const firebaseUser = auth.currentUser
+  if (firebaseUser) {
+    console.log('라우터 가드: Firebase 인증 상태 확인됨', firebaseUser.email)
+    
+    // 세션 스토리지에 저장되어 있는지 확인
+    const currentUser = getCurrentUser()
+    if (!currentUser || currentUser.id !== firebaseUser.uid) {
+      // 세션 스토리지에 없으면 저장
+      try {
+        const { getUserGameData } = await import('./firebase/config')
+        const { convertFirebaseUserToAppUser } = await import('./utils/firebaseAuth')
+        const gameData = await getUserGameData(firebaseUser.uid)
+        const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+        sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+        console.log('라우터 가드: 세션 스토리지에 저장 완료')
+      } catch (error) {
+        console.error('라우터 가드: 사용자 데이터 저장 오류:', error)
+      }
+    }
+    
+    // 로그인/회원가입 페이지에 있다면 메인으로 이동
+    if (to.path === '/login' || to.path === '/signup') {
+      console.log('라우터 가드: Firebase 인증 확인, 메인으로 이동')
+      next('/main')
+      return
+    }
+  }
+  
   // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
-  // 모든 경로에서 확인하되, 한 번만 처리
-  if (!redirectResultProcessed) {
+  // Firebase 인증 상태가 없을 때만 확인
+  if (!firebaseUser) {
     try {
       console.log('라우터 가드: 리다이렉트 결과 확인 중...', to.path)
-      
-      // 방법 1: getRedirectResult 사용
       const redirectResult = await handleGoogleRedirect()
       console.log('라우터 가드: 리다이렉트 결과:', redirectResult)
       
       if (redirectResult && redirectResult.success && redirectResult.user) {
         // 리다이렉트 로그인 성공 - 메인으로 이동
-        redirectResultProcessed = true
         console.log('라우터 가드: 리다이렉트 로그인 성공, 메인으로 이동')
         next('/main')
         return
-      }
-      
-      // 방법 2: Firebase 인증 상태 직접 확인 (모바일 대응)
-      const firebaseUser = auth.currentUser
-      if (firebaseUser) {
-        console.log('라우터 가드: Firebase 인증 상태 확인됨', firebaseUser.email)
-        // 세션 스토리지에 저장되어 있는지 확인
-        const currentUser = getCurrentUser()
-        if (!currentUser || currentUser.id !== firebaseUser.uid) {
-          // 세션 스토리지에 없으면 저장
-          const { getUserGameData } = await import('./firebase/config')
-          const { convertFirebaseUserToAppUser } = await import('./utils/firebaseAuth')
-          const gameData = await getUserGameData(firebaseUser.uid)
-          const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
-          sessionStorage.setItem('currentUser', JSON.stringify(appUser))
-          console.log('라우터 가드: 세션 스토리지에 저장 완료')
-        }
-        redirectResultProcessed = true
-        if (to.path === '/login' || to.path === '/signup') {
-          console.log('라우터 가드: Firebase 인증 확인, 메인으로 이동')
-          next('/main')
-          return
-        }
       }
     } catch (error) {
       // 리다이렉트 결과가 없거나 오류인 경우 정상 진행
       console.log('라우터 가드: 리다이렉트 결과 없음:', error.message)
     }
-    redirectResultProcessed = true
   }
   
   const currentUser = getCurrentUser()
@@ -147,7 +147,7 @@ router.beforeEach(async (to, from, next) => {
     isAuthenticated, 
     isPublicRoute,
     currentUser: currentUser?.email,
-    firebaseUser: auth.currentUser?.email
+    firebaseUser: firebaseUser?.email
   })
 
   // 로그인된 상태에서 로그인/회원가입 페이지 접근 시 메인으로 리다이렉트
