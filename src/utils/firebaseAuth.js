@@ -65,21 +65,29 @@ export const loginWithGoogle = async () => {
 // 리다이렉트 후 결과 처리 (페이지 로드 시 호출)
 export const handleGoogleRedirect = async () => {
   try {
+    console.log('handleGoogleRedirect 호출됨')
     const result = await handleRedirectResult()
+    console.log('handleRedirectResult 결과:', result)
     
-    if (result.success && result.user) {
+    if (result && result.success && result.user) {
       const firebaseUser = result.user
+      console.log('Firebase 사용자:', firebaseUser.email)
+      
       const gameData = await getUserGameData(firebaseUser.uid)
+      console.log('게임 데이터:', gameData)
       
       const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+      console.log('변환된 사용자:', appUser)
       
       // 세션 스토리지에 저장 (기존 시스템과 호환)
       sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+      console.log('세션 스토리지에 저장 완료')
       
       return { success: true, user: appUser }
     }
     
-    return { success: false, error: result.error || '리다이렉트 결과가 없습니다.' }
+    console.log('리다이렉트 결과 없음:', result?.error)
+    return { success: false, error: result?.error || '리다이렉트 결과가 없습니다.' }
   } catch (error) {
     console.error('리다이렉트 처리 오류:', error)
     return { success: false, error: error.message }

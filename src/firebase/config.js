@@ -121,12 +121,19 @@ export const signInWithGoogle = async () => {
 // 리다이렉트 결과 처리 함수 (리다이렉트 후 호출)
 export const handleRedirectResult = async () => {
   try {
+    console.log('getRedirectResult 호출 중...')
     const result = await getRedirectResult(auth)
+    console.log('getRedirectResult 결과:', result)
+    
     if (result && result.user) {
       const user = result.user
+      console.log('인증된 사용자:', user.email, user.uid)
       await saveUserToFirestore(user)
+      console.log('Firestore 저장 완료')
       return { success: true, user }
     }
+    
+    console.log('리다이렉트 결과 없음 (result가 null이거나 user가 없음)')
     return { success: false, error: '리다이렉트 결과가 없습니다.' }
   } catch (error) {
     console.error('리다이렉트 결과 처리 오류:', error)
