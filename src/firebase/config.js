@@ -1,6 +1,6 @@
 // Firebase 설정 파일
 import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth'
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
 import { getAnalytics } from 'firebase/analytics'
 
@@ -36,12 +36,6 @@ export { analytics }
 // Google 로그인 제공자
 export const googleProvider = new GoogleAuthProvider()
 
-// 모바일 환경 감지 함수
-const isMobileDevice = () => {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-         (window.innerWidth <= 768 && window.innerHeight <= 1024)
-}
-
 // 사용자 데이터를 Firestore에 저장하는 공통 함수
 const saveUserToFirestore = async (user) => {
   const userRef = doc(db, 'users', user.uid)
@@ -70,32 +64,14 @@ const saveUserToFirestore = async (user) => {
   }
 }
 
-// Google 로그인 함수 (모바일/데스크톱 자동 감지)
+// Google 로그인 함수 (모든 환경에서 redirect 사용 - disallowed_useragent 오류 방지)
 export const signInWithGoogle = async () => {
   try {
-    // 모바일 환경이거나 popup이 차단된 경우 redirect 사용
-    if (isMobileDevice()) {
-      // 모바일: redirect 방식 사용
-      await signInWithRedirect(auth, googleProvider)
-      // redirect는 페이지를 이동시키므로 여기서는 성공 반환
-      return { success: true, redirect: true }
-    } else {
-      // 데스크톱: popup 방식 사용
-      try {
-        const result = await signInWithPopup(auth, googleProvider)
-        const user = result.user
-        await saveUserToFirestore(user)
-        return { success: true, user }
-      } catch (popupError) {
-        // popup이 차단되거나 실패한 경우 redirect로 폴백
-        if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user' || popupError.message.includes('disallowed_useragent')) {
-          console.log('Popup 실패, redirect로 전환합니다.')
-          await signInWithRedirect(auth, googleProvider)
-          return { success: true, redirect: true }
-        }
-        throw popupError
-      }
-    }
+    // 모든 환경에서 redirect 방식 사용 (모바일 WebView 호환성)
+    // popup은 모바일 WebView에서 disallowed_useragent 오류 발생 가능
+    await signInWithRedirect(auth, googleProvider)
+    // redirect는 페이지를 이동시키므로 여기서는 성공 반환
+    return { success: true, redirect: true }
   } catch (error) {
     console.error('Google 로그인 오류:', error)
     return { success: false, error: error.message }
