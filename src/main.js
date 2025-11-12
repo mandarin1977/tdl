@@ -57,23 +57,35 @@ const router = createRouter({
 })
 
 // Firebase 인증 상태 변경 리스너 설정 (모바일 리다이렉트 대응)
-onAuthStateChange(async (appUser) => {
-  if (appUser) {
-    // 세션 스토리지에 저장
-    const currentUser = getCurrentUser()
-    if (!currentUser || currentUser.id !== appUser.id) {
-      sessionStorage.setItem('currentUser', JSON.stringify(appUser))
-      
-      // 로그인/회원가입 페이지에 있다면 메인으로 이동
-      if (router.currentRoute.value.path === '/login' || router.currentRoute.value.path === '/signup') {
-        router.push('/main')
+let authStateListenerSetup = false
+
+if (!authStateListenerSetup) {
+  authStateListenerSetup = true
+  
+  onAuthStateChange(async (appUser) => {
+    console.log('Firebase 인증 상태 변경:', appUser ? appUser.email : '로그아웃')
+    
+    if (appUser) {
+      // 세션 스토리지에 저장
+      const currentUser = getCurrentUser()
+      if (!currentUser || currentUser.id !== appUser.id) {
+        sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+        console.log('세션 스토리지에 사용자 정보 저장 완료:', appUser.email)
+        
+        // 로그인/회원가입 페이지에 있다면 메인으로 이동
+        const currentPath = router.currentRoute.value.path
+        if (currentPath === '/login' || currentPath === '/signup') {
+          console.log('로그인 페이지에서 메인으로 이동')
+          router.push('/main')
+        }
       }
+    } else {
+      // 로그아웃 처리
+      sessionStorage.removeItem('currentUser')
+      console.log('세션 스토리지에서 사용자 정보 제거')
     }
-  } else {
-    // 로그아웃 처리
-    sessionStorage.removeItem('currentUser')
-  }
-})
+  })
+}
 
 // 라우터 가드: 인증 상태에 따른 리다이렉트
 router.beforeEach(async (to, from, next) => {
@@ -88,25 +100,10 @@ router.beforeEach(async (to, from, next) => {
         const gameData = await getUserGameData(firebaseUser.uid)
         const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
         sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+        console.log('라우터 가드: 세션 스토리지에 사용자 정보 저장 완료')
       } catch (error) {
         console.error('라우터 가드: 사용자 데이터 저장 오류:', error)
       }
-    }
-  }
-  
-  // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
-  // 로그인 페이지로 돌아왔을 때만 확인
-  if (to.path === '/login' && !firebaseUser) {
-    try {
-      const redirectResult = await handleGoogleRedirect()
-      if (redirectResult && redirectResult.success && redirectResult.user) {
-        // 리다이렉트 로그인 성공 - 메인으로 이동
-        next('/main')
-        return
-      }
-    } catch (error) {
-      // 리다이렉트 결과가 없거나 오류인 경우 정상 진행
-      console.log('라우터 가드: 리다이렉트 결과 없음:', error.message)
     }
   }
   
@@ -116,6 +113,7 @@ router.beforeEach(async (to, from, next) => {
 
   // 로그인된 상태에서 로그인/회원가입 페이지 접근 시 메인으로 리다이렉트
   if (isAuthenticated && (to.path === '/login' || to.path === '/signup')) {
+    console.log('라우터 가드: 이미 로그인됨, 메인으로 이동')
     next('/main')
     return
   }

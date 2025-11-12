@@ -76,7 +76,15 @@ export const signInWithGoogle = async () => {
 }
 
 // 리다이렉트 결과 처리 함수 (리다이렉트 후 호출)
+// 한 번만 호출되도록 플래그 사용
+let redirectResultChecked = false
+
 export const handleRedirectResult = async () => {
+  // 이미 확인했다면 다시 확인하지 않음
+  if (redirectResultChecked) {
+    return { success: false, error: '이미 확인됨' }
+  }
+  
   try {
     console.log('getRedirectResult 호출 중...')
     console.log('현재 URL:', window.location.href)
@@ -84,6 +92,8 @@ export const handleRedirectResult = async () => {
     
     const result = await getRedirectResult(auth)
     console.log('getRedirectResult 결과:', result)
+    
+    redirectResultChecked = true
     
     if (result && result.user) {
       const user = result.user
@@ -97,8 +107,14 @@ export const handleRedirectResult = async () => {
     return { success: false, error: '리다이렉트 결과가 없습니다.' }
   } catch (error) {
     console.error('리다이렉트 결과 처리 오류:', error)
+    redirectResultChecked = true
     return { success: false, error: error.message }
   }
+}
+
+// 리다이렉트 결과 확인 플래그 리셋 (테스트용)
+export const resetRedirectResultCheck = () => {
+  redirectResultChecked = false
 }
 
 // 로그아웃 함수
