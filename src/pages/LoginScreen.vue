@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
-import { loginWithGoogle } from '@/utils/firebaseAuth'
+import { loginWithGoogle, handleGoogleRedirect } from '@/utils/firebaseAuth'
 
 const router = useRouter()
 const { setWalletConnected, setLoading } = useAppStore()
@@ -81,7 +81,14 @@ const handleGoogleLogin = async () => {
   try {
     const result = await loginWithGoogle()
     
-    if (result.success) {
+    // 리다이렉트 방식인 경우 (모바일)
+    if (result.redirect) {
+      // 리다이렉트는 페이지를 이동시키므로 여기서는 아무것도 하지 않음
+      // 실제 처리는 페이지가 다시 로드될 때 onMounted에서 수행됨
+      return
+    }
+    
+    if (result.success && result.user) {
       walletConnected.value = true
       setWalletConnected(result.user.email, `${result.user.gameData?.coins || 0} 코인`)
       setLoading(false)
@@ -102,7 +109,27 @@ const handleGoogleLogin = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
+  try {
+    const redirectResult = await handleGoogleRedirect()
+    if (redirectResult.success && redirectResult.user) {
+      // 리다이렉트 로그인 성공
+      walletConnected.value = true
+      setWalletConnected(redirectResult.user.email, `${redirectResult.user.gameData?.coins || 0} 코인`)
+      setLoading(false)
+      
+      // 로그인 완료 후 메인 화면으로 이동
+      setTimeout(() => {
+        router.push('/main')
+      }, 500)
+      return
+    }
+  } catch (error) {
+    // 리다이렉트 결과가 없거나 오류인 경우 무시 (정상적인 로그인 페이지 접근)
+    console.log('리다이렉트 결과 없음:', error.message)
+  }
+  
   // 페이지 진입 시 애니메이션 효과
   const loginCont = document.querySelector('.loginCont')
   if (loginCont) {

@@ -1,6 +1,6 @@
 // Firebase 설정 파일
 import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
 import { getAnalytics } from 'firebase/analytics'
 
@@ -36,41 +36,84 @@ export { analytics }
 // Google 로그인 제공자
 export const googleProvider = new GoogleAuthProvider()
 
-// Google 로그인 함수
+// 모바일 환경 감지 함수
+const isMobileDevice = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+         (window.innerWidth <= 768 && window.innerHeight <= 1024)
+}
+
+// 사용자 데이터를 Firestore에 저장하는 공통 함수
+const saveUserToFirestore = async (user) => {
+  const userRef = doc(db, 'users', user.uid)
+  const userSnap = await getDoc(userRef)
+  
+  if (!userSnap.exists()) {
+    // 새 사용자인 경우 기본 게임 데이터 생성
+    await setDoc(userRef, {
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      createdAt: new Date().toISOString(),
+      gameData: {
+        level: 1,
+        coins: 0,
+        totalCoin: 0,
+        catFragments: 50,
+        nftCount: 0,
+        miningCats: [null, null, null, null, null, null],
+        huntingCats: [null, null, null, null, null, null],
+        explorationCats: [null, null, null, null, null, null],
+        productionCats: [null, null, null, null, null, null],
+        inventory: []
+      }
+    })
+  }
+}
+
+// Google 로그인 함수 (모바일/데스크톱 자동 감지)
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider)
-    const user = result.user
-    
-    // 사용자 데이터를 Firestore에 저장 (또는 기존 사용자 데이터와 병합)
-    const userRef = doc(db, 'users', user.uid)
-    const userSnap = await getDoc(userRef)
-    
-    if (!userSnap.exists()) {
-      // 새 사용자인 경우 기본 게임 데이터 생성
-      await setDoc(userRef, {
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        createdAt: new Date().toISOString(),
-        gameData: {
-          level: 1,
-          coins: 0,
-          totalCoin: 0,
-          catFragments: 50,
-          nftCount: 0,
-          miningCats: [null, null, null, null, null, null],
-          huntingCats: [null, null, null, null, null, null],
-          explorationCats: [null, null, null, null, null, null],
-          productionCats: [null, null, null, null, null, null],
-          inventory: []
+    // 모바일 환경이거나 popup이 차단된 경우 redirect 사용
+    if (isMobileDevice()) {
+      // 모바일: redirect 방식 사용
+      await signInWithRedirect(auth, googleProvider)
+      // redirect는 페이지를 이동시키므로 여기서는 성공 반환
+      return { success: true, redirect: true }
+    } else {
+      // 데스크톱: popup 방식 사용
+      try {
+        const result = await signInWithPopup(auth, googleProvider)
+        const user = result.user
+        await saveUserToFirestore(user)
+        return { success: true, user }
+      } catch (popupError) {
+        // popup이 차단되거나 실패한 경우 redirect로 폴백
+        if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user' || popupError.message.includes('disallowed_useragent')) {
+          console.log('Popup 실패, redirect로 전환합니다.')
+          await signInWithRedirect(auth, googleProvider)
+          return { success: true, redirect: true }
         }
-      })
+        throw popupError
+      }
     }
-    
-    return { success: true, user }
   } catch (error) {
     console.error('Google 로그인 오류:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// 리다이렉트 결과 처리 함수 (리다이렉트 후 호출)
+export const handleRedirectResult = async () => {
+  try {
+    const result = await getRedirectResult(auth)
+    if (result && result.user) {
+      const user = result.user
+      await saveUserToFirestore(user)
+      return { success: true, user }
+    }
+    return { success: false, error: '리다이렉트 결과가 없습니다.' }
+  } catch (error) {
+    console.error('리다이렉트 결과 처리 오류:', error)
     return { success: false, error: error.message }
   }
 }

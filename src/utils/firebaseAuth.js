@@ -1,6 +1,7 @@
 // Firebase 인증 유틸리티 함수
 import { 
   signInWithGoogle, 
+  handleRedirectResult,
   signOutUser, 
   onAuthChange,
   getUserGameData,
@@ -35,7 +36,14 @@ export const loginWithGoogle = async () => {
   try {
     const result = await signInWithGoogle()
     
-    if (result.success) {
+    // 리다이렉트 방식인 경우 (모바일)
+    if (result.redirect) {
+      // 리다이렉트는 페이지를 이동시키므로 여기서는 성공만 반환
+      // 실제 인증 처리는 리다이렉트 후 handleGoogleRedirect에서 수행
+      return { success: true, redirect: true }
+    }
+    
+    if (result.success && result.user) {
       const firebaseUser = result.user
       const gameData = await getUserGameData(firebaseUser.uid)
       
@@ -50,6 +58,30 @@ export const loginWithGoogle = async () => {
     }
   } catch (error) {
     console.error('Google 로그인 오류:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// 리다이렉트 후 결과 처리 (페이지 로드 시 호출)
+export const handleGoogleRedirect = async () => {
+  try {
+    const result = await handleRedirectResult()
+    
+    if (result.success && result.user) {
+      const firebaseUser = result.user
+      const gameData = await getUserGameData(firebaseUser.uid)
+      
+      const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+      
+      // 세션 스토리지에 저장 (기존 시스템과 호환)
+      sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+      
+      return { success: true, user: appUser }
+    }
+    
+    return { success: false, error: result.error || '리다이렉트 결과가 없습니다.' }
+  } catch (error) {
+    console.error('리다이렉트 처리 오류:', error)
     return { success: false, error: error.message }
   }
 }
