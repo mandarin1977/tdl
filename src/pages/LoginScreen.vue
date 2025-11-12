@@ -73,8 +73,32 @@ const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
+// 카카오톡 WebView 감지 함수
+const isKakaoTalkWebView = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /KAKAOTALK/i.test(userAgent) || /KakaoTalk/i.test(userAgent)
+}
+
 // Google 소셜 로그인
 const handleGoogleLogin = async () => {
+  // 카카오톡 WebView에서 접속한 경우 안내
+  if (isKakaoTalkWebView()) {
+    const useExternalBrowser = confirm(
+      '카카오톡 인앱 브라우저에서는 Google 로그인이 제한됩니다.\n\n' +
+      '외부 브라우저(Chrome, Safari 등)에서 열어주세요.\n\n' +
+      '외부 브라우저로 열까요?'
+    )
+    
+    if (useExternalBrowser) {
+      // 현재 URL을 외부 브라우저로 열기
+      const currentUrl = window.location.href
+      window.open(currentUrl, '_blank')
+      return
+    } else {
+      return
+    }
+  }
+  
   isGoogleLoading.value = true
   setLoading(true)
   
@@ -110,6 +134,20 @@ const handleGoogleLogin = async () => {
 }
 
 onMounted(async () => {
+  // 카카오톡 WebView 감지 및 안내
+  if (isKakaoTalkWebView()) {
+    setTimeout(() => {
+      alert(
+        '⚠️ 카카오톡 인앱 브라우저에서는 Google 로그인이 제한됩니다.\n\n' +
+        'Google의 보안 정책상 카카오톡 WebView에서는 로그인이 차단됩니다.\n\n' +
+        '✅ 해결 방법:\n' +
+        '1. 카카오톡에서 "외부 브라우저로 열기" 선택\n' +
+        '2. 또는 Chrome, Safari 등 외부 브라우저에서 직접 접속\n\n' +
+        '현재 페이지를 외부 브라우저로 열어주세요.'
+      )
+    }, 500)
+  }
+  
   // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
   try {
     const redirectResult = await handleGoogleRedirect()
