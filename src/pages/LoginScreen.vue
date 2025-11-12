@@ -74,38 +74,8 @@ const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
-// 카카오톡 WebView 감지 함수
-const isKakaoTalkWebView = () => {
-  try {
-    if (typeof navigator === 'undefined') return false
-    const userAgent = navigator.userAgent || navigator.vendor || ''
-    return /KAKAOTALK/i.test(userAgent) || /KakaoTalk/i.test(userAgent)
-  } catch (error) {
-    console.error('카카오톡 WebView 감지 오류:', error)
-    return false
-  }
-}
-
 // Google 소셜 로그인
 const handleGoogleLogin = async () => {
-  // 카카오톡 WebView에서 접속한 경우 안내
-  if (isKakaoTalkWebView()) {
-    const useExternalBrowser = confirm(
-      '카카오톡 인앱 브라우저에서는 Google 로그인이 제한됩니다.\n\n' +
-      '외부 브라우저(Chrome, Safari 등)에서 열어주세요.\n\n' +
-      '외부 브라우저로 열까요?'
-    )
-    
-    if (useExternalBrowser) {
-      // 현재 URL을 외부 브라우저로 열기
-      const currentUrl = window.location.href
-      window.open(currentUrl, '_blank')
-      return
-    } else {
-      return
-    }
-  }
-  
   isGoogleLoading.value = true
   setLoading(true)
   
@@ -115,7 +85,7 @@ const handleGoogleLogin = async () => {
     // 리다이렉트 방식인 경우 (모바일)
     if (result.redirect) {
       // 리다이렉트는 페이지를 이동시키므로 여기서는 아무것도 하지 않음
-      // 실제 처리는 페이지가 다시 로드될 때 onMounted에서 수행됨
+      // 실제 처리는 페이지가 다시 로드될 때 라우터 가드에서 수행됨
       return
     }
     
@@ -140,52 +110,29 @@ const handleGoogleLogin = async () => {
   }
 }
 
-onMounted(async () => {
+onMounted(() => {
   // 초기 로딩 상태 설정
   setLoading(false)
   isGoogleLoading.value = false
   
-  try {
-    // 카카오톡 WebView 감지 및 안내
-    if (isKakaoTalkWebView()) {
-      setTimeout(() => {
-        alert(
-          '⚠️ 카카오톡 인앱 브라우저에서는 Google 로그인이 제한됩니다.\n\n' +
-          'Google의 보안 정책상 카카오톡 WebView에서는 로그인이 차단됩니다.\n\n' +
-          '✅ 해결 방법:\n' +
-          '1. 카카오톡에서 "외부 브라우저로 열기" 선택\n' +
-          '2. 또는 Chrome, Safari 등 외부 브라우저에서 직접 접속\n\n' +
-          '현재 페이지를 외부 브라우저로 열어주세요.'
-        )
-      }, 500)
-    }
+  // 이미 로그인된 상태인지 확인
+  const currentUser = getCurrentUser()
+  if (currentUser) {
+    router.push('/main')
+    return
+  }
+  
+  // 페이지 진입 시 애니메이션 효과
+  const loginCont = document.querySelector('.loginCont')
+  if (loginCont) {
+    loginCont.style.opacity = '0'
+    loginCont.style.transform = 'translateY(30px)'
     
-    // 리다이렉트 결과는 라우터 가드에서 처리되므로 여기서는 확인만
-    // 이미 로그인된 상태인지 확인
-    const currentUser = getCurrentUser()
-    if (currentUser) {
-      console.log('이미 로그인된 상태, 메인으로 이동')
-      router.push('/main')
-      return
-    }
-    
-    // 페이지 진입 시 애니메이션 효과
     setTimeout(() => {
-      const loginCont = document.querySelector('.loginCont')
-      if (loginCont) {
-        loginCont.style.opacity = '0'
-        loginCont.style.transform = 'translateY(30px)'
-        
-        setTimeout(() => {
-          loginCont.style.transition = 'all 0.6s ease'
-          loginCont.style.opacity = '1'
-          loginCont.style.transform = 'translateY(0)'
-        }, 100)
-      }
+      loginCont.style.transition = 'all 0.6s ease'
+      loginCont.style.opacity = '1'
+      loginCont.style.transform = 'translateY(0)'
     }, 100)
-  } catch (error) {
-    console.error('onMounted 오류:', error)
-    // 오류가 발생해도 페이지는 정상적으로 표시되어야 함
   }
 })
 </script>
