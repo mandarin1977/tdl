@@ -55,42 +55,60 @@ const router = createRouter({
   routes
 })
 
+// 리다이렉트 결과 처리 플래그 (중복 처리 방지)
+let redirectResultProcessed = false
+
 // 라우터 가드: 인증 상태에 따른 리다이렉트
 router.beforeEach(async (to, from, next) => {
   // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
-  // 로그인 페이지에서만 리다이렉트 결과 확인
-  if (to.path === '/login') {
+  // 모든 경로에서 확인하되, 한 번만 처리
+  if (!redirectResultProcessed) {
     try {
+      console.log('라우터 가드: 리다이렉트 결과 확인 중...', to.path)
       const redirectResult = await handleGoogleRedirect()
+      console.log('라우터 가드: 리다이렉트 결과:', redirectResult)
+      
       if (redirectResult && redirectResult.success && redirectResult.user) {
         // 리다이렉트 로그인 성공 - 메인으로 이동
+        redirectResultProcessed = true
         console.log('라우터 가드: 리다이렉트 로그인 성공, 메인으로 이동')
         next('/main')
         return
       }
     } catch (error) {
       // 리다이렉트 결과가 없거나 오류인 경우 정상 진행
-      console.log('라우터 가드: 리다이렉트 결과 없음')
+      console.log('라우터 가드: 리다이렉트 결과 없음:', error.message)
     }
+    redirectResultProcessed = true
   }
   
   const currentUser = getCurrentUser()
   const isAuthenticated = !!currentUser
   const isPublicRoute = publicRoutes.includes(to.path)
 
+  console.log('라우터 가드: 인증 상태 확인', { 
+    path: to.path, 
+    isAuthenticated, 
+    isPublicRoute,
+    currentUser: currentUser?.email 
+  })
+
   // 로그인된 상태에서 로그인/회원가입 페이지 접근 시 메인으로 리다이렉트
   if (isAuthenticated && (to.path === '/login' || to.path === '/signup')) {
+    console.log('라우터 가드: 이미 로그인됨, 메인으로 이동')
     next('/main')
     return
   }
 
   // 로그인하지 않은 상태에서 보호된 페이지 접근 시 로그인 페이지로 리다이렉트
   if (!isAuthenticated && !isPublicRoute) {
+    console.log('라우터 가드: 인증 필요, 로그인 페이지로 이동')
     next('/login')
     return
   }
 
   // 정상 접근
+  console.log('라우터 가드: 정상 접근 허용')
   next()
 })
 

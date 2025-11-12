@@ -118,26 +118,45 @@ export const signInWithGoogle = async () => {
   }
 }
 
+// 리다이렉트 결과 캐시 (중복 호출 방지)
+let redirectResultCache = null
+let redirectResultChecked = false
+
 // 리다이렉트 결과 처리 함수 (리다이렉트 후 호출)
 export const handleRedirectResult = async () => {
+  // 이미 확인했다면 캐시된 결과 반환
+  if (redirectResultChecked) {
+    console.log('리다이렉트 결과 이미 확인됨, 캐시 반환:', redirectResultCache)
+    return redirectResultCache || { success: false, error: '리다이렉트 결과가 없습니다.' }
+  }
+  
   try {
     console.log('getRedirectResult 호출 중...')
+    console.log('현재 URL:', window.location.href)
+    console.log('현재 해시:', window.location.hash)
+    
     const result = await getRedirectResult(auth)
     console.log('getRedirectResult 결과:', result)
+    
+    redirectResultChecked = true
     
     if (result && result.user) {
       const user = result.user
       console.log('인증된 사용자:', user.email, user.uid)
       await saveUserToFirestore(user)
       console.log('Firestore 저장 완료')
-      return { success: true, user }
+      redirectResultCache = { success: true, user }
+      return redirectResultCache
     }
     
     console.log('리다이렉트 결과 없음 (result가 null이거나 user가 없음)')
-    return { success: false, error: '리다이렉트 결과가 없습니다.' }
+    redirectResultCache = { success: false, error: '리다이렉트 결과가 없습니다.' }
+    return redirectResultCache
   } catch (error) {
     console.error('리다이렉트 결과 처리 오류:', error)
-    return { success: false, error: error.message }
+    redirectResultChecked = true
+    redirectResultCache = { success: false, error: error.message }
+    return redirectResultCache
   }
 }
 
