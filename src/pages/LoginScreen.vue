@@ -2,14 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
-import { loginWithGoogle, handleGoogleRedirect } from '@/utils/firebaseAuth'
 import { getCurrentUser } from '@/utils/userUtils'
 
 const router = useRouter()
 const { setWalletConnected, setLoading } = useAppStore()
 const isConnecting = ref(false)
 const walletConnected = ref(false)
-const isGoogleLoading = ref(false)
 
 // 비밀번호 표시/숨김 상태
 const showPassword = ref(false)
@@ -74,90 +72,9 @@ const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
-// Google 소셜 로그인
-const handleGoogleLogin = async () => {
-  isGoogleLoading.value = true
-  setLoading(true)
-  
-  try {
-    const result = await loginWithGoogle()
-    
-    // 리다이렉트 방식인 경우 (모바일)
-    if (result.redirect) {
-      // 리다이렉트는 페이지를 이동시키므로 여기서는 아무것도 하지 않음
-      // 실제 처리는 페이지가 다시 로드될 때 라우터 가드에서 수행됨
-      return
-    }
-    
-    if (result.success && result.user) {
-      walletConnected.value = true
-      setWalletConnected(result.user.email, `${result.user.gameData?.coins || 0} 코인`)
-      setLoading(false)
-      
-      // 로그인 완료 후 메인 화면으로 이동
-      setTimeout(() => {
-        router.push('/main')
-      }, 1000)
-    } else {
-      setLoading(false)
-      alert(`로그인 실패: ${result.error}`)
-    }
-  } catch (error) {
-    setLoading(false)
-    alert(`로그인 오류: ${error.message}`)
-  } finally {
-    isGoogleLoading.value = false
-  }
-}
-
-onMounted(async () => {
+onMounted(() => {
   // 초기 로딩 상태 설정
   setLoading(false)
-  isGoogleLoading.value = false
-  
-  // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
-  // 모바일에서 타이밍 문제를 해결하기 위해 약간의 지연 후 재시도
-  const checkRedirect = async (retryCount = 0) => {
-    try {
-      const redirectResult = await handleGoogleRedirect()
-      if (redirectResult && redirectResult.success && redirectResult.user) {
-        // 리다이렉트 로그인 성공
-        walletConnected.value = true
-        setWalletConnected(redirectResult.user.email, `${redirectResult.user.gameData?.coins || 0} 코인`)
-        setLoading(false)
-        
-        // 로그인 완료 후 메인 화면으로 이동
-        setTimeout(() => {
-          router.push('/main')
-        }, 500)
-        return true
-      }
-      
-      // 재시도 (최대 2번, 모바일에서 Firebase 인증 상태가 늦게 설정될 수 있음)
-      if (retryCount < 2) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        return await checkRedirect(retryCount + 1)
-      }
-      
-      return false
-    } catch (error) {
-      console.log('리다이렉트 결과 확인 오류:', error.message)
-      
-      // 재시도
-      if (retryCount < 2) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        return await checkRedirect(retryCount + 1)
-      }
-      
-      return false
-    }
-  }
-  
-  // 리다이렉트 결과 확인
-  const redirectSuccess = await checkRedirect()
-  if (redirectSuccess) {
-    return
-  }
   
   // 이미 로그인된 상태인지 확인
   const currentUser = getCurrentUser()
@@ -471,70 +388,6 @@ onMounted(async () => {
   height: 16px;
 }
 
-/* 소셜 로그인 구분선 */
-.divider-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 2rem 0;
-  width: 100%;
-}
-
-.divider-line {
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.divider-text {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-/* Google 로그인 버튼 */
-.google-login-button {
-  width: 100%;
-  background: white;
-  color: #333;
-  border: none;
-  border-radius: 5px;
-  height: 56px;
-  padding: 1.2rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1.5rem;
-}
-
-.google-login-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  background: #f8f8f8;
-}
-
-.google-login-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.google-login-button.loading {
-  background: #f0f0f0;
-}
-
-.google-icon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-}
-
 .signup-link {
   text-align: center;
   margin-top: 2rem;
@@ -580,8 +433,7 @@ onMounted(async () => {
     font-size: 0.95rem;
   }
   
-  .login-button,
-  .google-login-button {
+  .login-button {
     font-size: 1rem;
     height: 52px;
     padding: 1rem;
