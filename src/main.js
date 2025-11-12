@@ -2,6 +2,8 @@ import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
 import { getCurrentUser } from './utils/userUtils'
+import { onAuthStateChange, convertFirebaseUserToAppUser, handleGoogleRedirect } from './utils/firebaseAuth'
+import { getUserGameData, auth } from './firebase/config'
 
 // 페이지 컴포넌트들 import
 import LoadingScreen from './pages/LoadingScreen.vue'
@@ -54,8 +56,60 @@ const router = createRouter({
   routes
 })
 
+// Firebase 인증 상태 변경 리스너 설정 (모바일 리다이렉트 대응)
+onAuthStateChange(async (appUser) => {
+  if (appUser) {
+    // 세션 스토리지에 저장
+    const currentUser = getCurrentUser()
+    if (!currentUser || currentUser.id !== appUser.id) {
+      sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+      
+      // 로그인/회원가입 페이지에 있다면 메인으로 이동
+      if (router.currentRoute.value.path === '/login' || router.currentRoute.value.path === '/signup') {
+        router.push('/main')
+      }
+    }
+  } else {
+    // 로그아웃 처리
+    sessionStorage.removeItem('currentUser')
+  }
+})
+
 // 라우터 가드: 인증 상태에 따른 리다이렉트
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  // 먼저 Firebase 인증 상태 확인 (리다이렉트 후 처리)
+  const firebaseUser = auth.currentUser
+  if (firebaseUser) {
+    // 세션 스토리지에 저장되어 있는지 확인
+    const currentUser = getCurrentUser()
+    if (!currentUser || currentUser.id !== firebaseUser.uid) {
+      // 세션 스토리지에 없으면 저장
+      try {
+        const gameData = await getUserGameData(firebaseUser.uid)
+        const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+        sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+      } catch (error) {
+        console.error('라우터 가드: 사용자 데이터 저장 오류:', error)
+      }
+    }
+  }
+  
+  // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
+  // 로그인 페이지로 돌아왔을 때만 확인
+  if (to.path === '/login' && !firebaseUser) {
+    try {
+      const redirectResult = await handleGoogleRedirect()
+      if (redirectResult && redirectResult.success && redirectResult.user) {
+        // 리다이렉트 로그인 성공 - 메인으로 이동
+        next('/main')
+        return
+      }
+    } catch (error) {
+      // 리다이렉트 결과가 없거나 오류인 경우 정상 진행
+      console.log('라우터 가드: 리다이렉트 결과 없음:', error.message)
+    }
+  }
+  
   const currentUser = getCurrentUser()
   const isAuthenticated = !!currentUser
   const isPublicRoute = publicRoutes.includes(to.path)
