@@ -10,7 +10,7 @@ import {
 } from '@/firebase/config'
 
 // Firebase 사용자 데이터를 앱 형식으로 변환
-const convertFirebaseUserToAppUser = (firebaseUser, gameData) => {
+export const convertFirebaseUserToAppUser = (firebaseUser, gameData) => {
   return {
     id: firebaseUser.uid,
     email: firebaseUser.email,
