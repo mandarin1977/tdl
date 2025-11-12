@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
 import { getCurrentUser } from './utils/userUtils'
+import { handleGoogleRedirect } from './utils/firebaseAuth'
 
 // 페이지 컴포넌트들 import
 import LoadingScreen from './pages/LoadingScreen.vue'
@@ -55,7 +56,24 @@ const router = createRouter({
 })
 
 // 라우터 가드: 인증 상태에 따른 리다이렉트
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
+  // 로그인 페이지에서만 리다이렉트 결과 확인
+  if (to.path === '/login') {
+    try {
+      const redirectResult = await handleGoogleRedirect()
+      if (redirectResult && redirectResult.success && redirectResult.user) {
+        // 리다이렉트 로그인 성공 - 메인으로 이동
+        console.log('라우터 가드: 리다이렉트 로그인 성공, 메인으로 이동')
+        next('/main')
+        return
+      }
+    } catch (error) {
+      // 리다이렉트 결과가 없거나 오류인 경우 정상 진행
+      console.log('라우터 가드: 리다이렉트 결과 없음')
+    }
+  }
+  
   const currentUser = getCurrentUser()
   const isAuthenticated = !!currentUser
   const isPublicRoute = publicRoutes.includes(to.path)

@@ -2,7 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
-import { loginWithGoogle, handleGoogleRedirect } from '@/utils/firebaseAuth'
+import { loginWithGoogle } from '@/utils/firebaseAuth'
+import { getCurrentUser } from '@/utils/userUtils'
 
 const router = useRouter()
 const { setWalletConnected, setLoading } = useAppStore()
@@ -159,42 +160,13 @@ onMounted(async () => {
       }, 500)
     }
     
-    // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
-    // URL에 리다이렉트 결과가 있는지 확인
-    const urlParams = new URLSearchParams(window.location.search)
-    const hasRedirectResult = urlParams.has('apiKey') || window.location.hash.includes('apiKey')
-    
-    if (hasRedirectResult || window.location.href.includes('__/auth/handler')) {
-      console.log('리다이렉트 결과가 URL에 있음, 처리 시작...')
-      setLoading(true)
-    }
-    
-    try {
-      console.log('리다이렉트 결과 확인 중...')
-      const redirectResult = await handleGoogleRedirect()
-      console.log('리다이렉트 결과:', redirectResult)
-      
-      if (redirectResult && redirectResult.success && redirectResult.user) {
-        // 리다이렉트 로그인 성공
-        console.log('리다이렉트 로그인 성공:', redirectResult.user.email)
-        walletConnected.value = true
-        setWalletConnected(redirectResult.user.email, `${redirectResult.user.gameData?.coins || 0} 코인`)
-        setLoading(false)
-        
-        // 로그인 완료 후 메인 화면으로 이동
-        console.log('메인 화면으로 이동 중...')
-        setTimeout(() => {
-          router.push('/main')
-        }, 500)
-        return
-      } else {
-        console.log('리다이렉트 결과 없음 또는 실패:', redirectResult?.error)
-        setLoading(false)
-      }
-    } catch (error) {
-      // 리다이렉트 결과가 없거나 오류인 경우 무시 (정상적인 로그인 페이지 접근)
-      console.log('리다이렉트 결과 처리 오류:', error.message)
-      setLoading(false)
+    // 리다이렉트 결과는 라우터 가드에서 처리되므로 여기서는 확인만
+    // 이미 로그인된 상태인지 확인
+    const currentUser = getCurrentUser()
+    if (currentUser) {
+      console.log('이미 로그인된 상태, 메인으로 이동')
+      router.push('/main')
+      return
     }
     
     // 페이지 진입 시 애니메이션 효과
