@@ -2,8 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
-import { loginWithGoogle } from '@/utils/firebaseAuth'
-import { getCurrentUser } from '@/utils/userUtils'
+import { loginWithGoogle, handleGoogleRedirect } from '@/utils/firebaseAuth'
 
 const router = useRouter()
 const { setWalletConnected, setLoading } = useAppStore()
@@ -110,10 +109,30 @@ const handleGoogleLogin = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 초기 로딩 상태 설정
   setLoading(false)
   isGoogleLoading.value = false
+  
+  // 리다이렉트 결과 처리 (Google 로그인 후 돌아온 경우)
+  try {
+    const redirectResult = await handleGoogleRedirect()
+    if (redirectResult && redirectResult.success && redirectResult.user) {
+      // 리다이렉트 로그인 성공
+      walletConnected.value = true
+      setWalletConnected(redirectResult.user.email, `${redirectResult.user.gameData?.coins || 0} 코인`)
+      setLoading(false)
+      
+      // 로그인 완료 후 메인 화면으로 이동
+      setTimeout(() => {
+        router.push('/main')
+      }, 500)
+      return
+    }
+  } catch (error) {
+    // 리다이렉트 결과가 없거나 오류인 경우 무시 (정상적인 로그인 페이지 접근)
+    console.log('리다이렉트 결과 없음:', error.message)
+  }
   
   // 이미 로그인된 상태인지 확인
   const currentUser = getCurrentUser()
