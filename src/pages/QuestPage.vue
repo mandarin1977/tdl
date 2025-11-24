@@ -1,9 +1,12 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
+import { calculateQuestProgress, isQuestCompleted, getQuestProgress, resetQuestProgress } from '@/utils/questUtils'
 
+const store = useAppStore()
 const coinCount = ref(0)
 const activeMainTab = ref('inProgress')
 const activeFilterTab = ref('daily')
@@ -39,27 +42,38 @@ const saveRewardedQuests = (ids) => {
   localStorage.setItem('questLastDate', getTodayDate())
 }
 
+// 보상 타입 정의
+const rewardTypes = {
+  coins: { icon: '💰', name: '코인' },
+  catFragments: { icon: '✨', name: '고양이 파편' },
+  exp: { icon: '⭐', name: '경험치' }
+}
+
 const allQuests = ref([
-  // Daily 퀘스트 (8개)
+  // Daily 퀘스트
   {
     id: 1,
     title: '일일 채굴 10회',
     description: '오늘 하루 채굴을 10회 완료하세요',
-    completed: true,
+    completed: false,
     rewardReceived: false,
-    progress: 10,
+    progress: 0,
     total: 10,
-    type: 'daily'
+    type: 'daily',
+    reward: { coins: 100, catFragments: 5 },
+    actionType: 'mining'
   },
   {
     id: 2,
     title: '일일 사냥 5회',
     description: '몬스터를 5마리 처치하세요',
-    completed: true,
+    completed: false,
     rewardReceived: false,
-    progress: 5,
+    progress: 0,
     total: 5,
-    type: 'daily'
+    type: 'daily',
+    reward: { coins: 100, catFragments: 5 },
+    actionType: 'hunting'
   },
   {
     id: 3,
@@ -69,7 +83,9 @@ const allQuests = ref([
     rewardReceived: false,
     progress: 0,
     total: 1,
-    type: 'daily'
+    type: 'daily',
+    reward: { coins: 150, catFragments: 10 },
+    actionType: 'exploration'
   },
   {
     id: 4,
@@ -77,9 +93,11 @@ const allQuests = ref([
     description: '아이템을 3개 이상 생산하세요',
     completed: false,
     rewardReceived: false,
-    progress: 1,
+    progress: 0,
     total: 3,
-    type: 'daily'
+    type: 'daily',
+    reward: { coins: 120, catFragments: 8 },
+    actionType: 'production'
   },
   {
     id: 5,
@@ -87,9 +105,11 @@ const allQuests = ref([
     description: '코인을 1,000개 이상 획득하세요',
     completed: false,
     rewardReceived: false,
-    progress: 650,
+    progress: 0,
     total: 1000,
-    type: 'daily'
+    type: 'daily',
+    reward: { coins: 200, catFragments: 15 },
+    actionType: 'coinEarned'
   },
   {
     id: 6,
@@ -97,40 +117,48 @@ const allQuests = ref([
     description: '레벨을 1레벨 이상 올리세요',
     completed: false,
     rewardReceived: false,
-    progress: 0.6,
+    progress: 0,
     total: 1,
-    type: 'daily'
+    type: 'daily',
+    reward: { coins: 300, catFragments: 20 },
+    actionType: 'levelUp'
   },
   {
     id: 7,
     title: '일일 데일리 체크',
     description: '게임에 접속하여 일일 퀘스트를 확인하세요',
-    completed: true,
+    completed: false,
     rewardReceived: false,
-    progress: 1,
+    progress: 0,
     total: 1,
-    type: 'daily'
+    type: 'daily',
+    reward: { coins: 50, catFragments: 3 },
+    actionType: 'login'
   },
   {
     id: 8,
-    title: '일일 랜덤 상자 수집',
-    description: '랜덤 상자를 2개 이상 수집하세요',
+    title: '일일 NFT 제작 1개',
+    description: '고양이 NFT를 1개 제작하세요',
     completed: false,
     rewardReceived: false,
-    progress: 1,
-    total: 2,
-    type: 'daily'
+    progress: 0,
+    total: 1,
+    type: 'daily',
+    reward: { coins: 500, catFragments: 30 },
+    actionType: 'nftCreated'
   },
-  // Weekly 퀘스트 (8개)
+  // Weekly 퀘스트
   {
     id: 9,
     title: '주간 퀘스트: 채굴 마스터',
     description: '일주일간 채굴을 50회 완료하세요',
     completed: false,
     rewardReceived: false,
-    progress: 23,
+    progress: 0,
     total: 50,
-    type: 'weekly'
+    type: 'weekly',
+    reward: { coins: 1000, catFragments: 50 },
+    actionType: 'mining'
   },
   {
     id: 10,
@@ -138,19 +166,23 @@ const allQuests = ref([
     description: '일주일 동안 몬스터를 100마리 처치하세요',
     completed: false,
     rewardReceived: false,
-    progress: 45,
+    progress: 0,
     total: 100,
-    type: 'weekly'
+    type: 'weekly',
+    reward: { coins: 2000, catFragments: 100 },
+    actionType: 'hunting'
   },
   {
     id: 11,
     title: '주간 퀘스트: 탐험가',
     description: '새로운 지역을 5곳 탐험하세요',
-    completed: true,
+    completed: false,
     rewardReceived: false,
-    progress: 5,
+    progress: 0,
     total: 5,
-    type: 'weekly'
+    type: 'weekly',
+    reward: { coins: 1500, catFragments: 80 },
+    actionType: 'exploration'
   },
   {
     id: 12,
@@ -158,9 +190,11 @@ const allQuests = ref([
     description: '아이템을 50개 이상 생산하세요',
     completed: false,
     rewardReceived: false,
-    progress: 28,
+    progress: 0,
     total: 50,
-    type: 'weekly'
+    type: 'weekly',
+    reward: { coins: 1800, catFragments: 90 },
+    actionType: 'production'
   },
   {
     id: 13,
@@ -168,9 +202,11 @@ const allQuests = ref([
     description: '코인을 5만개 이상 획득하세요',
     completed: false,
     rewardReceived: false,
-    progress: 32000,
+    progress: 0,
     total: 50000,
-    type: 'weekly'
+    type: 'weekly',
+    reward: { coins: 5000, catFragments: 200 },
+    actionType: 'coinEarned'
   },
   {
     id: 14,
@@ -178,40 +214,48 @@ const allQuests = ref([
     description: '레벨을 5레벨 이상 올리세요',
     completed: false,
     rewardReceived: false,
-    progress: 3,
+    progress: 0,
     total: 5,
-    type: 'weekly'
+    type: 'weekly',
+    reward: { coins: 3000, catFragments: 150 },
+    actionType: 'levelUp'
   },
   {
     id: 15,
-    title: '주간 퀘스트: 수집가',
-    description: '다양한 보물을 20개 수집하세요',
+    title: '주간 퀘스트: NFT 수집가',
+    description: 'NFT를 5개 이상 제작하세요',
     completed: false,
     rewardReceived: false,
-    progress: 12,
-    total: 20,
-    type: 'weekly'
+    progress: 0,
+    total: 5,
+    type: 'weekly',
+    reward: { coins: 4000, catFragments: 250 },
+    actionType: 'nftCreated'
   },
   {
     id: 16,
-    title: '주간 퀘스트: 종합 능력',
-    description: '모든 활동을 각각 10회 이상 수행하세요',
+    title: '주간 퀘스트: 레어 NFT 소유',
+    description: '레어 등급(3성 이상) NFT를 1개 이상 소유하세요',
     completed: false,
     rewardReceived: false,
-    progress: 35,
-    total: 40,
-    type: 'weekly'
+    progress: 0,
+    total: 1,
+    type: 'weekly',
+    reward: { coins: 5000, catFragments: 300 },
+    actionType: 'nftOwned'
   },
-  // Monthly 퀘스트 (8개)
+  // Monthly 퀘스트
   {
     id: 17,
     title: '월간 퀘스트: 코인왕',
     description: '이번 달 코인을 20만 개 이상 획득하세요',
     completed: false,
     rewardReceived: false,
-    progress: 95000,
+    progress: 0,
     total: 200000,
-    type: 'monthly'
+    type: 'monthly',
+    reward: { coins: 20000, catFragments: 1000 },
+    actionType: 'coinEarned'
   },
   {
     id: 18,
@@ -219,19 +263,23 @@ const allQuests = ref([
     description: '레벨을 20레벨 이상 올리세요',
     completed: false,
     rewardReceived: false,
-    progress: 15,
+    progress: 0,
     total: 20,
-    type: 'monthly'
+    type: 'monthly',
+    reward: { coins: 15000, catFragments: 800 },
+    actionType: 'levelUp'
   },
   {
     id: 19,
-    title: '월간 퀘스트: 완벽한 수집가',
-    description: '보물을 100개 이상 수집하세요',
+    title: '월간 퀘스트: NFT 마스터',
+    description: 'NFT를 20개 이상 제작하세요',
     completed: false,
     rewardReceived: false,
-    progress: 67,
-    total: 100,
-    type: 'monthly'
+    progress: 0,
+    total: 20,
+    type: 'monthly',
+    reward: { coins: 25000, catFragments: 1500 },
+    actionType: 'nftCreated'
   },
   {
     id: 20,
@@ -239,9 +287,11 @@ const allQuests = ref([
     description: '채굴을 500회 이상 완료하세요',
     completed: false,
     rewardReceived: false,
-    progress: 289,
+    progress: 0,
     total: 500,
-    type: 'monthly'
+    type: 'monthly',
+    reward: { coins: 10000, catFragments: 500 },
+    actionType: 'mining'
   },
   {
     id: 21,
@@ -249,9 +299,11 @@ const allQuests = ref([
     description: '몬스터를 500마리 처치하세요',
     completed: false,
     rewardReceived: false,
-    progress: 234,
+    progress: 0,
     total: 500,
-    type: 'monthly'
+    type: 'monthly',
+    reward: { coins: 12000, catFragments: 600 },
+    actionType: 'hunting'
   },
   {
     id: 22,
@@ -259,9 +311,11 @@ const allQuests = ref([
     description: '새로운 지역을 20곳 탐험하세요',
     completed: false,
     rewardReceived: false,
-    progress: 14,
+    progress: 0,
     total: 20,
-    type: 'monthly'
+    type: 'monthly',
+    reward: { coins: 10000, catFragments: 500 },
+    actionType: 'exploration'
   },
   {
     id: 23,
@@ -269,37 +323,171 @@ const allQuests = ref([
     description: '다양한 아이템을 200개 생산하세요',
     completed: false,
     rewardReceived: false,
-    progress: 123,
+    progress: 0,
     total: 200,
-    type: 'monthly'
+    type: 'monthly',
+    reward: { coins: 15000, catFragments: 700 },
+    actionType: 'production'
   },
   {
     id: 24,
-    title: '월간 퀘스트: 최고 달성자',
-    description: '이번 달 모든 활동을 완벽하게 수행하세요',
-    completed: true,
+    title: '월간 퀘스트: 에픽 NFT 소유',
+    description: '에픽 등급(4성 이상) NFT를 1개 이상 소유하세요',
+    completed: false,
     rewardReceived: false,
-    progress: 100,
-    total: 100,
-    type: 'monthly'
+    progress: 0,
+    total: 1,
+    type: 'monthly',
+    reward: { coins: 30000, catFragments: 2000 },
+    actionType: 'nftOwned'
+  },
+  // NFT 관련 추가 퀘스트
+  {
+    id: 25,
+    title: '일일 NFT 제작 1개',
+    description: '고양이 NFT를 1개 제작하세요',
+    completed: false,
+    rewardReceived: false,
+    progress: 0,
+    total: 1,
+    type: 'daily',
+    reward: { coins: 500, catFragments: 30 },
+    actionType: 'nftCreated'
+  },
+  {
+    id: 26,
+    title: '주간 NFT 제작 5개',
+    description: '고양이 NFT를 5개 제작하세요',
+    completed: false,
+    rewardReceived: false,
+    progress: 0,
+    total: 5,
+    type: 'weekly',
+    reward: { coins: 4000, catFragments: 250 },
+    actionType: 'nftCreated'
+  },
+  {
+    id: 27,
+    title: '월간 NFT 제작 20개',
+    description: '고양이 NFT를 20개 제작하세요',
+    completed: false,
+    rewardReceived: false,
+    progress: 0,
+    total: 20,
+    type: 'monthly',
+    reward: { coins: 25000, catFragments: 1500 },
+    actionType: 'nftCreated'
+  },
+  {
+    id: 28,
+    title: '레어 NFT 소유',
+    description: '레어 등급(3성 이상) NFT를 1개 이상 소유하세요',
+    completed: false,
+    rewardReceived: false,
+    progress: 0,
+    total: 1,
+    type: 'daily',
+    reward: { coins: 1000, catFragments: 50 },
+    actionType: 'nftOwned'
+  },
+  {
+    id: 29,
+    title: '에픽 NFT 소유',
+    description: '에픽 등급(4성 이상) NFT를 1개 이상 소유하세요',
+    completed: false,
+    rewardReceived: false,
+    progress: 0,
+    total: 1,
+    type: 'weekly',
+    reward: { coins: 5000, catFragments: 300 },
+    actionType: 'nftOwned'
+  },
+  {
+    id: 30,
+    title: '레전더리 NFT 소유',
+    description: '레전더리 등급(5성) NFT를 1개 이상 소유하세요',
+    completed: false,
+    rewardReceived: false,
+    progress: 0,
+    total: 1,
+    type: 'monthly',
+    reward: { coins: 50000, catFragments: 5000 },
+    actionType: 'nftOwned'
   }
 ])
 
+// 퀘스트 진행도 업데이트
+const updateQuestProgresses = () => {
+  const currentUser = getCurrentUser()
+  if (!currentUser || !currentUser.gameData) return
+  
+  allQuests.value.forEach(quest => {
+    const progress = calculateQuestProgress(quest.id, currentUser.gameData)
+    quest.progress = progress
+    quest.completed = isQuestCompleted(quest, currentUser.gameData)
+  })
+}
+
 // 보상 받기 함수
-const receiveReward = (questId) => {
+const receiveReward = async (questId) => {
   const quest = allQuests.value.find(q => q.id === questId)
-  if (quest && quest.completed && !quest.rewardReceived) {
-    quest.rewardReceived = true
-    
-    // localStorage에 저장
-    const rewardedIds = loadRewardedQuests()
-    if (!rewardedIds.includes(questId)) {
-      rewardedIds.push(questId)
-      saveRewardedQuests(rewardedIds)
-    }
-    
-    alert('보상 받기 완료!')
+  if (!quest || !quest.completed || quest.rewardReceived) return
+  
+  const currentUser = getCurrentUser()
+  if (!currentUser) {
+    alert('로그인이 필요합니다.')
+    return
   }
+  
+  // 보상 지급
+  const reward = quest.reward || {}
+  const updates = {}
+  
+  if (reward.coins) {
+    updates.totalCoin = (currentUser.gameData?.totalCoin || 0) + reward.coins
+  }
+  
+  if (reward.catFragments) {
+    updates.catFragments = (currentUser.gameData?.catFragments || 50) + reward.catFragments
+  }
+  
+  if (reward.exp) {
+    // 경험치는 레벨업으로 변환 (간단히)
+    const currentLevel = currentUser.gameData?.level || 1
+    const expGain = reward.exp
+    // 경험치 100당 레벨 1 증가 (예시)
+    const levelGain = Math.floor(expGain / 100)
+    if (levelGain > 0) {
+      updates.level = currentLevel + levelGain
+    }
+  }
+  
+  // 게임 데이터 업데이트
+  await updateUserGameData(currentUser.id, updates)
+  
+  // 퀘스트 보상 받음 표시
+  quest.rewardReceived = true
+  
+  // localStorage에 저장
+  const rewardedIds = loadRewardedQuests()
+  if (!rewardedIds.includes(questId)) {
+    rewardedIds.push(questId)
+    saveRewardedQuests(rewardedIds)
+  }
+  
+  // 이벤트 발생
+  window.dispatchEvent(new CustomEvent('userDataUpdated'))
+  
+  // 보상 알림
+  const rewardText = []
+  if (reward.coins) rewardText.push(`${reward.coins} 코인`)
+  if (reward.catFragments) rewardText.push(`${reward.catFragments} 고양이 파편`)
+  if (reward.exp) rewardText.push(`${reward.exp} 경험치`)
+  
+  alert(`보상 받기 완료!\n${rewardText.join(', ')}를 획득했습니다.`)
+  
+  // 코인 카운트 업데이트
+  coinCount.value = currentUser.gameData?.coins || 0
 }
 
 // 필터링된 퀘스트
@@ -324,14 +512,103 @@ const quests = computed(() => {
   })
 })
 
+// 일일/주간/월간 퀘스트 리셋
+const resetQuestsByType = () => {
+  const today = getTodayDate()
+  const lastResetDate = localStorage.getItem('questResetDate')
+  
+  if (lastResetDate !== today) {
+    // 일일 퀘스트 리셋
+    const dailyQuestIds = allQuests.value.filter(q => q.type === 'daily').map(q => q.id)
+    resetQuestProgress(dailyQuestIds)
+    
+    // 일일 퀘스트 보상 리셋
+    const rewardedIds = loadRewardedQuests()
+    const dailyRewardedIds = rewardedIds.filter(id => dailyQuestIds.includes(id))
+    dailyRewardedIds.forEach(id => {
+      const index = rewardedIds.indexOf(id)
+      if (index > -1) rewardedIds.splice(index, 1)
+    })
+    saveRewardedQuests(rewardedIds)
+    
+    // 일일 퀘스트 완료 상태 리셋
+    allQuests.value.forEach(quest => {
+      if (quest.type === 'daily') {
+        quest.rewardReceived = false
+        quest.completed = false
+        quest.progress = 0
+      }
+    })
+    
+    localStorage.setItem('questResetDate', today)
+  }
+  
+  // 주간 퀘스트 리셋 (매주 월요일)
+  const now = new Date()
+  const dayOfWeek = now.getDay()
+  const lastWeeklyReset = localStorage.getItem('questWeeklyResetDate')
+  const weeklyResetDate = new Date(now.setDate(now.getDate() - dayOfWeek + 1)).toDateString()
+  
+  if (lastWeeklyReset !== weeklyResetDate) {
+    const weeklyQuestIds = allQuests.value.filter(q => q.type === 'weekly').map(q => q.id)
+    resetQuestProgress(weeklyQuestIds)
+    
+    const rewardedIds = loadRewardedQuests()
+    const weeklyRewardedIds = rewardedIds.filter(id => weeklyQuestIds.includes(id))
+    weeklyRewardedIds.forEach(id => {
+      const index = rewardedIds.indexOf(id)
+      if (index > -1) rewardedIds.splice(index, 1)
+    })
+    saveRewardedQuests(rewardedIds)
+    
+    allQuests.value.forEach(quest => {
+      if (quest.type === 'weekly') {
+        quest.rewardReceived = false
+        quest.completed = false
+        quest.progress = 0
+      }
+    })
+    
+    localStorage.setItem('questWeeklyResetDate', weeklyResetDate)
+  }
+  
+  // 월간 퀘스트 리셋 (매월 1일)
+  const lastMonthlyReset = localStorage.getItem('questMonthlyResetDate')
+  const monthlyResetDate = new Date(now.getFullYear(), now.getMonth(), 1).toDateString()
+  
+  if (lastMonthlyReset !== monthlyResetDate) {
+    const monthlyQuestIds = allQuests.value.filter(q => q.type === 'monthly').map(q => q.id)
+    resetQuestProgress(monthlyQuestIds)
+    
+    const rewardedIds = loadRewardedQuests()
+    const monthlyRewardedIds = rewardedIds.filter(id => monthlyQuestIds.includes(id))
+    monthlyRewardedIds.forEach(id => {
+      const index = rewardedIds.indexOf(id)
+      if (index > -1) rewardedIds.splice(index, 1)
+    })
+    saveRewardedQuests(rewardedIds)
+    
+    allQuests.value.forEach(quest => {
+      if (quest.type === 'monthly') {
+        quest.rewardReceived = false
+        quest.completed = false
+        quest.progress = 0
+      }
+    })
+    
+    localStorage.setItem('questMonthlyResetDate', monthlyResetDate)
+  }
+}
+
 onMounted(() => {
   const currentUser = getCurrentUser()
   if (currentUser) {
     coinCount.value = currentUser.gameData?.coins || 0
   }
   
-  // 날짜 체크
+  // 날짜 체크 및 퀘스트 리셋
   checkDateChange()
+  resetQuestsByType()
   
   // 보상받은 퀘스트 로드
   const rewardedIds = loadRewardedQuests()
@@ -340,6 +617,29 @@ onMounted(() => {
       quest.rewardReceived = true
     }
   })
+  
+  // 퀘스트 진행도 업데이트
+  updateQuestProgresses()
+  
+  // 일일 로그인 퀘스트 자동 완료
+  const loginQuest = allQuests.value.find(q => q.id === 7 && q.type === 'daily')
+  if (loginQuest && !loginQuest.completed) {
+    loginQuest.progress = 1
+    loginQuest.completed = true
+    // 진행도 저장
+    const progress = getQuestProgress()
+    progress[7] = 1
+    localStorage.setItem('questProgress', JSON.stringify(progress))
+  }
+  
+  // 퀘스트 진행도 업데이트 이벤트 리스너
+  window.addEventListener('questProgressUpdated', updateQuestProgresses)
+  window.addEventListener('userDataUpdated', updateQuestProgresses)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('questProgressUpdated', updateQuestProgresses)
+  window.removeEventListener('userDataUpdated', updateQuestProgresses)
 })
 </script>
 
@@ -405,6 +705,19 @@ onMounted(() => {
             <div class="questInfo">
               <h3 class="questTitle">{{ quest.title }}</h3>
               <p class="questDescription">{{ quest.description }}</p>
+              
+              <!-- 보상 표시 -->
+              <div v-if="quest.reward" class="questRewards">
+                <span v-if="quest.reward.coins" class="rewardItem">
+                  💰 {{ quest.reward.coins }}
+                </span>
+                <span v-if="quest.reward.catFragments" class="rewardItem">
+                  ✨ {{ quest.reward.catFragments }}
+                </span>
+                <span v-if="quest.reward.exp" class="rewardItem">
+                  ⭐ {{ quest.reward.exp }}
+                </span>
+              </div>
             </div>
             <div class="questCharacter">
               <!-- 캐릭터 이미지 영역 -->
@@ -642,6 +955,24 @@ onMounted(() => {
   font-weight: 600;
   font-size: 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 보상 표시 */
+.questRewards {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rewardItem {
+  background: rgba(125, 211, 252, 0.2);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  color: #7DD3FC;
+  font-weight: 600;
 }
 
 /* 모바일 반응형 */

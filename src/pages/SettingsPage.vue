@@ -883,9 +883,11 @@ const goToDeposit = (exchange) => {
 
 .walletBalanceText {
   color: white;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.8rem;
+  font-weight: 700;
   font-family: 'Courier New', monospace;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 8px rgba(125, 211, 252, 0.3);
 }
 
 .walletCopyBtn {

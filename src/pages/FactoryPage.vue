@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
+import { trackGameAction } from '@/utils/questUtils'
+import { addRarityToNFT, getRarityName, getRarityColors, getRarityStyle } from '@/utils/rarityUtils'
 
 const totalCoin = ref(0) // Coin (C) - Point가 아니라 Coin 사용
 const catFragments = ref(50) // 고양이 파편 개수 (더미데이터)
@@ -12,6 +14,7 @@ const requiredFragments = ref(3) // 필요 고양이 파편
 // 팝업 상태
 const showSuccessPopup = ref(false)
 const newCatImageId = ref(1) // 새로 데려온 고양이 이미지 ID
+const newCatRarity = ref(null) // 새로 데려온 고양이 레어리티
 
 onMounted(() => {
   const currentUser = getCurrentUser()
@@ -48,15 +51,18 @@ const createCat = () => {
     
     // 인벤토리에 고양이 추가
     const currentInventory = currentUser.gameData?.inventory || []
-    const newCat = {
+    const baseCat = {
       id: Date.now(), // 고유 ID
       imageId: newCatImageId.value,
       name: `Cat ${newCatImageId.value}`,
-      stars: Math.floor(Math.random() * 3) + 2, // 2-4 별
       level: 1,
       selected: false,
       isNew: true // 새 고양이 표시
     }
+    // 레어리티 시스템 적용
+    const newCat = addRarityToNFT(baseCat)
+    // 팝업에 표시할 레어리티 저장
+    newCatRarity.value = newCat.rarity
     // 새 고양이는 맨 앞에 추가
     currentInventory.unshift(newCat)
     
@@ -70,6 +76,9 @@ const createCat = () => {
     
     // Header에 즉시 업데이트 알림 (커스텀 이벤트)
     window.dispatchEvent(new CustomEvent('userDataUpdated'))
+    
+    // 퀘스트 진행도 업데이트 (NFT 제작)
+    trackGameAction('nftCreated', 1)
     
     // 성공 팝업 표시
     showSuccessPopup.value = true
@@ -108,7 +117,9 @@ const getCatImage = (id) => {
 // 팝업 닫기
 const closePopup = () => {
   showSuccessPopup.value = false
+  newCatRarity.value = null
 }
+
 </script>
 
 <template>
@@ -170,9 +181,12 @@ const closePopup = () => {
     
     <!-- 성공 팝업 -->
     <div v-if="showSuccessPopup" class="popupOverlay" @click="closePopup">
-      <div class="popupContent" @click.stop>
-        <div class="popupCatImage">
+      <div class="popupContent" :class="`rarity-${newCatRarity}`" @click.stop>
+        <div class="popupCatImage" :style="newCatRarity ? getRarityStyle(newCatRarity) : {}">
           <img :src="getCatImage(newCatImageId)" alt="고양이" />
+        </div>
+        <div v-if="newCatRarity" class="rarityBadge" :style="getRarityStyle(newCatRarity)">
+          {{ getRarityName(newCatRarity) }}
         </div>
         <h2 class="popupTitle">고양이 데려오기 성공!</h2>
         <p class="popupMessage">새로운 고양이가 인벤토리에 추가되었습니다!</p>
@@ -390,6 +404,43 @@ const closePopup = () => {
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: popupSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+/* 레어리티별 팝업 스타일 */
+.popupContent.rarity-common {
+  background: linear-gradient(135deg, #9E9E9E 0%, #757575 100%);
+  border-color: #9E9E9E;
+  box-shadow: 0 20px 60px rgba(158, 158, 158, 0.3);
+}
+
+.popupContent.rarity-rare {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  border-color: #2196F3;
+  box-shadow: 0 20px 60px rgba(33, 150, 243, 0.4);
+}
+
+.popupContent.rarity-epic {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+  border-color: #9C27B0;
+  box-shadow: 0 20px 60px rgba(156, 39, 176, 0.4);
+}
+
+.popupContent.rarity-legendary {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  border-color: #FF9800;
+  box-shadow: 0 20px 60px rgba(255, 152, 0, 0.5);
+  animation: legendaryGlow 2s ease-in-out infinite, popupSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes legendaryGlow {
+  0%, 100% {
+    box-shadow: 0 20px 60px rgba(255, 152, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 20px 80px rgba(255, 152, 0, 0.8);
+  }
 }
 
 .popupCatImage {
@@ -403,6 +454,50 @@ const closePopup = () => {
   justify-content: center;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  border: 3px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.popupCatImage::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--rarity-glow, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.popupContent.rarity-legendary .popupCatImage::before {
+  opacity: 0.6;
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.rarityBadge {
+  display: inline-block;
+  padding: 0.5rem 1.2rem;
+  background: var(--rarity-color, #9E9E9E);
+  color: white;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px var(--rarity-glow, rgba(0, 0, 0, 0.2));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .popupCatImage img {

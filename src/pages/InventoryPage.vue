@@ -1,66 +1,122 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
+import { getRarityName, getRarityColors, getRarityStyle, RARITY_TIERS, addRarityToNFT } from '@/utils/rarityUtils'
 import statStar1 from '@/assets/img/statStar1.png'
 import statStar2 from '@/assets/img/statStar2.png'
 
 const coinCount = ref(0)
 
+// 필터/정렬 상태
+const searchQuery = ref('')
+const filterStars = ref('all') // 'all', '2', '3', '4', '5'
+const filterLevel = ref('all') // 'all', '1-5', '6-10', '11+'
+const filterRarity = ref('all') // 'all', 'common', 'rare', 'epic', 'legendary'
+const sortBy = ref('newest') // 'newest', 'oldest', 'level', 'name', 'stars', 'rarity'
+const showDetailModal = ref(false)
+const selectedNFT = ref(null)
+const showSearchModal = ref(false) // 검색 팝업 표시
+
 // 각 캐릭터의 기본 스탯 생성 함수
 const generateStats = (baseStats) => {
   return [
-    { name: '근력', value: baseStats[0], progress: baseStats[0], color: '#FF6B6B' }, // 강렬한 빨강 (더 부드러운 톤)
-    { name: '체력', value: baseStats[1], progress: baseStats[1], color: '#FF8A80' }, // 생명력 느낌의 핑크 코랄
-    { name: '지능', value: baseStats[2], progress: baseStats[2], color: '#9C27B0' }, // 신비로운 보라
-    { name: '손재주', value: baseStats[3], progress: baseStats[3], color: '#FFA726' }, // 따뜻한 주황
-    { name: '용기', value: baseStats[4], progress: baseStats[4], color: '#00BCD4' }, // 신선한 청록
-    { name: '행운', value: baseStats[5], progress: baseStats[5], color: '#66BB6A' } // 밝은 초록
+    { name: '근력', value: baseStats[0], progress: baseStats[0], color: '#FF6B6B' },
+    { name: '체력', value: baseStats[1], progress: baseStats[1], color: '#FF8A80' },
+    { name: '지능', value: baseStats[2], progress: baseStats[2], color: '#9C27B0' },
+    { name: '손재주', value: baseStats[3], progress: baseStats[3], color: '#FFA726' },
+    { name: '용기', value: baseStats[4], progress: baseStats[4], color: '#00BCD4' },
+    { name: '행운', value: baseStats[5], progress: baseStats[5], color: '#66BB6A' }
   ]
 }
 
-// 랜덤 별 생성 (1~3)
-const getRandomStars = () => Math.floor(Math.random() * 3) + 1
+// 고양이에 스탯이 없으면 생성
+const ensureStats = (cat) => {
+  if (!cat.stats) {
+    // stars에 따라 기본 스탯 범위 설정
+    const baseValue = cat.stars * 15 + Math.floor(Math.random() * 20)
+    cat.stats = generateStats([
+      baseValue + Math.floor(Math.random() * 20),
+      baseValue + Math.floor(Math.random() * 20),
+      baseValue + Math.floor(Math.random() * 20),
+      baseValue + Math.floor(Math.random() * 20),
+      baseValue + Math.floor(Math.random() * 20),
+      baseValue + Math.floor(Math.random() * 20)
+    ])
+  }
+  return cat
+}
 
-// 랜덤 레벨 생성 (1~10)
-const getRandomLevel = () => Math.floor(Math.random() * 10) + 1
+// 실제 게임 인벤토리 데이터
+const inventoryItems = ref([])
 
-// 기본 인벤토리 데이터 (더미) - 랜덤 별과 레벨
-const defaultInventory = [
-  { id: 1, name: 'Robot', selected: true, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([33, 7, 29, 10, 11, 10]), imageId: 1, isNew: false },
-  { id: 2, name: 'Style', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([15, 25, 35, 45, 20, 30]), imageId: 2, isNew: false },
-  { id: 3, name: 'Suit', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([25, 20, 40, 30, 25, 15]), imageId: 3, isNew: false },
-  { id: 4, name: 'Tech', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([20, 15, 50, 40, 10, 25]), imageId: 4, isNew: false },
-  { id: 5, name: 'Army', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([45, 40, 15, 20, 50, 10]), imageId: 5, isNew: false },
-  { id: 6, name: 'Detective', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([20, 25, 45, 30, 35, 25]), imageId: 6, isNew: false },
-  { id: 7, name: 'Scholar', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([10, 15, 60, 25, 20, 30]), imageId: 7, isNew: false },
-  { id: 8, name: 'White', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([30, 30, 30, 30, 30, 30]), imageId: 8, isNew: false },
-  { id: 9, name: 'Green', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([25, 35, 20, 25, 30, 35]), imageId: 9, isNew: false },
-  { id: 10, name: 'Blue', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([20, 30, 35, 30, 25, 30]), imageId: 10, isNew: false },
-  { id: 11, name: 'Red', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([40, 25, 20, 25, 45, 15]), imageId: 11, isNew: false },
-  { id: 12, name: 'Shirt', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([22, 28, 32, 28, 22, 28]), imageId: 12, isNew: false },
-  { id: 13, name: 'Ninja', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([35, 25, 30, 50, 40, 20]), imageId: 13, isNew: false },
-  { id: 14, name: 'Knight', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([50, 45, 20, 25, 45, 15]), imageId: 14, isNew: false },
-  { id: 15, name: 'Pirate', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([40, 35, 25, 35, 50, 25]), imageId: 15, isNew: false },
-  { id: 16, name: 'Sailor', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([30, 40, 25, 30, 35, 30]), imageId: 16, isNew: false },
-  { id: 17, name: 'Sport', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([45, 50, 15, 40, 30, 20]), imageId: 17, isNew: false },
-  { id: 18, name: 'Cafe', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([20, 25, 30, 45, 25, 35]), imageId: 18, isNew: false },
-  { id: 19, name: 'Chef', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([25, 30, 25, 50, 20, 30]), imageId: 19, isNew: false },
-  { id: 20, name: 'Fisher', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([30, 35, 20, 40, 30, 25]), imageId: 20, isNew: false },
-  { id: 21, name: 'Farmer', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([40, 45, 20, 35, 25, 30]), imageId: 21, isNew: false },
-  { id: 22, name: 'Doctor', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([15, 30, 55, 35, 25, 30]), imageId: 22, isNew: false },
-  { id: 23, name: 'Teacher', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([20, 25, 50, 30, 30, 25]), imageId: 23, isNew: false },
-  { id: 24, name: 'Artist', selected: false, stars: getRandomStars(), level: getRandomLevel(), stats: generateStats([15, 20, 40, 55, 25, 35]), imageId: 24, isNew: false }
-]
-
-const inventoryItems = ref([...defaultInventory])
+// 필터링 및 정렬된 인벤토리
+const filteredAndSortedItems = computed(() => {
+  let items = [...inventoryItems.value]
+  
+  // 검색 필터
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    items = items.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      String(item.imageId).includes(query)
+    )
+  }
+  
+  // 별 등급 필터
+  if (filterStars.value !== 'all') {
+    items = items.filter(item => item.stars === parseInt(filterStars.value))
+  }
+  
+  // 레벨 필터
+  if (filterLevel.value !== 'all') {
+    if (filterLevel.value === '1-5') {
+      items = items.filter(item => item.level >= 1 && item.level <= 5)
+    } else if (filterLevel.value === '6-10') {
+      items = items.filter(item => item.level >= 6 && item.level <= 10)
+    } else if (filterLevel.value === '11+') {
+      items = items.filter(item => item.level >= 11)
+    }
+  }
+  
+  // 정렬
+  items = [...items].sort((a, b) => {
+    switch (sortBy.value) {
+      case 'newest':
+        return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0) || b.id - a.id
+      case 'oldest':
+        return a.id - b.id
+      case 'level':
+        return b.level - a.level
+      case 'stars':
+        return b.stars - a.stars
+      case 'rarity':
+        const rarityOrder = {
+          [RARITY_TIERS.LEGENDARY]: 4,
+          [RARITY_TIERS.EPIC]: 3,
+          [RARITY_TIERS.RARE]: 2,
+          [RARITY_TIERS.COMMON]: 1
+        }
+        const aRarity = rarityOrder[a.rarity || RARITY_TIERS.COMMON] || 0
+        const bRarity = rarityOrder[b.rarity || RARITY_TIERS.COMMON] || 0
+        return bRarity - aRarity
+      case 'name':
+        return a.name.localeCompare(b.name)
+      default:
+        return 0
+    }
+  })
+  
+  return items
+})
 
 // 선택된 캐릭터의 스탯
 const selectedCharacterStats = computed(() => {
   const selectedItem = inventoryItems.value.find(item => item.selected)
-  if (selectedItem && selectedItem.stats) {
-    return selectedItem.stats
+  if (selectedItem) {
+    const cat = ensureStats(selectedItem)
+    return cat.stats
   }
   // 기본 스탯 (fallback)
   return generateStats([33, 7, 29, 10, 11, 10])
@@ -69,7 +125,7 @@ const selectedCharacterStats = computed(() => {
 // 선택된 캐릭터의 이름
 const selectedCharacterName = computed(() => {
   const selectedItem = inventoryItems.value.find(item => item.selected)
-  return selectedItem ? selectedItem.name : 'Magic'
+  return selectedItem ? selectedItem.name : '인벤토리가 비어있습니다'
 })
 
 // 고양이 이미지 경로 가져오기 함수
@@ -92,13 +148,19 @@ const selectedCharacterImage = computed(() => {
   return getCatImage(1)
 })
 
-// 정렬된 인벤토리: isNew가 true인 항목을 맨 앞에 배치
-const sortedInventoryItems = computed(() => {
-  const newItems = inventoryItems.value.filter(item => item.isNew)
-  const oldItems = inventoryItems.value.filter(item => !item.isNew)
-  return [...newItems, ...oldItems]
-})
+// NFT 상세 정보 보기
+const showNFTDetail = (item) => {
+  selectedNFT.value = ensureStats({ ...item })
+  showDetailModal.value = true
+}
 
+// NFT 상세 정보 모달 닫기
+const closeDetailModal = () => {
+  showDetailModal.value = false
+  selectedNFT.value = null
+}
+
+// NFT 선택
 const selectCharacter = (item) => {
   inventoryItems.value.forEach(i => i.selected = false)
   item.selected = true
@@ -118,39 +180,56 @@ const selectCharacter = (item) => {
       updateUserGameData(currentUser.id, {
         inventory: updatedInventory
       })
+      
+      // 이벤트 발생
+      window.dispatchEvent(new CustomEvent('userDataUpdated'))
     }
   }
 }
 
-onMounted(() => {
+// 필터 초기화
+const resetFilters = () => {
+  searchQuery.value = ''
+  filterStars.value = 'all'
+  filterLevel.value = 'all'
+  filterRarity.value = 'all'
+  sortBy.value = 'newest'
+}
+
+
+// 사용자 데이터 업데이트 감지
+const loadInventory = () => {
   const currentUser = getCurrentUser()
   if (currentUser) {
     coinCount.value = currentUser.gameData?.coins || 0
     
-    // 사용자 인벤토리 데이터 로드
-    const userInventory = currentUser.gameData?.inventory
-    if (userInventory && userInventory.length > 0) {
-      // 기존 인벤토리와 병합 (기본 데이터는 유지하되, 사용자 데이터 우선)
-      const mergedInventory = [...defaultInventory]
-      
-      // 사용자 인벤토리의 새 고양이들을 맨 앞에 추가
-      userInventory.forEach(userCat => {
-        const existingIndex = mergedInventory.findIndex(cat => cat.id === userCat.id)
-        if (existingIndex > -1) {
-          // 기존 항목 업데이트
-          mergedInventory[existingIndex] = { ...mergedInventory[existingIndex], ...userCat }
-        } else {
-          // 새 항목 추가 (스탯 생성)
-          mergedInventory.push({
-            ...userCat,
-            stats: generateStats([Math.floor(Math.random() * 40) + 10, Math.floor(Math.random() * 40) + 10, Math.floor(Math.random() * 40) + 10, Math.floor(Math.random() * 40) + 10, Math.floor(Math.random() * 40) + 10, Math.floor(Math.random() * 40) + 10])
-          })
-        }
+    // 실제 게임 인벤토리 데이터만 사용
+    const userInventory = currentUser.gameData?.inventory || []
+    
+    if (userInventory.length > 0) {
+      // 레어리티가 없는 기존 NFT에 레어리티 추가, 스탯이 없는 고양이는 스탯 생성
+      inventoryItems.value = userInventory.map(cat => {
+        const catWithRarity = cat.rarity ? cat : addRarityToNFT(cat)
+        return ensureStats({ ...catWithRarity })
       })
-      
-      inventoryItems.value = mergedInventory
+    } else {
+      inventoryItems.value = []
     }
+  } else {
+    inventoryItems.value = []
   }
+}
+
+onMounted(() => {
+  loadInventory()
+  
+  // 사용자 데이터 업데이트 이벤트 리스너
+  window.addEventListener('userDataUpdated', loadInventory)
+})
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onUnmounted(() => {
+  window.removeEventListener('userDataUpdated', loadInventory)
 })
 </script>
 
@@ -186,17 +265,35 @@ onMounted(() => {
         </div>
       </div>
       
+      <!-- 검색 버튼 및 NFT 개수 -->
+      <div class="inventoryHeader">
+        <div class="inventoryCount">
+          총 {{ filteredAndSortedItems.length }}개 / {{ inventoryItems.length }}개
+        </div>
+        <button class="searchBtn" @click="showSearchModal = true">
+          <span class="searchIcon">🔍</span>
+          <span>검색</span>
+        </button>
+      </div>
+      
       <!-- 하단 인벤토리 그리드 -->
-      <div class="inventoryGrid">
+      <div v-if="filteredAndSortedItems.length > 0" class="inventoryGrid">
         <div
-          v-for="item in sortedInventoryItems"
+          v-for="item in filteredAndSortedItems"
           :key="item.id"
           class="inventoryItem"
-          :class="{ selected: item.selected }"
+          :class="{ selected: item.selected, [`rarity-${item.rarity || 'common'}`]: true }"
+          :style="getRarityStyle(item.rarity)"
           @click="selectCharacter(item)"
+          @dblclick="showNFTDetail(item)"
         >
           <!-- NEW 배지 -->
           <div v-if="item.isNew" class="newBadge">NEW</div>
+          
+          <!-- 레어리티 배지 (상단 왼쪽) -->
+          <div v-if="item.rarity" class="rarityBadge" :style="getRarityStyle(item.rarity)">
+            {{ getRarityName(item.rarity) }}
+          </div>
           
           <!-- 별 등급 표시 (하단) -->
           <div class="starBadge">
@@ -216,12 +313,159 @@ onMounted(() => {
           
           <!-- 캐릭터 이미지 -->
           <img :src="getCatImage(item.imageId || item.id)" alt="고양이" class="itemIcon" />
+          
+          <!-- 더블클릭 안내 -->
+          <div class="detailHint">더블클릭으로 상세보기</div>
         </div>
+      </div>
+      
+      <!-- 인벤토리 비어있을 때 -->
+      <div v-else class="emptyInventory">
+        <div class="emptyIcon">📦</div>
+        <div class="emptyText">NFT가 없습니다</div>
+        <div class="emptySubtext">제작소에서 고양이를 만들어보세요!</div>
       </div>
     </main>
     
     <!-- 푸터 -->
     <Footer />
+    
+    <!-- 검색 팝업 모달 -->
+    <div v-if="showSearchModal" class="modalOverlay" @click="showSearchModal = false">
+      <div class="searchModal" @click.stop>
+        <div class="searchModalHeader">
+          <h3 class="searchModalTitle">검색 및 필터</h3>
+          <button class="searchModalClose" @click="showSearchModal = false">×</button>
+        </div>
+        
+        <div class="searchModalBody">
+          <div class="searchBox">
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="NFT 이름 또는 ID로 검색..."
+              class="searchInput"
+              @keyup.enter="showSearchModal = false"
+            />
+          </div>
+          
+          <div class="filterControls">
+            <div class="filterGroup">
+              <label class="filterLabel">별 등급</label>
+              <select v-model="filterStars" class="filterSelect">
+                <option value="all">전체</option>
+                <option value="2">2성</option>
+                <option value="3">3성</option>
+                <option value="4">4성</option>
+                <option value="5">5성</option>
+              </select>
+            </div>
+            
+            <div class="filterGroup">
+              <label class="filterLabel">레벨</label>
+              <select v-model="filterLevel" class="filterSelect">
+                <option value="all">전체</option>
+                <option value="1-5">1-5</option>
+                <option value="6-10">6-10</option>
+                <option value="11+">11+</option>
+              </select>
+            </div>
+            
+            <div class="filterGroup">
+              <label class="filterLabel">레어리티</label>
+              <select v-model="filterRarity" class="filterSelect">
+                <option value="all">전체</option>
+                <option value="common">일반</option>
+                <option value="rare">레어</option>
+                <option value="epic">에픽</option>
+                <option value="legendary">레전더리</option>
+              </select>
+            </div>
+            
+            <div class="filterGroup">
+              <label class="filterLabel">정렬</label>
+              <select v-model="sortBy" class="filterSelect">
+                <option value="newest">최신순</option>
+                <option value="oldest">오래된순</option>
+                <option value="level">레벨 높은순</option>
+                <option value="stars">별 등급 높은순</option>
+                <option value="rarity">레어리티 높은순</option>
+                <option value="name">이름순</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="searchModalFooter">
+            <button class="resetFilterBtn" @click="resetFilters">초기화</button>
+            <button class="applyFilterBtn" @click="showSearchModal = false">적용</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- NFT 상세 정보 모달 -->
+    <div v-if="showDetailModal && selectedNFT" class="modalOverlay" @click="closeDetailModal">
+      <div class="modalContent" @click.stop>
+        <div class="modalHeader">
+          <h3 class="modalTitle">{{ selectedNFT.name }}</h3>
+          <button class="modalClose" @click="closeDetailModal">×</button>
+        </div>
+        
+        <div class="modalBody">
+          <div class="modalImageSection">
+            <img :src="getCatImage(selectedNFT.imageId || selectedNFT.id)" alt="NFT" class="modalImage" />
+            <div class="modalBadges">
+              <div v-if="selectedNFT.rarity" class="modalBadge rarity" :style="getRarityStyle(selectedNFT.rarity)">
+                {{ getRarityName(selectedNFT.rarity) }}
+              </div>
+              <div class="modalBadge stars">
+                <span v-for="n in 5" :key="n" class="star">
+                  {{ n <= selectedNFT.stars ? '★' : '☆' }}
+                </span>
+              </div>
+              <div class="modalBadge level">Lv {{ selectedNFT.level }}</div>
+            </div>
+          </div>
+          
+          <div class="modalStatsSection">
+            <h4 class="sectionTitle">스탯</h4>
+            <div class="modalStats">
+              <div v-for="(stat, index) in selectedNFT.stats" :key="index" class="modalStat">
+                <div class="modalStatLabel">{{ stat.name }}</div>
+                <div class="modalStatBar">
+                  <div 
+                    :style="{ width: stat.progress + '%', backgroundColor: stat.color }" 
+                    class="modalStatFill"
+                  ></div>
+                </div>
+                <div class="modalStatValue">{{ stat.value }}%</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modalInfoSection">
+            <div class="infoRow">
+              <span class="infoLabel">NFT ID:</span>
+              <span class="infoValue">#{{ selectedNFT.id }}</span>
+            </div>
+            <div class="infoRow">
+              <span class="infoLabel">이미지 ID:</span>
+              <span class="infoValue">#{{ selectedNFT.imageId }}</span>
+            </div>
+            <div class="infoRow">
+              <span class="infoLabel">생성일:</span>
+              <span class="infoValue">{{ new Date(selectedNFT.id).toLocaleDateString() }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modalFooter">
+          <button class="modalBtn selectBtn" @click="selectCharacter(selectedNFT); closeDetailModal()">
+            선택하기
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -354,11 +598,234 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
+/* 인벤토리 헤더 */
+.inventoryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
+}
+
+.inventoryCount {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.searchBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: rgba(125, 211, 252, 0.2);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 8px;
+  color: #7DD3FC;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.searchBtn:hover {
+  background: rgba(125, 211, 252, 0.3);
+  border-color: rgba(125, 211, 252, 0.5);
+  transform: translateY(-2px);
+}
+
+.searchIcon {
+  font-size: 1rem;
+}
+
+/* 검색 팝업 모달 */
+.searchModal {
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(125, 211, 252, 0.3);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 450px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.searchModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.searchModalTitle {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.searchModalClose {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 2rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+  line-height: 1;
+}
+
+.searchModalClose:hover {
+  color: white;
+}
+
+.searchModalBody {
+  padding: 1.5rem;
+}
+
+.searchModalFooter {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.applyFilterBtn {
+  flex: 1;
+  padding: 0.8rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.applyFilterBtn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.searchBox {
+  margin-bottom: 1rem;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #7DD3FC;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.filterControls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filterGroup {
+  flex: 1;
+  min-width: 100px;
+}
+
+.filterLabel {
+  display: block;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.filterSelect {
+  width: 100%;
+  padding: 0.6rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #7DD3FC;
+  background-color: rgba(15, 23, 42, 0.95);
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+}
+
+.filterSelect option {
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  padding: 0.5rem;
+}
+
+.filterSelect option:hover {
+  background: rgba(125, 211, 252, 0.2);
+}
+
+.filterSelect option:checked {
+  background: rgba(125, 211, 252, 0.3);
+  color: #7DD3FC;
+}
+
+.resetFilterBtn {
+  padding: 0.6rem 1rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.resetFilterBtn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.inventoryCount {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* 하단 인벤토리 그리드 */
 .inventoryGrid {
   display: flex;
   flex-wrap: wrap;
-  /* grid-template-columns: repeat(4, 1fr); */
   padding: 1rem;
   gap: 0.8rem;
   justify-content: space-between;
@@ -385,6 +852,52 @@ onMounted(() => {
 .inventoryItem.selected {
   background: rgba(59, 130, 246, 0.3);
   outline: 1px solid #fff;
+}
+
+/* 레어리티별 테두리 색상 */
+.inventoryItem.rarity-common {
+  border: 2px solid rgba(158, 158, 158, 0.3);
+}
+
+.inventoryItem.rarity-rare {
+  border: 2px solid rgba(33, 150, 243, 0.4);
+  box-shadow: 0 0 10px rgba(33, 150, 243, 0.2);
+}
+
+.inventoryItem.rarity-epic {
+  border: 2px solid rgba(156, 39, 176, 0.5);
+  box-shadow: 0 0 15px rgba(156, 39, 176, 0.3);
+}
+
+.inventoryItem.rarity-legendary {
+  border: 2px solid rgba(255, 152, 0, 0.6);
+  box-shadow: 0 0 20px rgba(255, 152, 0, 0.4);
+  animation: legendaryPulse 2s ease-in-out infinite;
+}
+
+@keyframes legendaryPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 152, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 152, 0, 0.6);
+  }
+}
+
+.rarityBadge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--rarity-color, #9E9E9E);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 2;
+  box-shadow: 0 2px 8px var(--rarity-glow, rgba(0, 0, 0, 0.2));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .itemIcon {
@@ -465,6 +978,424 @@ onMounted(() => {
   }
 }
 
+/* 필터 섹션 */
+.filterSection {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.searchBox {
+  margin-bottom: 1rem;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #7DD3FC;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.filterControls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filterGroup {
+  flex: 1;
+  min-width: 100px;
+}
+
+.filterLabel {
+  display: block;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.filterSelect {
+  width: 100%;
+  padding: 0.6rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #7DD3FC;
+  background-color: rgba(15, 23, 42, 0.95);
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+}
+
+.filterSelect option {
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  padding: 0.5rem;
+}
+
+.filterSelect option:hover {
+  background: rgba(125, 211, 252, 0.2);
+}
+
+.filterSelect option:checked {
+  background: rgba(125, 211, 252, 0.3);
+  color: #7DD3FC;
+}
+
+.resetFilterBtn {
+  padding: 0.6rem 1rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.resetFilterBtn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.inventoryCount {
+  margin-top: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.detailHint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 0.65rem;
+  padding: 0.2rem;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  border-radius: 0 0 12px 12px;
+}
+
+.inventoryItem:hover .detailHint {
+  opacity: 1;
+}
+
+/* 빈 인벤토리 */
+.emptyInventory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.emptyText {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.emptySubtext {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+/* NFT 상세 정보 모달 */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalContent {
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(125, 211, 252, 0.3);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalTitle {
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modalClose {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 2rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+  line-height: 1;
+}
+
+.modalClose:hover {
+  color: white;
+}
+
+.modalBody {
+  padding: 1.5rem;
+}
+
+.modalImageSection {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.modalImage {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modalBadges {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.modalBadge {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.modalBadge.stars {
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+}
+
+.modalBadge.level {
+  background: rgba(125, 211, 252, 0.2);
+  color: #7DD3FC;
+}
+
+.modalBadge.rarity {
+  background: var(--rarity-color, #9E9E9E);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 10px var(--rarity-glow, rgba(0, 0, 0, 0.2));
+}
+
+.star {
+  font-size: 1.2rem;
+  margin: 0 0.1rem;
+}
+
+.modalStatsSection {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.modalStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.modalStat {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.modalStatLabel {
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.modalStatBar {
+  flex: 1;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.modalStatFill {
+  height: 100%;
+  border-radius: 12px;
+  transition: width 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.modalStatValue {
+  color: white;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.modalInfoSection {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.infoValue {
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.modalFooter {
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 1rem;
+}
+
+.modalBtn {
+  flex: 1;
+  padding: 0.9rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.selectBtn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.selectBtn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
 @media (max-width: 500px) {
     .magicPanel{
         padding-left: 7vw;
@@ -479,6 +1410,22 @@ onMounted(() => {
 
     .inventoryItem {
       width: calc(30% - 20px);
+  }
+  
+  .filterControls {
+    flex-direction: column;
+  }
+  
+  .filterGroup {
+    width: 100%;
+  }
+  
+  .resetFilterBtn {
+    width: 100%;
+  }
+  
+  .modalContent {
+    max-width: 100%;
   }
 }
 
@@ -506,3 +1453,4 @@ onMounted(() => {
   }
 }
 </style>
+

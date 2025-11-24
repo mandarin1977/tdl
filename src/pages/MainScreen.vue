@@ -84,6 +84,23 @@ const getPointMultiplier = (level) => {
   return Math.pow(2, level - 1) // 레벨 1 = 1배, 레벨 2 = 2배, 레벨 3 = 4배...
 }
 
+// 슬롯 NFT 속성 합산 함수
+const getNFTStatsSum = (catsList, statName) => {
+  if (!catsList || !Array.isArray(catsList)) return 0
+  return catsList.reduce((sum, cat) => {
+    if (cat && cat[statName]) {
+      return sum + (cat[statName] || 0)
+    }
+    return sum
+  }, 0)
+}
+
+// 각 모드별 NFT 속성 합산
+const getMiningEfficiency = () => getNFTStatsSum(miningCats.value, 'miningEfficiency')
+const getHuntingDamage = () => getNFTStatsSum(huntingCats.value, 'huntingDamage')
+const getExplorationReward = () => getNFTStatsSum(explorationCats.value, 'explorationReward')
+const getProductionSpeed = () => getNFTStatsSum(productionCats.value, 'productionSpeed')
+
 // 게임 모드 변경 함수
 const setActiveMode = (mode) => {
   activeMode.value = mode
@@ -277,7 +294,9 @@ const handleClick = (mode) => {
       // 레벨에 따른 포인트 배수 적용
       const basePoints = 100
       const multiplier = getPointMultiplier(miningLevel.value)
-      const pointsGained = basePoints * multiplier
+      // NFT 속성 합산 (miningEfficiency)
+      const nftBonus = getMiningEfficiency() / 100 // 퍼센트를 소수로 변환
+      const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
       
       coinCount.value += pointsGained
       pointCount.value = coinCount.value
@@ -347,7 +366,11 @@ const handleClick = (mode) => {
       const padding = 20 // 여백
       
       // 보상 텍스트 생성
+      const nftBonusPercent = Math.round(getMiningEfficiency())
       let rewardText = `채굴 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      if (nftBonusPercent > 0) {
+        rewardText += `\n(NFT 보너스: +${nftBonusPercent}%)`
+      }
       if (fragmentsGained > 0) {
         rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
       }
@@ -430,7 +453,9 @@ const handleClick = (mode) => {
       // 레벨에 따른 포인트 배수 적용
       const basePoints = 100
       const multiplier = getPointMultiplier(explorationLevel.value)
-      const pointsGained = basePoints * multiplier
+      // NFT 속성 합산 (explorationReward)
+      const nftBonus = getExplorationReward() / 100 // 퍼센트를 소수로 변환
+      const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
       
       coinCount.value += pointsGained
       pointCount.value = coinCount.value
@@ -500,7 +525,11 @@ const handleClick = (mode) => {
       const padding = 20
       
       // 보상 텍스트 생성
+      const nftBonusPercent = Math.round(getExplorationReward())
       let rewardText = `탐험 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      if (nftBonusPercent > 0) {
+        rewardText += `\n(NFT 보너스: +${nftBonusPercent}%)`
+      }
       if (fragmentsGained > 0) {
         rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
       }
@@ -583,7 +612,9 @@ const handleClick = (mode) => {
       // 레벨에 따른 포인트 배수 적용
       const basePoints = 100
       const multiplier = getPointMultiplier(huntingLevel.value)
-      const pointsGained = basePoints * multiplier
+      // NFT 속성 합산 (huntingDamage)
+      const nftBonus = getHuntingDamage() / 100 // 퍼센트를 소수로 변환
+      const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
       
       coinCount.value += pointsGained
       pointCount.value = coinCount.value
@@ -736,7 +767,9 @@ const handleClick = (mode) => {
       // 레벨에 따른 포인트 배수 적용
       const basePoints = 100
       const multiplier = getPointMultiplier(productionLevel.value)
-      const pointsGained = basePoints * multiplier
+      // NFT 속성 합산 (productionSpeed)
+      const nftBonus = getProductionSpeed() / 100 // 퍼센트를 소수로 변환
+      const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
       
       coinCount.value += pointsGained
       pointCount.value = coinCount.value
@@ -806,7 +839,11 @@ const handleClick = (mode) => {
       const padding = 20
       
       // 보상 텍스트 생성
+      const nftBonusPercent = Math.round(getProductionSpeed())
       let rewardText = `생산 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      if (nftBonusPercent > 0) {
+        rewardText += `\n(NFT 보너스: +${nftBonusPercent}%)`
+      }
       if (fragmentsGained > 0) {
         rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
       }
@@ -1030,44 +1067,8 @@ const getUsedCatIds = () => {
 const loadAvailableCats = () => {
   const currentUser = getCurrentUser()
   if (currentUser) {
+    // 실제 게임 인벤토리 데이터만 사용 (InventoryPage와 동일한 로직)
     const userInventory = currentUser.gameData?.inventory || []
-    // 기본 인벤토리와 병합 (InventoryPage와 동일한 로직)
-    const defaultInventory = [
-      { id: 1, name: 'Robot', stars: 1, level: 1, imageId: 1 },
-      { id: 2, name: 'Style', stars: 1, level: 1, imageId: 2 },
-      { id: 3, name: 'Suit', stars: 1, level: 1, imageId: 3 },
-      { id: 4, name: 'Tech', stars: 1, level: 1, imageId: 4 },
-      { id: 5, name: 'Army', stars: 1, level: 1, imageId: 5 },
-      { id: 6, name: 'Detective', stars: 1, level: 1, imageId: 6 },
-      { id: 7, name: 'Scholar', stars: 1, level: 1, imageId: 7 },
-      { id: 8, name: 'White', stars: 1, level: 1, imageId: 8 },
-      { id: 9, name: 'Green', stars: 1, level: 1, imageId: 9 },
-      { id: 10, name: 'Blue', stars: 1, level: 1, imageId: 10 },
-      { id: 11, name: 'Red', stars: 1, level: 1, imageId: 11 },
-      { id: 12, name: 'Shirt', stars: 1, level: 1, imageId: 12 },
-      { id: 13, name: 'Ninja', stars: 1, level: 1, imageId: 13 },
-      { id: 14, name: 'Knight', stars: 1, level: 1, imageId: 14 },
-      { id: 15, name: 'Pirate', stars: 1, level: 1, imageId: 15 },
-      { id: 16, name: 'Sailor', stars: 1, level: 1, imageId: 16 },
-      { id: 17, name: 'Sport', stars: 1, level: 1, imageId: 17 },
-      { id: 18, name: 'Cafe', stars: 1, level: 1, imageId: 18 },
-      { id: 19, name: 'Chef', stars: 1, level: 1, imageId: 19 },
-      { id: 20, name: 'Fisher', stars: 1, level: 1, imageId: 20 },
-      { id: 21, name: 'Farmer', stars: 1, level: 1, imageId: 21 },
-      { id: 22, name: 'Doctor', stars: 1, level: 1, imageId: 22 },
-      { id: 23, name: 'Teacher', stars: 1, level: 1, imageId: 23 },
-      { id: 24, name: 'Artist', stars: 1, level: 1, imageId: 24 }
-    ]
-    
-    const mergedInventory = [...defaultInventory]
-    userInventory.forEach(userCat => {
-      const existingIndex = mergedInventory.findIndex(cat => cat.id === userCat.id)
-      if (existingIndex > -1) {
-        mergedInventory[existingIndex] = { ...mergedInventory[existingIndex], ...userCat }
-      } else {
-        mergedInventory.push(userCat)
-      }
-    })
     
     // 이미 사용 중인 고양이 제외 (모든 모드에서)
     const usedIds = getUsedCatIds()
@@ -1079,7 +1080,10 @@ const loadAvailableCats = () => {
     }
     
     // 사용 가능한 고양이만 필터링 (다른 모드에서 선택한 고양이 제외)
-    availableCats.value = mergedInventory.filter(cat => !usedIds.has(cat.id))
+    // 인벤토리에 있는 고양이들만 표시
+    availableCats.value = userInventory.filter(cat => !usedIds.has(cat.id))
+  } else {
+    availableCats.value = []
   }
 }
 
@@ -1118,7 +1122,13 @@ const selectCatForSlot = (cat) => {
       level: cat.level || 1,
       stars: cat.stars || 1,
       imageId: cat.imageId || cat.id,
-      name: cat.name
+      name: cat.name,
+      // NFT 속성 포함 (보상 계산에 필요)
+      miningEfficiency: cat.miningEfficiency || 0,
+      huntingDamage: cat.huntingDamage || 0,
+      explorationReward: cat.explorationReward || 0,
+      productionSpeed: cat.productionSpeed || 0,
+      rarity: cat.rarity || null
     }
     
     // 현재 모드의 고양이 목록 가져오기
@@ -1358,8 +1368,27 @@ const startAutoPointGeneration = (mode) => {
       
       // 10번 클릭되면 포인트 획득 (고양이는 사라지지 않음)
       if (currentClickCount >= 10) {
+        // 레벨에 따른 포인트 배수 적용
+        let level = 1
+        if (mode === 'mining') level = miningLevel.value
+        else if (mode === 'hunting') level = huntingLevel.value
+        else if (mode === 'exploration') level = explorationLevel.value
+        else if (mode === 'production') level = productionLevel.value
+        
+        const basePoints = 100
+        const multiplier = getPointMultiplier(level)
+        
+        // NFT 속성 합산
+        let nftBonus = 0
+        if (mode === 'mining') nftBonus = getMiningEfficiency() / 100
+        else if (mode === 'hunting') nftBonus = getHuntingDamage() / 100
+        else if (mode === 'exploration') nftBonus = getExplorationReward() / 100
+        else if (mode === 'production') nftBonus = getProductionSpeed() / 100
+        
+        const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
+        
         // 포인트 획득
-        coinCount.value += 100
+        coinCount.value += pointsGained
         pointCount.value = coinCount.value
         
         // 카운터 리셋 (다시 시작)
