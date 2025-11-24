@@ -946,7 +946,7 @@ const checkAndResetEnergy = () => {
     const saved = parseInt(savedEnergy) || 0
     currentEnergy.value = Math.max(0, Math.min(saved, maxEnergy.value))
   } else {
-    // 저장된 에너지가 없으면 (새 사용자 또는 소셜 로그인) 최대 에너지로 설정
+    // 저장된 에너지가 없으면 (새 사용자) 최대 에너지로 설정
     currentEnergy.value = maxEnergy.value // 4000
     localStorage.setItem('energyLastDate', today)
     localStorage.setItem('currentEnergy', maxEnergy.value.toString())

@@ -11,24 +11,57 @@ export const getCurrentUser = () => {
   return userData ? JSON.parse(userData) : null
 }
 
+// 지갑 주소로 사용자 찾기
+export const getUserByWalletAddress = (walletAddress) => {
+  const users = getAllUsers()
+  return users.find(u => u.id === walletAddress || u.walletAddress === walletAddress)
+}
+
+// 지갑 주소로 사용자 생성
+export const createWalletUser = (walletAddress) => {
+  const users = getAllUsers()
+  
+  // 이미 존재하는지 확인
+  const existingUser = getUserByWalletAddress(walletAddress)
+  if (existingUser) {
+    return existingUser
+  }
+  
+  // 새 사용자 생성
+  const newUser = {
+    id: walletAddress,
+    walletAddress: walletAddress,
+    loginType: 'wallet',
+    createdAt: new Date().toISOString(),
+    gameData: {
+      level: 1,
+      coins: 0,
+      totalCoin: 0,
+      catFragments: 50,
+      nftCount: 0,
+      miningLevel: 1,
+      huntingLevel: 1,
+      explorationLevel: 1,
+      productionLevel: 1,
+      miningCats: [null, null, null, null, null, null],
+      huntingCats: [null, null, null, null, null, null],
+      explorationCats: [null, null, null, null, null, null],
+      productionCats: [null, null, null, null, null, null],
+      inventory: []
+    }
+  }
+  
+  users.push(newUser)
+  localStorage.setItem('users', JSON.stringify(users))
+  
+  return newUser
+}
+
 // 사용자 게임 데이터 업데이트
 export const updateUserGameData = async (userId, gameData) => {
   const currentUser = getCurrentUser()
   
-  // Firebase 사용자인지 확인 (uid가 있거나 Firebase 형식인 경우)
-  if (currentUser && (currentUser.id?.length > 20 || currentUser.uid)) {
-    // Firebase를 사용하는 경우
-    try {
-      const { updateGameData } = await import('@/utils/firebaseAuth')
-      const result = await updateGameData(userId, gameData)
-      return result.success
-    } catch (error) {
-      console.error('Firebase 업데이트 실패, localStorage로 폴백:', error)
-      // Firebase 실패 시 localStorage로 폴백
-    }
-  }
-  
-  // 기존 localStorage 방식
+  // localStorage 방식
   const users = getAllUsers()
   const userIndex = users.findIndex(user => user.id === userId)
   

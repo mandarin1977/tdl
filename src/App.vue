@@ -1,10 +1,36 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAppStore } from '@/store/appStore'
 import '@/styles/common.css'
 import '@/styles/layout.css'
 
 const router = useRouter()
+const store = useAppStore()
+
+// 사용자 데이터 로드 및 지갑 연결 상태 확인
+onMounted(async () => {
+  // 기존 사용자 데이터 로드
+  store.loadCurrentUser()
+  
+  // 세션에 지갑 사용자가 있으면 지갑 상태 확인 (명시적으로 연결한 경우만)
+  const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null')
+  if (currentUser && currentUser.loginType === 'wallet' && currentUser.walletAddress) {
+    // 이미 지갑으로 로그인한 상태면 지갑 상태 확인
+    try {
+      const walletStatus = await store.checkWalletStatus()
+      if (walletStatus.connected) {
+        console.log('App.vue: 지갑이 이미 연결되어 있습니다:', walletStatus.address)
+      }
+      
+      // 지갑 이벤트 리스너 설정
+      store.setupWalletListeners()
+    } catch (error) {
+      console.error('App.vue: 지갑 상태 확인 오류:', error)
+    }
+  }
+})
+
 const bgmAudio = ref(null)
 const isBgmPlaying = ref(false)
 

@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, logoutUser } from '@/utils/userUtils'
-import { logout } from '@/utils/firebaseAuth'
 import { useAppStore } from '@/store/appStore'
 
 const router = useRouter()
@@ -17,7 +16,6 @@ const userEmail = ref('')
 const userName = ref('')
 const userPhoto = ref('')
 const userId = ref('')
-const isFirebaseUser = ref(false)
 
 // 언어에 따른 텍스트
 const texts = {
@@ -60,19 +58,11 @@ onMounted(() => {
     currentUser.value = user
     coinCount.value = user.gameData?.coins || 0
     
-    // Firebase 사용자 정보
-    if (user.uid || user.email) {
-      isFirebaseUser.value = true
-      userEmail.value = user.email || ''
-      userName.value = user.displayName || user.name || userEmail.value.split('@')[0]
-      userPhoto.value = user.photoURL || ''
-      userId.value = user.uid || user.id || ''
-    } else {
-      // 일반 사용자
-      userEmail.value = user.email || user.id || ''
-      userName.value = user.name || userEmail.value.split('@')[0] || 'User'
-      userId.value = user.id || 'ID' + String(Math.random()).substring(2, 10)
-    }
+    // 사용자 정보 설정
+    userEmail.value = user.email || user.id || ''
+    userName.value = user.name || user.displayName || userEmail.value.split('@')[0] || 'User'
+    userPhoto.value = user.photoURL || ''
+    userId.value = user.id || 'ID' + String(Math.random()).substring(2, 10)
   } else {
     // 로그인하지 않은 경우 로그인 페이지로 이동
     router.push('/login')
@@ -92,35 +82,19 @@ const copyUserId = () => {
 }
 
 // 로그아웃
-const handleLogout = async () => {
+const handleLogout = () => {
   if (!confirm(currentTexts.value.logoutConfirm)) {
     return
   }
   
-  try {
-    // Firebase 로그아웃 (Firebase 사용자인 경우)
-    if (isFirebaseUser.value) {
-      const result = await logout()
-      if (!result.success) {
-        console.error('Firebase 로그아웃 실패:', result.error)
-      }
-    }
-    
-    // 일반 로그아웃 (sessionStorage 정리)
-    logoutUser()
-    
-    // 앱 스토어 상태 초기화
-    logoutStore()
-    
-    // 로그인 페이지로 이동
-    router.push('/login')
-  } catch (error) {
-    console.error('로그아웃 오류:', error)
-    // 오류가 발생해도 로그아웃 처리
-    logoutUser()
-    logoutStore()
-    router.push('/login')
-  }
+  // sessionStorage 정리
+  logoutUser()
+  
+  // 앱 스토어 상태 초기화
+  logoutStore()
+  
+  // 로그인 페이지로 이동
+  router.push('/login')
 }
 
 // 게임 통계

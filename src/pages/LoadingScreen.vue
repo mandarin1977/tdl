@@ -2,8 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCurrentUser } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
 
 const router = useRouter()
+const store = useAppStore()
 const progress = ref(0)
 
 onMounted(() => {

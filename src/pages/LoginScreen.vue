@@ -3,11 +3,15 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
 import { getCurrentUser } from '@/utils/userUtils'
+import { connectWallet, isMetaMaskInstalled } from '@/utils/wallet'
 
 const router = useRouter()
-const { setWalletConnected, setLoading } = useAppStore()
+const store = useAppStore()
+const { setWalletConnected, setLoading, loadCurrentUser, connectWalletToApp } = store
 const isConnecting = ref(false)
 const walletConnected = ref(false)
+const isWalletConnecting = ref(false)
+const walletError = ref('')
 
 // 비밀번호 표시/숨김 상태
 const showPassword = ref(false)
@@ -72,13 +76,59 @@ const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
+// 지갑 연결 처리
+const handleWalletConnect = async () => {
+  try {
+    isWalletConnecting.value = true
+    walletError.value = ''
+    setLoading(true)
+    
+    // MetaMask 설치 확인
+    if (!isMetaMaskInstalled()) {
+      walletError.value = 'MetaMask가 설치되어 있지 않습니다.'
+      const install = confirm('MetaMask를 설치하시겠습니까?')
+      if (install) {
+        window.open('https://metamask.io/download/', '_blank')
+      }
+      return
+    }
+    
+    // 지갑 연결
+    const result = await connectWalletToApp()
+    
+    if (result.success) {
+      walletConnected.value = true
+      
+      // 메인 화면으로 이동
+      setTimeout(() => {
+        router.push('/main')
+      }, 1000)
+    } else {
+      walletError.value = result.error || '지갑 연결에 실패했습니다.'
+      if (result.needInstall) {
+        const install = confirm('MetaMask를 설치하시겠습니까?')
+        if (install) {
+          window.open('https://metamask.io/download/', '_blank')
+        }
+      }
+    }
+  } catch (error) {
+    console.error('지갑 연결 오류:', error)
+    walletError.value = '지갑 연결 중 오류가 발생했습니다.'
+  } finally {
+    isWalletConnecting.value = false
+    setLoading(false)
+  }
+}
+
 onMounted(() => {
   // 초기 로딩 상태 설정
   setLoading(false)
   
   // 이미 로그인된 상태인지 확인
   const currentUser = getCurrentUser()
-  if (currentUser) {
+  if (currentUser && currentUser.id) {
+    console.log('LoginScreen: 이미 로그인된 사용자:', currentUser.email)
     router.push('/main')
     return
   }
@@ -183,6 +233,32 @@ onMounted(() => {
         </div>
       </button>
     </form>
+
+    <!-- 구분선 -->
+    <div class="divider">
+      <span class="divider-text">또는</span>
+    </div>
+
+    <!-- 지갑 연결 버튼 -->
+    <button 
+      @click="handleWalletConnect"
+      :disabled="isWalletConnecting || isConnecting"
+      class="wallet-connect-button"
+    >
+      <div class="btn-content">
+        <svg v-if="!isWalletConnecting" class="wallet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </svg>
+        <div v-if="isWalletConnecting" class="spinner-small"></div>
+        <span>{{ isWalletConnecting ? '연결 중...' : '지갑 연결' }}</span>
+      </div>
+    </button>
+
+    <!-- 지갑 연결 오류 메시지 -->
+    <div v-if="walletError" class="wallet-error">
+      {{ walletError }}
+    </div>
 
     <!-- 회원가입 링크 -->
     <div class="signup-link">
@@ -384,6 +460,78 @@ onMounted(() => {
 
 .signup-btn:hover {
   color: rgba(255, 255, 255, 0.8);
+}
+
+/* 구분선 */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.divider-text {
+  padding: 0 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+/* 지갑 연결 버튼 */
+.wallet-connect-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  height: 56px;
+  padding: 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.wallet-connect-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.wallet-connect-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.wallet-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.75rem;
+}
+
+/* 지갑 연결 오류 메시지 */
+.wallet-error {
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 8px;
 }
 
 /* 반응형 */

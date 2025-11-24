@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, updateUserCoins, updateUserGameData } from '@/utils/userUtils'
-import { getUserGameData } from '@/firebase/config'
 
 const router = useRouter()
 const coinCount = ref(0)
@@ -117,7 +116,7 @@ const checkAttendance = async (dayIndex) => {
   window.dispatchEvent(new Event('userDataUpdated'))
 }
 
-// 출석체크 데이터 저장 (Firebase + localStorage)
+// 출석체크 데이터 저장 (localStorage)
 const saveAttendanceData = async () => {
   if (currentUser.value) {
     const data = {
@@ -131,7 +130,7 @@ const saveAttendanceData = async () => {
     // localStorage에 저장
     localStorage.setItem(`attendance_${currentUser.value.id}`, JSON.stringify(data))
     
-    // Firebase에도 저장 (gameData에 포함)
+    // gameData에도 저장
     await updateUserGameData(currentUser.value.id, {
       attendance: data
     })
@@ -143,31 +142,8 @@ const loadAttendanceData = async () => {
   if (currentUser.value) {
     let data = null
     
-    // Firebase 사용자인지 확인 (uid가 길거나 Firebase 형식인 경우)
-    const isFirebaseUser = currentUser.value.id?.length > 20 || currentUser.value.uid
-    
-    if (isFirebaseUser) {
-      // Firebase 사용자인 경우 Firebase에서 최신 데이터 가져오기
-      try {
-        const firebaseData = await getUserGameData(currentUser.value.id)
-        if (firebaseData?.gameData?.attendance) {
-          data = firebaseData.gameData.attendance
-          
-          // sessionStorage의 currentUser도 업데이트
-          const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || '{}')
-          if (currentUserData.id === currentUser.value.id) {
-            currentUserData.gameData = { ...currentUserData.gameData, ...firebaseData.gameData }
-            sessionStorage.setItem('currentUser', JSON.stringify(currentUserData))
-            currentUser.value = currentUserData
-          }
-        }
-      } catch (error) {
-        console.error('Firebase에서 출석체크 데이터 가져오기 실패:', error)
-      }
-    }
-    
-    // Firebase 데이터가 없으면 sessionStorage에서 확인
-    if (!data && currentUser.value.gameData?.attendance) {
+    // sessionStorage에서 확인
+    if (currentUser.value.gameData?.attendance) {
       data = currentUser.value.gameData.attendance
     }
     
@@ -177,8 +153,8 @@ const loadAttendanceData = async () => {
       if (localSaved) {
         data = JSON.parse(localSaved)
         
-        // localStorage 데이터를 Firebase에도 저장 (동기화)
-        if (isFirebaseUser && data) {
+        // localStorage 데이터를 gameData에도 저장 (동기화)
+        if (data) {
           await updateUserGameData(currentUser.value.id, {
             attendance: data
           })

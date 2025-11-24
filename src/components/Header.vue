@@ -1,19 +1,23 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getI18nTexts, getCurrentUser } from '@/utils/userUtils'
-import noticeIcon from '@/assets/img/notice.png'
-import settingIcon from '@/assets/img/setting.png'
+import { getI18nTexts } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
 
 const language = ref(localStorage.getItem('appLanguage') || '한국어')
 const texts = computed(() => getI18nTexts())
 
 const router = useRouter()
 
-// 사용자 데이터
-const coinCount = ref(0) // 포인트 (P)
-const totalCoin = ref(0) // 코인 (C)
-const catFragments = ref(50) // 고양이 파편
+// 스토어 사용
+const store = useAppStore()
+
+// 스토어에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins) // 포인트 (P)
+const totalCoin = computed(() => store.state.totalCoin) // 코인 (C)
+const catFragments = computed(() => store.state.catFragments) // 고양이 파편
+
+// 에너지는 localStorage에 저장되므로 별도 관리
 const currentEnergy = ref(4000)
 const maxEnergy = ref(4000)
 
@@ -34,27 +38,11 @@ const checkAndResetEnergy = () => {
     const saved = parseInt(savedEnergy) || 0
     currentEnergy.value = Math.max(0, Math.min(saved, maxEnergy.value))
   } else {
-    // 저장된 에너지가 없으면 (새 사용자 또는 소셜 로그인) 최대 에너지로 설정
+    // 저장된 에너지가 없으면 (새 사용자) 최대 에너지로 설정
     currentEnergy.value = maxEnergy.value // 4000
     localStorage.setItem('energyLastDate', today)
     localStorage.setItem('currentEnergy', maxEnergy.value.toString())
   }
-}
-
-// 사용자 데이터 로드
-const loadUserData = () => {
-  const currentUser = getCurrentUser()
-  if (currentUser) {
-    // 포인트 = gameData.coins
-    coinCount.value = currentUser.gameData?.coins || 0
-    // 코인 = totalCoin (현재는 0으로 설정, 나중에 별도 관리)
-    totalCoin.value = currentUser.gameData?.totalCoin || 0
-    // 고양이 파편 = catFragments 또는 catCount
-    catFragments.value = currentUser.gameData?.catFragments || currentUser.gameData?.catCount || 50
-  }
-  
-  // 에너지 체크 및 리셋
-  checkAndResetEnergy()
 }
 
 const isMenuOpen = ref(false)
@@ -76,11 +64,13 @@ const goToShop = () => {
 }
 
 let interval = null
-let dataUpdateInterval = null
 
 onMounted(() => {
-  // 초기 데이터 로드
-  loadUserData()
+  // 스토어에서 사용자 데이터 로드
+  store.loadCurrentUser()
+  
+  // 에너지 체크 및 리셋
+  checkAndResetEnergy()
   
   // localStorage 변경 감지 (언어)
   interval = setInterval(() => {
@@ -90,37 +80,33 @@ onMounted(() => {
     }
   }, 100)
   
-  // 사용자 데이터 업데이트 감지 (주기적으로 체크)
-  dataUpdateInterval = setInterval(() => {
-    loadUserData()
-  }, 500) // 0.5초마다 체크
-  
   // 커스텀 이벤트 리스너: 사용자 데이터 즉시 업데이트
-  window.addEventListener('userDataUpdated', loadUserData)
+  // 스토어가 자동으로 동기화하므로 여기서는 스토어만 새로고침
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
+  }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거를 위해 저장
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 
 onUnmounted(() => {
   if (interval) {
     clearInterval(interval)
   }
-  if (dataUpdateInterval) {
-    clearInterval(dataUpdateInterval)
-  }
-  // 이벤트 리스너 제거
-  window.removeEventListener('userDataUpdated', loadUserData)
 })
 
-// 숫자 포맷팅 함수
-const formatNumber = (num) => {
-  if (num >= 1000000000) {
-    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'G'
-  } else if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
-  } else if (num >= 10000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
+onUnmounted(() => {
+  if (interval) {
+    clearInterval(interval)
   }
-  return num.toLocaleString()
-}
+})
+
+// 숫자 포맷팅 함수 (스토어에서 가져오기)
+const formatNumber = store.formatNumber
 </script>
 
 <template>

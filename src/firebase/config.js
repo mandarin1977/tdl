@@ -1,6 +1,6 @@
 // Firebase 설정 파일
-import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth'
+import { initializeApp, getApps, getApp } from 'firebase/app'
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
 import { getAnalytics } from 'firebase/analytics'
 
@@ -15,20 +15,82 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-EGV6XDKG9R"
 }
 
-// Firebase 초기화
-const app = initializeApp(firebaseConfig)
+// Firebase 설정 유효성 검사
+const validateFirebaseConfig = (config) => {
+  const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId']
+  const missingFields = requiredFields.filter(field => !config[field])
+  
+  if (missingFields.length > 0) {
+    console.error('Firebase 설정에 필수 필드가 누락되었습니다:', missingFields)
+    return false
+  }
+  return true
+}
 
-// Auth 및 Firestore 인스턴스
+// Firebase 초기화 (중복 초기화 방지)
+let app = null
+
+// 설정 유효성 검사
+if (!validateFirebaseConfig(firebaseConfig)) {
+  console.error('Firebase 설정이 유효하지 않습니다.')
+}
+
+// Firebase 앱 초기화 (가장 안전한 방식)
+try {
+  // 이미 초기화된 앱이 있는지 확인
+  const existingApps = getApps()
+  if (existingApps.length > 0) {
+    // 기존 앱 사용
+    app = getApp()
+  } else {
+    // 새로 초기화
+    app = initializeApp(firebaseConfig)
+  }
+} catch (error) {
+  // 에러 처리
+  console.error('Firebase 초기화 중 오류 발생:', error)
+  
+  // 중복 초기화 에러인 경우
+  if (error.code === 'app/duplicate-app' || error.message?.includes('duplicate')) {
+    try {
+      app = getApp()
+    } catch (getAppError) {
+      console.error('기존 앱을 가져올 수 없습니다:', getAppError)
+      // 최후의 수단: 기존 앱 목록에서 첫 번째 앱 사용
+      const apps = getApps()
+      if (apps.length > 0) {
+        app = apps[0]
+      } else {
+        throw new Error('Firebase 앱을 초기화할 수 없습니다.')
+      }
+    }
+  } else {
+    // 다른 에러인 경우
+    throw error
+  }
+}
+
+// Auth 및 Firestore 인스턴스 (app이 null이 아닌 경우에만)
+if (!app) {
+  throw new Error('Firebase 앱이 초기화되지 않았습니다.')
+}
+
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 
-// Analytics 초기화 (브라우저 환경에서만)
+// Analytics 초기화 (브라우저 환경에서만, 중복 초기화 방지)
 let analytics = null
 if (typeof window !== 'undefined') {
   try {
     analytics = getAnalytics(app)
   } catch (error) {
-    console.warn('Analytics 초기화 실패:', error)
+    // Analytics가 이미 초기화된 경우 무시
+    if (error.code === 'analytics/already-initialized' || error.message?.includes('already')) {
+      console.log('Analytics는 이미 초기화되었습니다.')
+    } else {
+      // 다른 오류인 경우에만 경고 (에러를 던지지 않음)
+      console.warn('Analytics 초기화 실패:', error.message || error)
+    }
   }
 }
 export { analytics }
@@ -64,7 +126,7 @@ const saveUserToFirestore = async (user) => {
   }
 }
 
-// Google 로그인 함수 (모든 환경에서 redirect 사용)
+// Google 로그인 함수 (리다이렉트 방식)
 export const signInWithGoogle = async () => {
   try {
     await signInWithRedirect(auth, googleProvider)
@@ -82,32 +144,49 @@ let redirectResultChecked = false
 export const handleRedirectResult = async () => {
   // 이미 확인했다면 다시 확인하지 않음
   if (redirectResultChecked) {
+    // 하지만 Firebase 인증 상태가 있으면 반환
+    if (auth.currentUser) {
+      return { success: true, user: auth.currentUser }
+    }
     return { success: false, error: '이미 확인됨' }
   }
   
   try {
-    console.log('getRedirectResult 호출 중...')
-    console.log('현재 URL:', window.location.href)
-    console.log('현재 해시:', window.location.hash)
-    
+    console.log('handleRedirectResult 호출 - getRedirectResult 실행 중...')
     const result = await getRedirectResult(auth)
-    console.log('getRedirectResult 결과:', result)
+    console.log('getRedirectResult 결과:', result ? '사용자 있음' : 'null')
     
     redirectResultChecked = true
     
     if (result && result.user) {
       const user = result.user
-      console.log('인증된 사용자:', user.email, user.uid)
+      console.log('리다이렉트 결과 - 사용자 발견:', user.email, user.uid)
+      
+      // Firestore에 사용자 데이터 저장
       await saveUserToFirestore(user)
       console.log('Firestore 저장 완료')
+      
       return { success: true, user }
     }
     
-    console.log('리다이렉트 결과 없음 (result가 null이거나 user가 없음)')
+    // 리다이렉트 결과가 없지만 Firebase 인증 상태가 있을 수 있음
+    if (auth.currentUser) {
+      console.log('리다이렉트 결과는 없지만 Firebase 인증 상태 있음:', auth.currentUser.email)
+      return { success: true, user: auth.currentUser }
+    }
+    
+    console.log('리다이렉트 결과 없음')
     return { success: false, error: '리다이렉트 결과가 없습니다.' }
   } catch (error) {
-    console.error('리다이렉트 결과 처리 오류:', error)
     redirectResultChecked = true
+    console.error('리다이렉트 결과 처리 오류:', error)
+    
+    // 에러 발생 시에도 Firebase 인증 상태 확인
+    if (auth.currentUser) {
+      console.log('에러 발생했지만 Firebase 인증 상태 있음:', auth.currentUser.email)
+      return { success: true, user: auth.currentUser }
+    }
+    
     return { success: false, error: error.message }
   }
 }
