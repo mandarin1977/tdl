@@ -1,12 +1,17 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserCoins, updateUserGameData } from '@/utils/userUtils'
+import { getCurrentUser } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
+
+// appStore 사용
+const store = useAppStore()
 
 const router = useRouter()
-const coinCount = ref(0)
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins)
 const currentUser = ref(null)
 const attendanceDays = ref(0) // 출석 일수
 const checkedDays = ref([]) // 체크된 날짜들
@@ -99,14 +104,14 @@ const checkAttendance = async (dayIndex) => {
   
   // 보상 지급
   const reward = 1000 // 1K
-  coinCount.value += reward
+  const newCoins = coinCount.value + reward
   
   // 오늘 날짜 저장
   lastCheckInDate.value = todayISO
   
-  // 사용자 데이터 업데이트
+  // 사용자 데이터 업데이트 (appStore를 통해 - 데이터 일관성 보장)
   if (currentUser.value) {
-    await updateUserCoins(currentUser.value.id, coinCount.value)
+    await store.updateCoins(newCoins)
     await saveAttendanceData()
   }
   
@@ -130,8 +135,8 @@ const saveAttendanceData = async () => {
     // localStorage에 저장
     localStorage.setItem(`attendance_${currentUser.value.id}`, JSON.stringify(data))
     
-    // gameData에도 저장
-    await updateUserGameData(currentUser.value.id, {
+    // gameData에도 저장 (appStore를 통해 - 데이터 일관성 보장)
+    await store.updateGameData({
       attendance: data
     })
   }
@@ -153,9 +158,9 @@ const loadAttendanceData = async () => {
       if (localSaved) {
         data = JSON.parse(localSaved)
         
-        // localStorage 데이터를 gameData에도 저장 (동기화)
+        // localStorage 데이터를 gameData에도 저장 (동기화, appStore를 통해)
         if (data) {
-          await updateUserGameData(currentUser.value.id, {
+          await store.updateGameData({
             attendance: data
           })
         }
@@ -199,10 +204,23 @@ const nextCheckableDayIndex = computed(() => {
 
 onMounted(async () => {
   currentUser.value = getCurrentUser()
+  // appStore에서 사용자 데이터 로드
+  store.loadCurrentUser()
+  
   if (currentUser.value) {
-    coinCount.value = currentUser.value.gameData?.coins || 0
     await loadAttendanceData()
   }
+  
+  // appStore 데이터 변경 감지하여 동기화
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
+  }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 </script>
 

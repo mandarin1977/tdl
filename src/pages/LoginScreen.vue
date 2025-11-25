@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
 import { getCurrentUser } from '@/utils/userUtils'
 import { connectWallet, isMetaMaskInstalled } from '@/utils/wallet'
+import { verifyPassword, hashPassword } from '@/utils/passwordUtils'
 
 const router = useRouter()
 const store = useAppStore()
@@ -41,30 +42,66 @@ const handleLogin = async (event) => {
   
   // 로컬 스토리지에서 사용자 데이터 가져오기
   const users = JSON.parse(localStorage.getItem('users') || '[]')
-  const user = users.find(u => u.email === loginId.value && u.password === loginPw.value)
+  const user = users.find(u => u.email === loginId.value)
   
   // 실제로는 여기서 서버에 로그인 요청을 보내고 응답을 받음
   // 지금은 시뮬레이션으로 2초 후 로그인 완료
-  setTimeout(() => {
+  setTimeout(async () => {
     isConnecting.value = false
     
     if (user) {
-      // 로그인 성공
-      walletConnected.value = true
+      // 비밀번호 검증 (해시화된 비밀번호와 비교)
+      let passwordMatch = false
+      try {
+        // 기존 평문 비밀번호와의 호환성 체크 (마이그레이션용)
+        if (user.password && user.password.length < 64) {
+          // 해시가 아닌 평문 비밀번호인 경우 (기존 사용자)
+          passwordMatch = user.password === loginPw.value
+          // 다음 로그인 시 해시화된 비밀번호로 업데이트
+          if (passwordMatch) {
+            const hashedPassword = await hashPassword(loginPw.value)
+            user.password = hashedPassword
+            const userIndex = users.findIndex(u => u.id === user.id)
+            if (userIndex !== -1) {
+              users[userIndex] = user
+              localStorage.setItem('users', JSON.stringify(users))
+            }
+          }
+        } else {
+          // 해시화된 비밀번호인 경우
+          passwordMatch = await verifyPassword(loginPw.value, user.password)
+        }
+      } catch (error) {
+        console.error('비밀번호 검증 오류:', error)
+        setLoading(false)
+        alert('로그인 중 오류가 발생했습니다. 다시 시도해주세요.')
+        return
+      }
       
-      // 현재 로그인한 사용자 정보를 세션 스토리지에 저장
-      sessionStorage.setItem('currentUser', JSON.stringify(user))
-      
-      // 상태 저장 (실제로는 서버에서 받은 사용자 정보를 저장)
-      setWalletConnected(user.email, `${user.gameData.coins} 코인`)
-      setLoading(false)
-      
-      // 로그인 완료 후 메인 화면으로 이동
-      setTimeout(() => {
-        router.push('/main')
-      }, 1000)
+      if (passwordMatch) {
+        // 로그인 성공
+        walletConnected.value = true
+        
+        // 현재 로그인한 사용자 정보를 세션 스토리지에 저장
+        // 비밀번호는 세션에 저장하지 않음 (보안)
+        const { password, ...userWithoutPassword } = user
+        sessionStorage.setItem('currentUser', JSON.stringify(userWithoutPassword))
+        
+        // 상태 저장 (실제로는 서버에서 받은 사용자 정보를 저장)
+        setWalletConnected(user.email, `${user.gameData?.coins || 0} 코인`)
+        setLoading(false)
+        
+        // 로그인 완료 후 메인 화면으로 이동
+        setTimeout(() => {
+          router.push('/main')
+        }, 1000)
+      } else {
+        // 로그인 실패
+        setLoading(false)
+        alert('이메일 또는 비밀번호가 올바르지 않습니다.')
+      }
     } else {
-      // 로그인 실패
+      // 사용자를 찾을 수 없음
       setLoading(false)
       alert('이메일 또는 비밀번호가 올바르지 않습니다.')
     }
@@ -128,7 +165,9 @@ onMounted(() => {
   // 이미 로그인된 상태인지 확인
   const currentUser = getCurrentUser()
   if (currentUser && currentUser.id) {
-    console.log('LoginScreen: 이미 로그인된 사용자:', currentUser.email)
+    if (import.meta.env.DEV) {
+      console.log('LoginScreen: 이미 로그인된 사용자:', currentUser.email)
+    }
     router.push('/main')
     return
   }

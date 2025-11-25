@@ -1,12 +1,18 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserPointsAndCoins } from '@/utils/userUtils'
+import { getCurrentUser } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
+
+// appStore 사용
+const store = useAppStore()
+
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins) // 포인트 (P)
+const totalCoin = computed(() => store.state.totalCoin) // 코인 (C)
 
 const currentUser = ref(null)
-const coinCount = ref(0) // 포인트 (P)
-const totalCoin = ref(0) // 코인 (C)
 const activeTab = ref('buy')
 
 // 입력값
@@ -27,13 +33,13 @@ const loadUserData = () => {
   const user = getCurrentUser()
   if (user) {
     currentUser.value = user
-    coinCount.value = user.gameData?.coins || 0
-    totalCoin.value = user.gameData?.totalCoin || 0
   }
+  // appStore에서 사용자 데이터 로드
+  store.loadCurrentUser()
 }
 
 // 거래 실행
-const executeTrade = () => {
+const executeTrade = async () => {
   if (!currentUser.value) {
     alert('로그인이 필요합니다.')
     return
@@ -59,12 +65,13 @@ const executeTrade = () => {
     const newPoints = coinCount.value - pointsNeeded
     const newCoins = totalCoin.value + coinValue
 
-    if (updateUserPointsAndCoins(currentUser.value.id, newPoints, newCoins)) {
-      coinCount.value = newPoints
-      totalCoin.value = newCoins
-      loadUserData()
-      window.dispatchEvent(new CustomEvent('userDataUpdated'))
-      
+    // appStore를 통해 업데이트 (데이터 일관성 보장)
+    const success = await store.updateMultiple({
+      coins: newPoints,
+      totalCoin: newCoins
+    })
+
+    if (success) {
       alert(`구매 완료!\n${amount} Coin 구매\n사용한 Point: ${pointsNeeded.toLocaleString()}`)
       coinAmount.value = ''
     } else {
@@ -81,12 +88,13 @@ const executeTrade = () => {
     const newPoints = coinCount.value + pointsToReceive
     const newCoins = totalCoin.value - coinValue
 
-    if (updateUserPointsAndCoins(currentUser.value.id, newPoints, newCoins)) {
-      coinCount.value = newPoints
-      totalCoin.value = newCoins
-      loadUserData()
-      window.dispatchEvent(new CustomEvent('userDataUpdated'))
-      
+    // appStore를 통해 업데이트 (데이터 일관성 보장)
+    const success = await store.updateMultiple({
+      coins: newPoints,
+      totalCoin: newCoins
+    })
+
+    if (success) {
       alert(`판매 완료!\n${amount} Coin 판매\n받은 Point: ${pointsToReceive.toLocaleString()}`)
       coinAmount.value = ''
     } else {
@@ -102,6 +110,17 @@ watch(activeTab, () => {
 
 onMounted(() => {
   loadUserData()
+  
+  // appStore 데이터 변경 감지하여 동기화
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
+  }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 </script>
 

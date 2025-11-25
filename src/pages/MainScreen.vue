@@ -3,20 +3,15 @@ import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, updateUserCoins, updateUserGameData } from '@/utils/userUtils'
+import { getCurrentUser } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
+import { formatNumber } from '@/utils/formatUtils'
+import { checkAndResetEnergy } from '@/utils/energyUtils'
+import { calculateMaxExp, initializeNFTExp } from '@/utils/nftLevelUtils'
 import '@/styles/main.css'
 
-// 숫자 포맷팅 함수
-const formatNumber = (num) => {
-  if (num >= 1000000000) {
-    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B'
-  } else if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
-  } else if (num >= 10000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
-  }
-  return num.toLocaleString()
-}
+// appStore 사용
+const store = useAppStore()
 
 const router = useRouter()
 
@@ -26,16 +21,38 @@ const currentUser = ref(null)
 // 현재 활성화된 게임 모드
 const activeMode = ref('main')
 
-// 코인 수
-const coinCount = ref(0)
-// 포인트 수 (헤더 맨 왼쪽)
-const pointCount = ref(0)
-// 코인 수 (헤더 왼쪽에서 두번째)
-const totalCoin = ref(0)
-// 고양이 개수
-const catCount = ref(50)
-// 고양이 파편 개수
-const catFragments = ref(50)
+// 게임 데이터 (appStore에서 가져오기 - 반응형)
+const coinCount = computed(() => store.state.coins) // 포인트 (P)
+const pointCount = computed(() => store.state.coins) // 포인트 (P) - coinCount와 동일
+const totalCoin = computed(() => store.state.totalCoin) // 코인 (C)
+const catFragments = computed(() => store.state.catFragments) // 고양이 파편
+
+// appStore에 업데이트하는 함수 (간편 함수 - 에러 처리 포함)
+const updateStoreCoins = async (newCoins) => {
+  try {
+    const success = await store.updateCoins(newCoins)
+    if (!success) {
+      console.error('코인 업데이트 실패')
+      // 사용자에게 알림 (선택적)
+      // alert('데이터 저장에 실패했습니다. 다시 시도해주세요.')
+    }
+  } catch (error) {
+    console.error('코인 업데이트 중 오류 발생:', error)
+    // 사용자에게 알림 (선택적)
+    // alert('데이터 저장 중 오류가 발생했습니다.')
+  }
+}
+
+const updateStoreCatFragments = async (newFragments) => {
+  try {
+    const success = await store.updateCatFragments(newFragments)
+    if (!success) {
+      console.error('고양이 파편 업데이트 실패')
+    }
+  } catch (error) {
+    console.error('고양이 파편 업데이트 중 오류 발생:', error)
+  }
+}
 
 // 말풍선 관련
 const speechBubbles = ref([])
@@ -101,6 +118,43 @@ const getHuntingDamage = () => getNFTStatsSum(huntingCats.value, 'huntingDamage'
 const getExplorationReward = () => getNFTStatsSum(explorationCats.value, 'explorationReward')
 const getProductionSpeed = () => getNFTStatsSum(productionCats.value, 'productionSpeed')
 
+// NFT 경험치 부여 함수
+const grantExpToNFTs = async (catsList, expAmount) => {
+  if (!catsList || catsList.length === 0) return
+  
+  const currentUser = getCurrentUser()
+  if (!currentUser) return
+  
+  const inventory = currentUser.gameData?.inventory || []
+  const activeNFTIds = catsList.filter(cat => cat !== null).map(cat => cat.id)
+  
+  if (activeNFTIds.length === 0) return
+  
+  // 인벤토리에서 해당 NFT들 찾아서 경험치 추가
+  const updatedInventory = inventory.map(nft => {
+    if (activeNFTIds.includes(nft.id)) {
+      const initializedNFT = initializeNFTExp(nft)
+      const newExp = (initializedNFT.exp || 0) + expAmount
+      const currentLevel = initializedNFT.level || 1
+      const newMaxExp = calculateMaxExp(currentLevel)
+      
+      return {
+        ...initializedNFT,
+        exp: newExp,
+        maxExp: newMaxExp
+      }
+    }
+    return initializeNFTExp(nft) // 기존 NFT 호환성 처리
+  })
+  
+  // 인벤토리 업데이트
+  try {
+    await store.updateGameData({ inventory: updatedInventory })
+  } catch (error) {
+    console.error('NFT 경험치 업데이트 실패:', error)
+  }
+}
+
 // 게임 모드 변경 함수
 const setActiveMode = (mode) => {
   activeMode.value = mode
@@ -133,16 +187,11 @@ const handleRouteChange = () => {
 
 
 onMounted(() => {
-  // 현재 사용자 정보 로드
+  // appStore에서 사용자 데이터 로드
+  store.loadCurrentUser()
   currentUser.value = getCurrentUser()
+  
   if (currentUser.value) {
-    // 포인트 = 헤더 맨 왼쪽 값 (현재 coinCount로 전달되는 값)
-    pointCount.value = currentUser.value.gameData?.coins || 0
-    // 코인 = 헤더 두번째 값 (나중에 별도로 관리 가능)
-    totalCoin.value = currentUser.value.gameData?.totalCoin || 0
-    coinCount.value = pointCount.value
-    // 고양이 파편 로드
-    catFragments.value = currentUser.value.gameData?.catFragments || 50
     // 각 모드별 레벨 및 총 클릭 수 로드
     miningLevel.value = currentUser.value.gameData?.miningLevel || 1
     miningTotalClicks.value = currentUser.value.gameData?.miningTotalClicks || 0
@@ -188,10 +237,12 @@ onMounted(() => {
   }
   
   // 에너지 체크 및 리셋
-  checkAndResetEnergy()
+  checkAndResetEnergy(currentEnergy, maxEnergy)
   
-  // 라우터 이벤트 리스너 등록
-  router.afterEach(handleRouteChange)
+  // 라우터 경로 변경 감지 (watch 사용 - 더 안전함)
+  watch(() => router.currentRoute.value.path, () => {
+    handleRouteChange()
+  })
   
   // 클릭 사운드 초기화
   try {
@@ -199,7 +250,10 @@ onMounted(() => {
     clickSound.value.src = new URL('@/assets/audio/clickbgm.mp3', import.meta.url).href
     clickSound.value.volume = 0.3 // 볼륨 30%
   } catch (error) {
-    console.log('클릭 사운드 파일을 찾을 수 없습니다.')
+    // 개발 환경에서만 로그 출력
+    if (import.meta.env.DEV) {
+      console.log('클릭 사운드 파일을 찾을 수 없습니다.')
+    }
   }
   
   // 소리 설정 변경 이벤트 리스너 (클릭 사운드는 handleClick에서 이미 처리)
@@ -220,8 +274,7 @@ onMounted(() => {
   
   // 언마운트 시 정리
   onUnmounted(() => {
-    // 라우터 이벤트 리스너 제거
-    router.afterEach(handleRouteChange)
+    // watch는 자동으로 정리되므로 별도 제거 불필요
     
     // 모든 자동 포인트 획득 중지
     stopAllAutoPointGeneration()
@@ -237,8 +290,8 @@ const getSoundEnabled = () => {
   return saved !== null ? saved === 'true' : true // 기본값 true
 }
 
-// 클릭 이벤트 함수
-const handleClick = (mode) => {
+// 클릭 이벤트 함수 (비동기로 변경 - appStore 업데이트를 위해)
+const handleClick = async (mode) => {
   // 클릭 사운드 재생 (소리 설정이 켜져 있을 때만)
   if (clickSound.value && getSoundEnabled()) {
     clickSound.value.currentTime = 0 // 처음부터 재생
@@ -281,12 +334,16 @@ const handleClick = (mode) => {
         }
       }, 3000)
       
-      // 레벨 정보 저장
+      // 레벨 정보 저장 (appStore를 통해)
       if (currentUser.value) {
-        updateUserGameData(currentUser.value.id, {
-          miningLevel: miningLevel.value,
-          miningTotalClicks: miningTotalClicks.value
-        })
+        try {
+          await store.updateGameData({
+            miningLevel: miningLevel.value,
+            miningTotalClicks: miningTotalClicks.value
+          })
+        } catch (error) {
+          console.error('채굴 레벨 업데이트 실패:', error)
+        }
       }
     }
     
@@ -298,14 +355,16 @@ const handleClick = (mode) => {
       const nftBonus = getMiningEfficiency() / 100 // 퍼센트를 소수로 변환
       const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
       
-      coinCount.value += pointsGained
-      pointCount.value = coinCount.value
+      // appStore를 통해 업데이트 (데이터 일관성 보장)
+      const newCoins = coinCount.value + pointsGained
+      await updateStoreCoins(newCoins)
+      
       miningClickCount.value = 0
       isMiningComplete.value = true
       showNewMiningButton.value = false
       
       // 행성 에너지 증가 (10번 클릭마다 50씩 증가)
-      increasePlanetEnergy()
+      await increasePlanetEnergy()
       
       // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
       const fragmentChance = Math.random()
@@ -320,7 +379,9 @@ const handleClick = (mode) => {
       miningReward.value = { points: pointsGained, fragments: fragmentsGained }
       
       if (fragmentsGained > 0) {
-        catFragments.value += fragmentsGained
+        const newFragments = catFragments.value + fragmentsGained
+        catFragments.value = newFragments
+        await updateStoreCatFragments(newFragments)
         
         // 고양이 이모지 애니메이션 추가
         for (let i = 0; i < fragmentsGained; i++) {
@@ -348,14 +409,16 @@ const handleClick = (mode) => {
         }
       }
       
-      // 사용자 데이터 업데이트
+      // 사용자 데이터 업데이트 (appStore를 통해 - 이미 coins와 catFragments는 업데이트됨)
       if (currentUser.value) {
-        updateUserGameData(currentUser.value.id, {
-          coins: coinCount.value,
-          catFragments: catFragments.value,
-          miningTotalClicks: miningTotalClicks.value,
-          miningLevel: miningLevel.value
-        })
+        try {
+          await store.updateGameData({
+            miningTotalClicks: miningTotalClicks.value,
+            miningLevel: miningLevel.value
+          })
+        } catch (error) {
+          console.error('채굴 데이터 업데이트 실패:', error)
+        }
       }
       
       // 말풍선 위치 계산 (화면 안에 들어오도록)
@@ -440,12 +503,16 @@ const handleClick = (mode) => {
         }
       }, 3000)
       
-      // 레벨 정보 저장
+      // 레벨 정보 저장 (appStore를 통해)
       if (currentUser.value) {
-        updateUserGameData(currentUser.value.id, {
-          explorationLevel: explorationLevel.value,
-          explorationTotalClicks: explorationTotalClicks.value
-        })
+        try {
+          await store.updateGameData({
+            explorationLevel: explorationLevel.value,
+            explorationTotalClicks: explorationTotalClicks.value
+          })
+        } catch (error) {
+          console.error('탐험 레벨 업데이트 실패:', error)
+        }
       }
     }
     
@@ -457,14 +524,16 @@ const handleClick = (mode) => {
       const nftBonus = getExplorationReward() / 100 // 퍼센트를 소수로 변환
       const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
       
-      coinCount.value += pointsGained
-      pointCount.value = coinCount.value
+      // appStore를 통해 업데이트 (데이터 일관성 보장)
+      const newCoins = coinCount.value + pointsGained
+      await updateStoreCoins(newCoins)
+      
       explorationClickCount.value = 0
       isExplorationComplete.value = true
       showNewExplorationButton.value = false
       
       // 행성 에너지 증가 (10번 클릭마다 50씩 증가)
-      increasePlanetEnergy()
+      await increasePlanetEnergy()
       
       // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
       const fragmentChance = Math.random()
@@ -478,8 +547,13 @@ const handleClick = (mode) => {
       // 보상 정보 저장
       explorationReward.value = { points: pointsGained, fragments: fragmentsGained }
       
+      // NFT 경험치 부여 (슬롯에 배치된 NFT들)
+      await grantExpToNFTs(explorationCats.value, 10)
+      
       if (fragmentsGained > 0) {
-        catFragments.value += fragmentsGained
+        const newFragments = catFragments.value + fragmentsGained
+        catFragments.value = newFragments
+        await updateStoreCatFragments(newFragments)
         
         // 고양이 이모지 애니메이션 추가
         for (let i = 0; i < fragmentsGained; i++) {
@@ -507,14 +581,16 @@ const handleClick = (mode) => {
         }
       }
       
-      // 사용자 데이터 업데이트
+      // 사용자 데이터 업데이트 (appStore를 통해 - 이미 coins와 catFragments는 업데이트됨)
       if (currentUser.value) {
-        updateUserGameData(currentUser.value.id, {
-          coins: coinCount.value,
-          catFragments: catFragments.value,
-          explorationTotalClicks: explorationTotalClicks.value,
-          explorationLevel: explorationLevel.value
-        })
+        try {
+          await store.updateGameData({
+            explorationTotalClicks: explorationTotalClicks.value,
+            explorationLevel: explorationLevel.value
+          })
+        } catch (error) {
+          console.error('탐험 데이터 업데이트 실패:', error)
+        }
       }
       
       // 말풍선 위치 계산 (화면 안에 들어오도록)
@@ -599,12 +675,16 @@ const handleClick = (mode) => {
         }
       }, 3000)
       
-      // 레벨 정보 저장
+      // 레벨 정보 저장 (appStore를 통해)
       if (currentUser.value) {
-        updateUserGameData(currentUser.value.id, {
-          huntingLevel: huntingLevel.value,
-          huntingTotalClicks: huntingTotalClicks.value
-        })
+        try {
+          await store.updateGameData({
+            huntingLevel: huntingLevel.value,
+            huntingTotalClicks: huntingTotalClicks.value
+          })
+        } catch (error) {
+          console.error('사냥 레벨 업데이트 실패:', error)
+        }
       }
     }
     
@@ -616,14 +696,16 @@ const handleClick = (mode) => {
       const nftBonus = getHuntingDamage() / 100 // 퍼센트를 소수로 변환
       const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
       
-      coinCount.value += pointsGained
-      pointCount.value = coinCount.value
+      // appStore를 통해 업데이트 (데이터 일관성 보장)
+      const newCoins = coinCount.value + pointsGained
+      await updateStoreCoins(newCoins)
+      
       huntingClickCount.value = 0
       isHuntingComplete.value = true
       showNewHuntingButton.value = false
       
       // 행성 에너지 증가 (10번 클릭마다 50씩 증가)
-      increasePlanetEnergy()
+      await increasePlanetEnergy()
       
       // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
       const fragmentChance = Math.random()
@@ -637,8 +719,13 @@ const handleClick = (mode) => {
       // 보상 정보 저장
       huntingReward.value = { points: pointsGained, fragments: fragmentsGained }
       
+      // NFT 경험치 부여 (슬롯에 배치된 NFT들)
+      await grantExpToNFTs(huntingCats.value, 10)
+      
       if (fragmentsGained > 0) {
-        catFragments.value += fragmentsGained
+        const newFragments = catFragments.value + fragmentsGained
+        catFragments.value = newFragments
+        await updateStoreCatFragments(newFragments)
         
         // 고양이 이모지 애니메이션 추가
         for (let i = 0; i < fragmentsGained; i++) {
@@ -666,14 +753,16 @@ const handleClick = (mode) => {
         }
       }
       
-      // 사용자 데이터 업데이트
+      // 사용자 데이터 업데이트 (appStore를 통해 - 이미 coins와 catFragments는 업데이트됨)
       if (currentUser.value) {
-        updateUserGameData(currentUser.value.id, {
-          coins: coinCount.value,
-          catFragments: catFragments.value,
-          huntingTotalClicks: huntingTotalClicks.value,
-          huntingLevel: huntingLevel.value
-        })
+        try {
+          await store.updateGameData({
+            huntingTotalClicks: huntingTotalClicks.value,
+            huntingLevel: huntingLevel.value
+          })
+        } catch (error) {
+          console.error('사냥 데이터 업데이트 실패:', error)
+        }
       }
       
       // 말풍선 위치 계산 (화면 안에 들어오도록)
@@ -754,12 +843,16 @@ const handleClick = (mode) => {
         }
       }, 3000)
       
-      // 레벨 정보 저장
+      // 레벨 정보 저장 (appStore를 통해)
       if (currentUser.value) {
-        updateUserGameData(currentUser.value.id, {
-          productionLevel: productionLevel.value,
-          productionTotalClicks: productionTotalClicks.value
-        })
+        try {
+          await store.updateGameData({
+            productionLevel: productionLevel.value,
+            productionTotalClicks: productionTotalClicks.value
+          })
+        } catch (error) {
+          console.error('생산 레벨 업데이트 실패:', error)
+        }
       }
     }
     
@@ -771,14 +864,16 @@ const handleClick = (mode) => {
       const nftBonus = getProductionSpeed() / 100 // 퍼센트를 소수로 변환
       const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
       
-      coinCount.value += pointsGained
-      pointCount.value = coinCount.value
+      // appStore를 통해 업데이트 (데이터 일관성 보장)
+      const newCoins = coinCount.value + pointsGained
+      await updateStoreCoins(newCoins)
+      
       productionClickCount.value = 0
       isProductionComplete.value = true
       showNewProductionButton.value = false
       
       // 행성 에너지 증가 (10번 클릭마다 50씩 증가)
-      increasePlanetEnergy()
+      await increasePlanetEnergy()
       
       // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
       const fragmentChance = Math.random()
@@ -792,8 +887,13 @@ const handleClick = (mode) => {
       // 보상 정보 저장
       productionReward.value = { points: pointsGained, fragments: fragmentsGained }
       
+      // NFT 경험치 부여 (슬롯에 배치된 NFT들)
+      await grantExpToNFTs(productionCats.value, 10)
+      
       if (fragmentsGained > 0) {
-        catFragments.value += fragmentsGained
+        const newFragments = catFragments.value + fragmentsGained
+        catFragments.value = newFragments
+        await updateStoreCatFragments(newFragments)
         
         // 고양이 이모지 애니메이션 추가
         for (let i = 0; i < fragmentsGained; i++) {
@@ -821,14 +921,16 @@ const handleClick = (mode) => {
         }
       }
       
-      // 사용자 데이터 업데이트
+      // 사용자 데이터 업데이트 (appStore를 통해 - 이미 coins와 catFragments는 업데이트됨)
       if (currentUser.value) {
-        updateUserGameData(currentUser.value.id, {
-          coins: coinCount.value,
-          catFragments: catFragments.value,
-          productionTotalClicks: productionTotalClicks.value,
-          productionLevel: productionLevel.value
-        })
+        try {
+          await store.updateGameData({
+            productionTotalClicks: productionTotalClicks.value,
+            productionLevel: productionLevel.value
+          })
+        } catch (error) {
+          console.error('생산 데이터 업데이트 실패:', error)
+        }
       }
       
       // 말풍선 위치 계산 (화면 안에 들어오도록)
@@ -928,7 +1030,7 @@ const maxPlanetEnergy = ref(2000) // 행성 에너지 최대값
 const planetLevel = ref(1) // 행성 레벨
 
 // 행성 에너지 증가 함수 (10번 클릭마다 50씩 증가)
-const increasePlanetEnergy = () => {
+const increasePlanetEnergy = async () => {
   planetEnergy.value = Math.min(maxPlanetEnergy.value, planetEnergy.value + 50)
   
   // 행성 에너지가 2000이 되면 현재 활성화된 모드의 레벨업하고 0으로 리셋
@@ -946,49 +1048,36 @@ const increasePlanetEnergy = () => {
     
     planetEnergy.value = 0
     
-    // 사용자 데이터 업데이트
+    // 사용자 데이터 업데이트 (appStore를 통해)
     if (currentUser.value) {
-      const updateData = {
-        planetEnergy: planetEnergy.value,
-        miningLevel: miningLevel.value,
-        huntingLevel: huntingLevel.value,
-        explorationLevel: explorationLevel.value,
-        productionLevel: productionLevel.value
+      try {
+        const updateData = {
+          planetEnergy: planetEnergy.value,
+          miningLevel: miningLevel.value,
+          huntingLevel: huntingLevel.value,
+          explorationLevel: explorationLevel.value,
+          productionLevel: productionLevel.value
+        }
+        await store.updateGameData(updateData)
+      } catch (error) {
+        console.error('행성 에너지 업데이트 실패:', error)
       }
-      updateUserGameData(currentUser.value.id, updateData)
     }
   } else {
-    // 사용자 데이터 업데이트 (행성 에너지만)
+    // 사용자 데이터 업데이트 (행성 에너지만, appStore를 통해)
     if (currentUser.value) {
-      updateUserGameData(currentUser.value.id, {
-        planetEnergy: planetEnergy.value
-      })
+      try {
+        await store.updateGameData({
+          planetEnergy: planetEnergy.value
+        })
+      } catch (error) {
+        console.error('행성 에너지 업데이트 실패:', error)
+      }
     }
   }
 }
 
-// 에너지 체크 및 리셋 함수
-const checkAndResetEnergy = () => {
-  const today = new Date().toDateString()
-  const lastEnergyDate = localStorage.getItem('energyLastDate')
-  const savedEnergy = localStorage.getItem('currentEnergy')
-  
-  if (lastEnergyDate !== today) {
-    // 하루가 지나면 에너지를 4000개로 리셋
-    currentEnergy.value = maxEnergy.value // 4000
-    localStorage.setItem('energyLastDate', today)
-    localStorage.setItem('currentEnergy', maxEnergy.value.toString())
-  } else if (savedEnergy) {
-    // 오늘 날짜면 저장된 에너지 로드 (최소 0, 최대 4000개)
-    const saved = parseInt(savedEnergy) || 0
-    currentEnergy.value = Math.max(0, Math.min(saved, maxEnergy.value))
-  } else {
-    // 저장된 에너지가 없으면 (새 사용자) 최대 에너지로 설정
-    currentEnergy.value = maxEnergy.value // 4000
-    localStorage.setItem('energyLastDate', today)
-    localStorage.setItem('currentEnergy', maxEnergy.value.toString())
-  }
-}
+// 에너지 체크 및 리셋은 유틸리티 함수 사용
 
 // 에너지 소모 함수
 const consumeEnergy = (amount = energyPerClick.value) => {
@@ -1115,7 +1204,7 @@ const openCatSelectPopup = (slotIndex, mode, event) => {
 // 고양이 카드 클릭 핸들러는 제거됨 (이제 팝업으로만 관리)
 
 // 고양이 선택 핸들러
-const selectCatForSlot = (cat) => {
+const selectCatForSlot = async (cat) => {
   if (selectedSlotIndex.value >= 0 && selectedSlotIndex.value < 6) {
     const selectedCat = {
       id: cat.id,
@@ -1171,15 +1260,19 @@ const selectCatForSlot = (cat) => {
       startAutoPointGeneration('production')
     }
     
-    // 사용자 데이터 저장
+    // 사용자 데이터 저장 (appStore를 통해)
     const currentUser = getCurrentUser()
     if (currentUser) {
-      updateUserGameData(currentUser.id, {
-        miningCats: miningCats.value,
-        huntingCats: huntingCats.value,
-        explorationCats: explorationCats.value,
-        productionCats: productionCats.value
-      })
+      try {
+        await store.updateGameData({
+          miningCats: miningCats.value,
+          huntingCats: huntingCats.value,
+          explorationCats: explorationCats.value,
+          productionCats: productionCats.value
+        })
+      } catch (error) {
+        console.error('고양이 배치 업데이트 실패:', error)
+      }
     }
   }
   showCatSelectPopup.value = false
@@ -1188,7 +1281,7 @@ const selectCatForSlot = (cat) => {
 }
 
 // 고양이 제거 함수
-const removeCatFromSlot = () => {
+const removeCatFromSlot = async () => {
   if (selectedSlotIndex.value >= 0 && selectedSlotIndex.value < 6) {
     const mode = currentSelectMode.value
     let catsList = []
@@ -1225,15 +1318,19 @@ const removeCatFromSlot = () => {
       }
     }
     
-    // 사용자 데이터 저장
+    // 사용자 데이터 저장 (appStore를 통해)
     const currentUser = getCurrentUser()
     if (currentUser) {
-      updateUserGameData(currentUser.id, {
-        miningCats: miningCats.value,
-        huntingCats: huntingCats.value,
-        explorationCats: explorationCats.value,
-        productionCats: productionCats.value
-      })
+      try {
+        await store.updateGameData({
+          miningCats: miningCats.value,
+          huntingCats: huntingCats.value,
+          explorationCats: explorationCats.value,
+          productionCats: productionCats.value
+        })
+      } catch (error) {
+        console.error('고양이 배치 업데이트 실패:', error)
+      }
     }
   }
   showCatSelectPopup.value = false
@@ -1315,7 +1412,7 @@ const startAutoPointGeneration = (mode) => {
   })
   
   // 1초마다 각 고양이가 1씩 클릭되게 함
-  autoPointIntervals.value[mode] = setInterval(() => {
+  autoPointIntervals.value[mode] = setInterval(async () => {
     // 현재 활성화된 고양이 수 다시 확인 (동적으로 업데이트)
     let currentCatsList = []
     if (mode === 'mining') currentCatsList = miningCats.value
@@ -1346,10 +1443,11 @@ const startAutoPointGeneration = (mode) => {
     else if (mode === 'exploration') catsList = explorationCats.value
     else if (mode === 'production') catsList = productionCats.value
     
-    currentActiveCats.forEach((cat) => {
+    // forEach 대신 for...of 사용 (async/await 지원)
+    for (const cat of currentActiveCats) {
       // 실제 슬롯 인덱스 찾기
       const actualIndex = catsList.findIndex(c => c && c.id === cat.id)
-      if (actualIndex === -1) return
+      if (actualIndex === -1) continue
       
       const catKey = `${mode}_${actualIndex}_${cat.id}`
       
@@ -1387,15 +1485,25 @@ const startAutoPointGeneration = (mode) => {
         
         const pointsGained = Math.floor(basePoints * multiplier * (1 + nftBonus))
         
-        // 포인트 획득
-        coinCount.value += pointsGained
-        pointCount.value = coinCount.value
+        // appStore를 통해 업데이트 (데이터 일관성 보장)
+        const newCoins = coinCount.value + pointsGained
+        coinCount.value = newCoins
+        pointCount.value = newCoins
+        await updateStoreCoins(newCoins)
         
         // 카운터 리셋 (다시 시작)
         catClickCounters.value[mode][catKey] = 0
         
+        // NFT 경험치 부여 (자동 포인트 획득 시)
+        let catsListForExp = []
+        if (mode === 'mining') catsListForExp = miningCats.value
+        else if (mode === 'hunting') catsListForExp = huntingCats.value
+        else if (mode === 'exploration') catsListForExp = explorationCats.value
+        else if (mode === 'production') catsListForExp = productionCats.value
+        await grantExpToNFTs(catsListForExp, 10)
+        
         // 행성 에너지 감소 (10번 클릭마다 50씩 감소)
-        consumePlanetEnergy()
+        await consumePlanetEnergy()
         
         // 랜덤 고양이 파편 획득 (0, 1, 또는 2개)
         const fragmentChance = Math.random()
@@ -1407,7 +1515,8 @@ const startAutoPointGeneration = (mode) => {
         }
         
         if (fragmentsGained > 0) {
-          catFragments.value += fragmentsGained
+          const newFragments = catFragments.value + fragmentsGained
+          await updateStoreCatFragments(newFragments)
           
           // 고양이 이모지 애니메이션 추가 (현재 활성화된 모드에서만 표시)
           if (activeMode.value === mode) {
@@ -1434,13 +1543,8 @@ const startAutoPointGeneration = (mode) => {
           }
         }
         
-        // 사용자 데이터 업데이트
-        if (currentUser.value) {
-          updateUserGameData(currentUser.value.id, {
-            coins: coinCount.value,
-            catFragments: catFragments.value
-          })
-        }
+        // 사용자 데이터 업데이트 (appStore를 통해 - 이미 coins와 catFragments는 업데이트됨)
+        // 별도 업데이트 불필요 (updateStoreCoins, updateStoreCatFragments에서 이미 처리됨)
         
         // 완료 메시지 표시 (현재 활성화된 모드에서만 표시)
         if (activeMode.value === mode) {
@@ -1478,7 +1582,7 @@ const startAutoPointGeneration = (mode) => {
           }, 2000)
         }
       }
-    })
+    }
   }, 1000) // 1초마다 실행
 }
 

@@ -2,12 +2,14 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
+import { getCurrentUser } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { calculateQuestProgress, isQuestCompleted, getQuestProgress, resetQuestProgress } from '@/utils/questUtils'
 
+// appStore 사용
 const store = useAppStore()
-const coinCount = ref(0)
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins)
 const activeMainTab = ref('inProgress')
 const activeFilterTab = ref('daily')
 
@@ -462,8 +464,8 @@ const receiveReward = async (questId) => {
     }
   }
   
-  // 게임 데이터 업데이트
-  await updateUserGameData(currentUser.id, updates)
+  // 게임 데이터 업데이트 (appStore를 통해 - 데이터 일관성 보장)
+  await store.updateGameData(updates)
   
   // 퀘스트 보상 받음 표시
   quest.rewardReceived = true
@@ -486,8 +488,7 @@ const receiveReward = async (questId) => {
   
   alert(`보상 받기 완료!\n${rewardText.join(', ')}를 획득했습니다.`)
   
-  // 코인 카운트 업데이트
-  coinCount.value = currentUser.gameData?.coins || 0
+  // 코인 카운트는 appStore에서 자동으로 업데이트됨
 }
 
 // 필터링된 퀘스트
@@ -601,10 +602,19 @@ const resetQuestsByType = () => {
 }
 
 onMounted(() => {
-  const currentUser = getCurrentUser()
-  if (currentUser) {
-    coinCount.value = currentUser.gameData?.coins || 0
+  // appStore에서 사용자 데이터 로드
+  store.loadCurrentUser()
+  
+  // appStore 데이터 변경 감지하여 동기화
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
   }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
   
   // 날짜 체크 및 퀘스트 리셋
   checkDateChange()

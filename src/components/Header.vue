@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
+import { checkAndResetEnergy } from '@/utils/energyUtils'
 
 const language = ref(localStorage.getItem('appLanguage') || '한국어')
 const texts = computed(() => getI18nTexts())
@@ -21,29 +22,7 @@ const catFragments = computed(() => store.state.catFragments) // 고양이 파�
 const currentEnergy = ref(4000)
 const maxEnergy = ref(4000)
 
-// 에너지 체크 및 리셋 함수
-// 에너지는 하루에 최대 4000개까지 사용 가능하며, 하루가 지나면 4000개로 회복됩니다.
-const checkAndResetEnergy = () => {
-  const today = new Date().toDateString()
-  const lastEnergyDate = localStorage.getItem('energyLastDate')
-  const savedEnergy = localStorage.getItem('currentEnergy')
-  
-  if (lastEnergyDate !== today) {
-    // 하루가 지나면 에너지를 4000개로 리셋
-    currentEnergy.value = maxEnergy.value // 4000
-    localStorage.setItem('energyLastDate', today)
-    localStorage.setItem('currentEnergy', maxEnergy.value.toString())
-  } else if (savedEnergy) {
-    // 오늘 날짜면 저장된 에너지 로드 (최소 0, 최대 4000개)
-    const saved = parseInt(savedEnergy) || 0
-    currentEnergy.value = Math.max(0, Math.min(saved, maxEnergy.value))
-  } else {
-    // 저장된 에너지가 없으면 (새 사용자) 최대 에너지로 설정
-    currentEnergy.value = maxEnergy.value // 4000
-    localStorage.setItem('energyLastDate', today)
-    localStorage.setItem('currentEnergy', maxEnergy.value.toString())
-  }
-}
+// 에너지 체크 및 리셋은 유틸리티 함수 사용
 
 const isMenuOpen = ref(false)
 
@@ -70,7 +49,7 @@ onMounted(() => {
   store.loadCurrentUser()
   
   // 에너지 체크 및 리셋
-  checkAndResetEnergy()
+  checkAndResetEnergy(currentEnergy, maxEnergy)
   
   // localStorage 변경 감지 (언어)
   interval = setInterval(() => {
@@ -87,22 +66,15 @@ onMounted(() => {
   }
   window.addEventListener('userDataUpdated', handleUserDataUpdate)
   
-  // 컴포넌트 언마운트 시 이벤트 리스너 제거를 위해 저장
+  // 컴포넌트 언마운트 시 정리
   onUnmounted(() => {
+    // 이벤트 리스너 제거
     window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+    // interval 정리
+    if (interval) {
+      clearInterval(interval)
+    }
   })
-})
-
-onUnmounted(() => {
-  if (interval) {
-    clearInterval(interval)
-  }
-})
-
-onUnmounted(() => {
-  if (interval) {
-    clearInterval(interval)
-  }
 })
 
 // 숫자 포맷팅 함수 (스토어에서 가져오기)

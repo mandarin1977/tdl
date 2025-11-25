@@ -25,6 +25,22 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 npm install
 ```
 
+### Environment Variables
+
+프로젝트 루트에 `.env` 파일을 생성하고 Firebase 설정을 추가하세요:
+
+```env
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+**중요**: `.env` 파일은 Git에 커밋하지 마세요! (이미 .gitignore에 포함되어 있습니다)
+
 ### Compile and Hot-Reload for Development
 
 ```sh

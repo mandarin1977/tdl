@@ -2,6 +2,7 @@ import { reactive, ref, computed } from 'vue'
 import { getCurrentUser, createWalletUser, getUserByWalletAddress } from '@/utils/userUtils'
 import { updateUserGameData } from '@/utils/userUtils'
 import { connectWallet, getWalletAddress, getWalletBalance, checkWalletConnection, onAccountsChanged, onChainChanged } from '@/utils/wallet'
+import { formatNumber } from '@/utils/formatUtils'
 
 // 전역 상태 관리
 const state = reactive({
@@ -313,18 +314,6 @@ export const useAppStore = () => {
   const formattedTotalCoin = computed(() => {
     return formatNumber(state.totalCoin)
   })
-
-  // 숫자 포맷팅 함수
-  const formatNumber = (num) => {
-    if (num >= 1000000000) {
-      return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'G'
-    } else if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
-    } else if (num >= 10000) {
-      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
-    }
-    return num.toLocaleString()
-  }
 
   return {
     // 상태 (읽기 전용)

@@ -1,11 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserPointsAndCoins } from '@/utils/userUtils'
+import { getCurrentUser } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
 
-const coinCount = ref(0)
-const totalCoin = ref(0)
+// appStore 사용
+const store = useAppStore()
+
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins) // 포인트 (P)
+const totalCoin = computed(() => store.state.totalCoin) // 코인 (C)
 
 // 상점 아이템 목록
 const energyItems = ref([
@@ -45,15 +50,12 @@ const energyItems = ref([
 
 // 사용자 데이터 로드
 const loadUserData = () => {
-  const user = getCurrentUser()
-  if (user) {
-    coinCount.value = user.gameData?.coins || 0
-    totalCoin.value = user.gameData?.totalCoin || 0
-  }
+  // appStore에서 사용자 데이터 로드
+  store.loadCurrentUser()
 }
 
 // 구매 함수
-const purchaseItem = (item) => {
+const purchaseItem = async (item) => {
   const user = getCurrentUser()
   if (!user) {
     alert('로그인이 필요합니다.')
@@ -71,13 +73,23 @@ const purchaseItem = (item) => {
     return
   }
 
-  // 구매 처리
+  // 구매 처리 (appStore를 통해 - 데이터 일관성 보장)
+  let success = false
   if (item.currency === 'point') {
     const newPoints = coinCount.value - item.price
-    updateUserPointsAndCoins(user.email, newPoints, totalCoin.value)
+    success = await store.updateMultiple({
+      coins: newPoints
+    })
   } else {
     const newCoins = totalCoin.value - item.price
-    updateUserPointsAndCoins(user.email, coinCount.value, newCoins)
+    success = await store.updateMultiple({
+      totalCoin: newCoins
+    })
+  }
+
+  if (!success) {
+    alert('구매 실패. 다시 시도해주세요.')
+    return
   }
 
   // 에너지 구매 처리
@@ -88,14 +100,21 @@ const purchaseItem = (item) => {
   localStorage.setItem('currentEnergy', newEnergy.toString())
   localStorage.setItem('energyLastDate', new Date().toDateString())
   alert(`${item.name} 구매 완료! 에너지가 ${item.amount} 회복되었습니다. (현재: ${newEnergy}/${maxEnergy})`)
-
-  // 데이터 새로고침
-  loadUserData()
-  window.dispatchEvent(new Event('userDataUpdated'))
 }
 
 onMounted(() => {
   loadUserData()
+  
+  // appStore 데이터 변경 감지하여 동기화
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
+  }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 </script>
 

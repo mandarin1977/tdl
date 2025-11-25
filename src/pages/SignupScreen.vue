@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { hashPassword } from '@/utils/passwordUtils'
 
 const router = useRouter()
 
@@ -53,18 +54,39 @@ const handleSignup = async (event) => {
     return
   }
   
+  // 비밀번호 해시화
+  let hashedPassword
+  try {
+    hashedPassword = await hashPassword(formData.value.password)
+  } catch (error) {
+    console.error('비밀번호 해시화 오류:', error)
+    alert('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.')
+    return
+  }
+  
   // 새 사용자 데이터 생성
   const newUser = {
     id: Date.now(), // 간단한 ID 생성
     name: formData.value.name,
     phone: formData.value.phone,
     email: formData.value.email,
-    password: formData.value.password, // 실제로는 해시화해야 함
+    password: hashedPassword, // 해시화된 비밀번호 저장
     createdAt: new Date().toISOString(),
     gameData: {
       level: 1,
       coins: 0,
-      nftCount: 0
+      totalCoin: 0,
+      catFragments: 50,
+      nftCount: 0,
+      miningLevel: 1,
+      huntingLevel: 1,
+      explorationLevel: 1,
+      productionLevel: 1,
+      miningCats: [null, null, null, null, null, null],
+      huntingCats: [null, null, null, null, null, null],
+      explorationCats: [null, null, null, null, null, null],
+      productionCats: [null, null, null, null, null, null],
+      inventory: []
     }
   }
   
@@ -74,7 +96,6 @@ const handleSignup = async (event) => {
   // 로컬 스토리지에 저장
   localStorage.setItem('users', JSON.stringify(existingUsers))
   
-  console.log('회원가입 완료:', newUser)
   alert('회원가입이 완료되었습니다!')
   
   // 로그인 화면으로 이동

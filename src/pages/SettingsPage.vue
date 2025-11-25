@@ -1,16 +1,17 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserCoins } from '@/utils/userUtils'
+import { getCurrentUser } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { connectWallet, isMetaMaskInstalled, formatAddress } from '@/utils/wallet'
 
 const router = useRouter()
 const store = useAppStore()
 
-const coinCount = ref(0)
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins)
 const currentUser = ref(null)
 const language = ref('한국어')
 const region = ref('부산')
@@ -106,10 +107,21 @@ onMounted(() => {
   
   // 출석체크 상태 확인
   checkAttendanceStatus()
+  
+  // appStore 데이터 변경 감지하여 동기화
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
+  }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 
 // 출석체크 기능
-const checkAttendance = () => {
+const checkAttendance = async () => {
   if (!currentUser.value) {
     alert('로그인이 필요합니다.')
     return
@@ -130,11 +142,10 @@ const checkAttendance = () => {
   
   // 출석체크 보상 (예: 100 코인)
   const reward = 100
-  coinCount.value += reward
-  currentUser.value.gameData.coins = coinCount.value
+  const newCoins = coinCount.value + reward
   
-  // 사용자 데이터 업데이트
-  updateUserCoins(currentUser.value.id, coinCount.value)
+  // 사용자 데이터 업데이트 (appStore를 통해 - 데이터 일관성 보장)
+  await store.updateCoins(newCoins)
   
   // 출석체크 날짜 저장
   localStorage.setItem(`checkIn_${currentUser.value.id}`, today)

@@ -1,13 +1,20 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
+import { getCurrentUser } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
 import { trackGameAction } from '@/utils/questUtils'
 import { addRarityToNFT, getRarityName, getRarityColors, getRarityStyle } from '@/utils/rarityUtils'
+import { calculateMaxExp } from '@/utils/nftLevelUtils'
 
-const totalCoin = ref(0) // Coin (C) - Point가 아니라 Coin 사용
-const catFragments = ref(50) // 고양이 파편 개수 (더미데이터)
+// appStore 사용
+const store = useAppStore()
+
+// appStore에서 게임 데이터 가져오기 (반응형)
+const totalCoin = computed(() => store.state.totalCoin) // Coin (C)
+const catFragments = computed(() => store.state.catFragments) // 고양이 파편
+
 const requiredCoin = ref(100) // 필요 코인
 const requiredFragments = ref(3) // 필요 고양이 파편
 
@@ -17,16 +24,23 @@ const newCatImageId = ref(1) // 새로 데려온 고양이 이미지 ID
 const newCatRarity = ref(null) // 새로 데려온 고양이 레어리티
 
 onMounted(() => {
-  const currentUser = getCurrentUser()
-  if (currentUser) {
-    totalCoin.value = currentUser.gameData?.totalCoin || 0
-    // 고양이 파편은 더미데이터로 50으로 설정
-    catFragments.value = 50
+  // appStore에서 사용자 데이터 로드
+  store.loadCurrentUser()
+  
+  // appStore 데이터 변경 감지하여 동기화
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
   }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 
 // 고양이 제작하기
-const createCat = () => {
+const createCat = async () => {
   if (totalCoin.value < requiredCoin.value) {
     alert(`코인이 부족합니다. (필요: ${requiredCoin.value})`)
     return
@@ -40,22 +54,24 @@ const createCat = () => {
   // 재료 차감
   const currentUser = getCurrentUser()
   if (currentUser) {
-    totalCoin.value -= requiredCoin.value
-    catFragments.value -= requiredFragments.value
+    const newTotalCoin = totalCoin.value - requiredCoin.value
+    const newCatFragments = catFragments.value - requiredFragments.value
     
     // 랜덤 고양이 이미지 ID 생성 (1-30)
     newCatImageId.value = getRandomCatId()
     
     // 고양이 개수 증가 (헤더의 고양이 숫자)
-    const catCount = (currentUser.gameData?.catCount || 0) + 1
+    const currentInventory = currentUser.gameData?.inventory || []
+    const catCount = currentInventory.length + 1
     
     // 인벤토리에 고양이 추가
-    const currentInventory = currentUser.gameData?.inventory || []
     const baseCat = {
       id: Date.now(), // 고유 ID
       imageId: newCatImageId.value,
       name: `Cat ${newCatImageId.value}`,
       level: 1,
+      exp: 0, // 초기 경험치
+      maxExp: calculateMaxExp(1), // 레벨 2로 가려면 200 필요
       selected: false,
       isNew: true // 새 고양이 표시
     }
@@ -64,18 +80,14 @@ const createCat = () => {
     // 팝업에 표시할 레어리티 저장
     newCatRarity.value = newCat.rarity
     // 새 고양이는 맨 앞에 추가
-    currentInventory.unshift(newCat)
+    const updatedInventory = [newCat, ...currentInventory]
     
-    // 데이터 업데이트 (totalCoin 사용)
-    updateUserGameData(currentUser.id, {
-      totalCoin: totalCoin.value,
-      catFragments: catFragments.value,
-      catCount: catCount,
-      inventory: currentInventory
+    // 데이터 업데이트 (appStore를 통해 - 데이터 일관성 보장)
+    await store.updateGameData({
+      totalCoin: newTotalCoin,
+      catFragments: newCatFragments,
+      inventory: updatedInventory
     })
-    
-    // Header에 즉시 업데이트 알림 (커스텀 이벤트)
-    window.dispatchEvent(new CustomEvent('userDataUpdated'))
     
     // 퀘스트 진행도 업데이트 (NFT 제작)
     trackGameAction('nftCreated', 1)

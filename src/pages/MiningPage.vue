@@ -1,19 +1,31 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
 
 const router = useRouter()
-
-const coinCount = ref(0)
+// appStore 사용
+const store = useAppStore()
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins)
 
 onMounted(() => {
-  const currentUser = getCurrentUser()
-  if (currentUser) {
-    coinCount.value = currentUser.gameData?.coins || 0
+  // appStore에서 사용자 데이터 로드
+  store.loadCurrentUser()
+  
+  // appStore 데이터 변경 감지하여 동기화
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
   }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 
 const miningLevel = ref(1)

@@ -1,9 +1,12 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
+
+// appStore 사용
+const store = useAppStore()
 import { getRarityName, getRarityColors, getRarityStyle, RARITY_TIERS, addRarityToNFT } from '@/utils/rarityUtils'
 import { 
   getActiveListings, 
@@ -20,8 +23,9 @@ import btcLineImage from '@/assets/img/BTC_line.png'
 import ethLineImage from '@/assets/img/eth_line.png'
 import ethIco from '@/assets/img/eth_ico.png'
 
-const coinCount = ref(0)
-const totalCoin = ref(0)
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins)
+const totalCoin = computed(() => store.state.totalCoin)
 const activeTab = ref('wallet') // 'wallet' | 'marketplace' | 'myNFTs' | 'myListings'
 const walletBalance = ref('$ 5,323.00')
 const walletBalanceETH = ref('0.0000 ETH')
@@ -136,7 +140,7 @@ const closeSellModal = () => {
   sellPrice.value = ''
 }
 
-const confirmSell = () => {
+const confirmSell = async () => {
   if (!selectedNFT.value) return
   
   const price = parseFloat(sellPrice.value)
@@ -159,12 +163,10 @@ const confirmSell = () => {
   const inventory = currentUser.value.gameData?.inventory || []
   const updatedInventory = inventory.filter(nft => nft.id !== selectedNFT.value.id)
   
-  updateUserGameData(currentUser.value.id, {
+  // appStore를 통해 업데이트 (데이터 일관성 보장)
+  await store.updateGameData({
     inventory: updatedInventory
   })
-  
-  // 이벤트 발생
-  window.dispatchEvent(new CustomEvent('userDataUpdated'))
   
   // 마켓플레이스 새로고침
   loadMarketplace()
@@ -209,8 +211,8 @@ const confirmBuy = async () => {
   const inventory = currentUser.value.gameData?.inventory || []
   inventory.unshift(result.nftData)
   
-  // 구매자 코인 차감
-  await updateUserGameData(currentUser.value.id, {
+  // 구매자 코인 차감 (appStore를 통해 - 데이터 일관성 보장)
+  await store.updateGameData({
     inventory: inventory,
     totalCoin: userCoins - listing.price
   })
@@ -222,13 +224,13 @@ const confirmBuy = async () => {
   
   if (seller) {
     const sellerCoins = seller.gameData?.totalCoin || 0
+    // 판매자는 다른 사용자이므로 직접 updateUserGameData 사용 (appStore는 현재 사용자만 관리)
     await updateUserGameData(seller.id, {
       totalCoin: sellerCoins + listing.price
     })
+    // 판매자에게도 이벤트 발생 (다른 탭에서 열려있을 수 있음)
+    window.dispatchEvent(new CustomEvent('userDataUpdated'))
   }
-  
-  // 이벤트 발생
-  window.dispatchEvent(new CustomEvent('userDataUpdated'))
   
   // 마켓플레이스 새로고침
   loadMarketplace()
@@ -255,12 +257,10 @@ const cancelSale = async (listing) => {
   const inventory = currentUser.value.gameData?.inventory || []
   inventory.unshift(listing.nftData)
   
-  await updateUserGameData(currentUser.value.id, {
+  // appStore를 통해 업데이트 (데이터 일관성 보장)
+  await store.updateGameData({
     inventory: inventory
   })
-  
-  // 이벤트 발생
-  window.dispatchEvent(new CustomEvent('userDataUpdated'))
   
   // 마켓플레이스 새로고침
   loadMarketplace()
@@ -315,21 +315,24 @@ const calculateWalletBalance = () => {
 
 // Send/Buy/Receive 핸들러
 const handleSendClick = () => {
-  console.log('Send 버튼 클릭')
+  if (import.meta.env.DEV) {
+    console.log('Send 버튼 클릭')
+  }
   showSendPopup.value = true
-  console.log('showSendPopup:', showSendPopup.value)
 }
 
 const handleBuyClick = () => {
-  console.log('Buy 버튼 클릭')
+  if (import.meta.env.DEV) {
+    console.log('Buy 버튼 클릭')
+  }
   showBuyPopup.value = true
-  console.log('showBuyPopup:', showBuyPopup.value)
 }
 
 const handleReceiveClick = () => {
-  console.log('Receive 버튼 클릭')
+  if (import.meta.env.DEV) {
+    console.log('Receive 버튼 클릭')
+  }
   showReceivePopup.value = true
-  console.log('showReceivePopup:', showReceivePopup.value)
 }
 
 const closeSendPopup = () => {
@@ -346,11 +349,11 @@ const closeReceivePopup = () => {
 
 onMounted(() => {
   currentUser.value = getCurrentUser()
-  const store = useAppStore()
+  
+  // appStore에서 사용자 데이터 로드
+  store.loadCurrentUser()
   
   if (currentUser.value) {
-    coinCount.value = currentUser.value.gameData?.coins || 0
-    totalCoin.value = currentUser.value.gameData?.totalCoin || 0
     walletBalance.value = calculateWalletBalance()
     
     // 지갑 연결 상태 확인
@@ -362,14 +365,19 @@ onMounted(() => {
   loadMarketplace()
   
   // 사용자 데이터 업데이트 이벤트 리스너
-  window.addEventListener('userDataUpdated', () => {
+  const handleUserDataUpdate = () => {
     currentUser.value = getCurrentUser()
+    store.loadCurrentUser()
     if (currentUser.value) {
-      coinCount.value = currentUser.value.gameData?.coins || 0
-      totalCoin.value = currentUser.value.gameData?.totalCoin || 0
       walletBalance.value = calculateWalletBalance()
     }
     loadMarketplace()
+  }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
   })
 })
 

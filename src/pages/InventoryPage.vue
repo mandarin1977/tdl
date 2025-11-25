@@ -2,12 +2,18 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
+import { getCurrentUser } from '@/utils/userUtils'
+import { useAppStore } from '@/store/appStore'
 import { getRarityName, getRarityColors, getRarityStyle, RARITY_TIERS, addRarityToNFT } from '@/utils/rarityUtils'
+import { canLevelUp, getLevelUpCost, calculateStatIncrease, calculateMaxExp, initializeNFTExp } from '@/utils/nftLevelUtils'
+
+// appStore 사용
+const store = useAppStore()
 import statStar1 from '@/assets/img/statStar1.png'
 import statStar2 from '@/assets/img/statStar2.png'
 
-const coinCount = ref(0)
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins)
 
 // 필터/정렬 상태
 const searchQuery = ref('')
@@ -150,7 +156,8 @@ const selectedCharacterImage = computed(() => {
 
 // NFT 상세 정보 보기
 const showNFTDetail = (item) => {
-  selectedNFT.value = ensureStats({ ...item })
+  const itemWithExp = initializeNFTExp(item) // 경험치 초기화
+  selectedNFT.value = ensureStats({ ...itemWithExp })
   showDetailModal.value = true
 }
 
@@ -161,7 +168,7 @@ const closeDetailModal = () => {
 }
 
 // NFT 선택
-const selectCharacter = (item) => {
+const selectCharacter = async (item) => {
   inventoryItems.value.forEach(i => i.selected = false)
   item.selected = true
   
@@ -177,12 +184,10 @@ const selectCharacter = (item) => {
         isNew: cat.id === item.id ? false : cat.isNew
       }))
       
-      updateUserGameData(currentUser.id, {
+      // appStore를 통해 업데이트 (데이터 일관성 보장)
+      await store.updateGameData({
         inventory: updatedInventory
       })
-      
-      // 이벤트 발생
-      window.dispatchEvent(new CustomEvent('userDataUpdated'))
     }
   }
 }
@@ -196,21 +201,92 @@ const resetFilters = () => {
   sortBy.value = 'newest'
 }
 
+// 레벨업 실행
+const handleLevelUp = async () => {
+  if (!selectedNFT.value) return
+  
+  const cost = getLevelUpCost(selectedNFT.value.level || 1)
+  
+  // 코인 확인
+  if (coinCount.value < cost) {
+    alert(`코인이 부족합니다. (필요: ${cost})`)
+    return
+  }
+  
+  // 레벨업 처리
+  const currentUser = getCurrentUser()
+  if (currentUser) {
+    const inventory = currentUser.gameData?.inventory || []
+    const updatedInventory = inventory.map(nft => {
+      if (nft.id === selectedNFT.value.id) {
+        const currentLevel = nft.level || 1
+        const newLevel = currentLevel + 1
+        const newMaxExp = calculateMaxExp(newLevel)
+        
+        // 스탯 증가
+        const statIncrease = calculateStatIncrease(nft)
+        const newMiningEfficiency = (nft.miningEfficiency || 0) + statIncrease
+        const newHuntingDamage = (nft.huntingDamage || 0) + statIncrease
+        const newExplorationReward = (nft.explorationReward || 0) + statIncrease
+        const newProductionSpeed = (nft.productionSpeed || 0) + statIncrease
+        
+        return {
+          ...nft,
+          level: newLevel,
+          exp: 0, // 경험치 리셋
+          maxExp: newMaxExp,
+          miningEfficiency: newMiningEfficiency,
+          huntingDamage: newHuntingDamage,
+          explorationReward: newExplorationReward,
+          productionSpeed: newProductionSpeed
+        }
+      }
+      return nft
+    })
+    
+    // 코인 차감 + 인벤토리 업데이트
+    const newCoins = coinCount.value - cost
+    try {
+      await store.updateMultiple({
+        coins: newCoins
+      })
+      await store.updateGameData({
+        inventory: updatedInventory
+      })
+      
+      // 모달 새로고침
+      const updatedNFT = updatedInventory.find(nft => nft.id === selectedNFT.value.id)
+      if (updatedNFT) {
+        selectedNFT.value = ensureStats({ ...updatedNFT })
+      }
+      
+      // 인벤토리 목록도 업데이트
+      loadInventory()
+      
+      alert(`레벨업 성공! 레벨 ${newLevel}이 되었습니다.`)
+    } catch (error) {
+      console.error('레벨업 실패:', error)
+      alert('레벨업 중 오류가 발생했습니다.')
+    }
+  }
+}
 
 // 사용자 데이터 업데이트 감지
 const loadInventory = () => {
   const currentUser = getCurrentUser()
   if (currentUser) {
-    coinCount.value = currentUser.gameData?.coins || 0
+    // appStore에서 사용자 데이터 로드
+    store.loadCurrentUser()
     
     // 실제 게임 인벤토리 데이터만 사용
     const userInventory = currentUser.gameData?.inventory || []
     
     if (userInventory.length > 0) {
-      // 레어리티가 없는 기존 NFT에 레어리티 추가, 스탯이 없는 고양이는 스탯 생성
+      // 레어리티가 없는 기존 NFT에 레어리티 추가, 스탯이 없는 고양이는 스탯 생성, 경험치 초기화
       inventoryItems.value = userInventory.map(cat => {
         const catWithRarity = cat.rarity ? cat : addRarityToNFT(cat)
-        return ensureStats({ ...catWithRarity })
+        const catWithStats = ensureStats({ ...catWithRarity })
+        return initializeNFTExp(catWithStats) // 경험치 초기화 (기존 NFT 호환성)
       })
     } else {
       inventoryItems.value = []
@@ -457,9 +533,31 @@ onUnmounted(() => {
               <span class="infoValue">{{ new Date(selectedNFT.id).toLocaleDateString() }}</span>
             </div>
           </div>
+          
+          <!-- 경험치 섹션 -->
+          <div class="expSection">
+            <div class="expLabel">경험치</div>
+            <div class="expBar">
+              <div 
+                class="expFill" 
+                :style="{ width: Math.min((selectedNFT.exp || 0) / (selectedNFT.maxExp || calculateMaxExp(selectedNFT.level || 1)) * 100, 100) + '%' }"
+              ></div>
+            </div>
+            <div class="expText">
+              {{ selectedNFT.exp || 0 }} / {{ selectedNFT.maxExp || calculateMaxExp(selectedNFT.level || 1) }}
+            </div>
+          </div>
         </div>
         
         <div class="modalFooter">
+          <button 
+            v-if="canLevelUp(selectedNFT)"
+            class="modalBtn levelUpBtn"
+            @click="handleLevelUp"
+            :disabled="coinCount < getLevelUpCost(selectedNFT.level || 1)"
+          >
+            레벨업 ({{ getLevelUpCost(selectedNFT.level || 1) }} 코인)
+          </button>
           <button class="modalBtn selectBtn" @click="selectCharacter(selectedNFT); closeDetailModal()">
             선택하기
           </button>
@@ -1394,6 +1492,66 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+/* 경험치 섹션 */
+.expSection {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+}
+
+.expLabel {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.5rem;
+}
+
+.expBar {
+  width: 100%;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.expFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  transition: width 0.3s ease;
+  border-radius: 10px;
+}
+
+.expText {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+}
+
+/* 레벨업 버튼 */
+.levelUpBtn {
+  background: linear-gradient(135deg, #FF9800, #FF5722);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.levelUpBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+.levelUpBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 500px) {

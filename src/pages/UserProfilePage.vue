@@ -7,9 +7,11 @@ import { getCurrentUser, logoutUser } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 
 const router = useRouter()
-const { logout: logoutStore } = useAppStore()
+const store = useAppStore()
+const { logout: logoutStore } = store
 
-const coinCount = ref(0)
+// appStore에서 게임 데이터 가져오기 (반응형)
+const coinCount = computed(() => store.state.coins)
 const currentUser = ref(null)
 const language = ref('한국어')
 const userEmail = ref('')
@@ -56,7 +58,8 @@ onMounted(() => {
   const user = getCurrentUser()
   if (user) {
     currentUser.value = user
-    coinCount.value = user.gameData?.coins || 0
+    // appStore에서 사용자 데이터 로드
+    store.loadCurrentUser()
     
     // 사용자 정보 설정
     userEmail.value = user.email || user.id || ''
@@ -73,6 +76,17 @@ onMounted(() => {
   if (savedLanguage) {
     language.value = savedLanguage
   }
+  
+  // appStore 데이터 변경 감지하여 동기화
+  const handleUserDataUpdate = () => {
+    store.loadCurrentUser()
+  }
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 
 // User ID 복사
