@@ -6,6 +6,8 @@ import Footer from '@/components/Footer.vue'
 import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { connectWallet, isMetaMaskInstalled, formatAddress } from '@/utils/wallet'
+import { getOrCreateInviteCode, getReferralStats } from '@/utils/referralUtils'
+import { copyInviteLink, shareInviteLink, shareInviteLinkNative, initKakao } from '@/utils/kakaoUtils'
 
 const router = useRouter()
 const store = useAppStore()
@@ -31,6 +33,14 @@ const walletBalance = computed(() => store.state.userBalance)
 const isWalletConnected = computed(() => store.state.isWalletConnected)
 const showDepositPopup = ref(false)
 
+// 친구 초대 관련 상태
+const inviteCode = ref('')
+const referralStats = ref({
+  inviteCode: '',
+  totalReferrals: 0,
+  referrals: []
+})
+
 // 언어 옵션
 const languages = ['English', '한국어']
 const regions = ['부산', '서울', '대구', '인천']
@@ -47,11 +57,17 @@ const toggleLanguage = (lang) => {
 }
 
 
-onMounted(() => {
+onMounted(async () => {
   const user = getCurrentUser()
   if (user) {
     currentUser.value = user
     coinCount.value = user.gameData?.coins || 0
+    
+    // 초대 코드 가져오기 또는 생성
+    inviteCode.value = getOrCreateInviteCode(user.id)
+    
+    // 초대 통계 가져오기
+    referralStats.value = getReferralStats(user.id)
   }
   
   // localStorage에서 언어 설정 로드 (기본값: English)
@@ -67,9 +83,20 @@ onMounted(() => {
   // 출석체크 상태 확인
   checkAttendanceStatus()
   
+  // 카카오 SDK 초기화 (비동기)
+  try {
+    await initKakao()
+  } catch (error) {
+    console.error('카카오 SDK 초기화 오류:', error)
+  }
+  
   // appStore 데이터 변경 감지하여 동기화
   const handleUserDataUpdate = () => {
     store.loadCurrentUser()
+    currentUser.value = getCurrentUser()
+    if (currentUser.value) {
+      referralStats.value = getReferralStats(currentUser.value.id)
+    }
   }
   window.addEventListener('userDataUpdated', handleUserDataUpdate)
   
@@ -226,6 +253,60 @@ const goToDeposit = (exchange) => {
     showDepositPopup.value = false
   }
 }
+
+// 친구 초대 관련 함수
+const handleCopyInviteCode = async () => {
+  if (!inviteCode.value) return
+  
+  const success = await copyInviteLink(inviteCode.value)
+  if (success) {
+    alert(texts.value.codeCopied)
+  } else {
+    alert('복사에 실패했습니다.')
+  }
+}
+
+const handleShareKakao = async () => {
+  if (!inviteCode.value) {
+    alert('초대 코드가 없습니다.')
+    return
+  }
+  
+  const success = await shareInviteLink(inviteCode.value)
+  if (success) {
+    alert(texts.value.shareSuccess)
+  }
+}
+
+const handleShareNative = async () => {
+  if (!inviteCode.value) {
+    alert('초대 코드가 없습니다.')
+    return
+  }
+  
+  const result = await shareInviteLinkNative(inviteCode.value)
+  
+  if (result.success) {
+    if (result.method === 'native') {
+      // 네이티브 공유 성공 (알림 불필요)
+    } else if (result.method === 'clipboard' || result.method === 'fallback') {
+      alert(texts.value.linkCopied)
+    }
+  } else if (!result.cancelled) {
+    alert('공유에 실패했습니다.')
+  }
+}
+
+const handleCopyLink = async () => {
+  if (!inviteCode.value) return
+  
+  const success = await copyInviteLink(inviteCode.value)
+  if (success) {
+    alert(texts.value.linkCopied)
+  } else {
+    alert('링크 복사에 실패했습니다.')
+  }
+}
 </script>
 
 <template>
@@ -359,6 +440,67 @@ const goToDeposit = (exchange) => {
           </button>
           <div v-if="walletError" class="walletErrorMsg">
             {{ walletError }}
+          </div>
+        </div>
+      </div>
+      
+      <!-- 친구 초대 섹션 -->
+      <div v-if="currentUser" class="inviteSection">
+        <div class="inviteCard">
+          <h2 class="inviteTitle">{{ texts.inviteFriends }}</h2>
+          <p class="inviteDescription">{{ texts.inviteDescription }}</p>
+          
+          <!-- 초대 코드 -->
+          <div class="inviteCodeSection">
+            <label class="inviteCodeLabel">{{ texts.inviteCode }}</label>
+            <div class="inviteCodeBox">
+              <span class="inviteCode">{{ inviteCode }}</span>
+              <button class="copyBtn" @click="handleCopyInviteCode" :title="texts.copyInviteCode">
+                📋
+              </button>
+            </div>
+          </div>
+          
+          <!-- 공유 버튼 -->
+          <div class="shareButtons">
+            <button class="shareBtn kakaoBtn" @click="handleShareKakao">
+              <span class="kakaoIcon">💬</span>
+              <span>{{ texts.shareKakao }}</span>
+            </button>
+            <button class="shareBtn nativeBtn" @click="handleShareNative">
+              <span class="shareIcon">📤</span>
+              <span>{{ texts.shareNative }}</span>
+            </button>
+            <button class="shareBtn copyLinkBtn" @click="handleCopyLink">
+              <span class="copyIcon">🔗</span>
+              <span>{{ texts.copyLink }}</span>
+            </button>
+          </div>
+          
+          <!-- 보상 정보 -->
+          <div class="rewardInfo">
+            <div class="rewardItem">
+              <span class="rewardIcon">🎁</span>
+              <div class="rewardText">
+                <div class="rewardTitle">{{ texts.inviteReward }}</div>
+                <div class="rewardDesc">{{ texts.inviteRewardDesc }}</div>
+              </div>
+            </div>
+            <div class="rewardItem">
+              <span class="rewardIcon">✨</span>
+              <div class="rewardText">
+                <div class="rewardTitle">{{ texts.newUserReward }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 초대 통계 -->
+          <div class="inviteStats">
+            <h3 class="statsTitle">{{ texts.inviteStats }}</h3>
+            <div class="statsValue">
+              <span class="statsNumber">{{ referralStats.totalReferrals }}</span>
+              <span class="statsLabel">{{ texts.invites }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -682,6 +824,219 @@ const goToDeposit = (exchange) => {
   background: rgba(125, 211, 252, 0.3);
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* 친구 초대 섹션 */
+.inviteSection {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.inviteCard {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.inviteTitle {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+}
+
+.inviteDescription {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 0 0 2rem 0;
+}
+
+/* 초대 코드 섹션 */
+.inviteCodeSection {
+  margin-bottom: 1.5rem;
+}
+
+.inviteCodeLabel {
+  display: block;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.inviteCodeBox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.inviteCode {
+  flex: 1;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 0.1em;
+}
+
+.copyBtn {
+  background: #7DD3FC;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.copyBtn:hover {
+  background: #61BBF5;
+  transform: scale(1.05);
+}
+
+/* 공유 버튼 */
+.shareButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.shareBtn {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.kakaoBtn {
+  background: #FEE500;
+  color: #000;
+}
+
+.kakaoBtn:hover {
+  background: #FDD835;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(253, 216, 53, 0.4);
+}
+
+.kakaoIcon {
+  font-size: 1.2rem;
+}
+
+.nativeBtn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.nativeBtn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.copyLinkBtn {
+  background: linear-gradient(135deg, #7DD3FC 0%, #0EA5E9 100%);
+  color: white;
+}
+
+.copyLinkBtn:hover {
+  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(125, 211, 252, 0.4);
+}
+
+.shareIcon,
+.copyIcon {
+  font-size: 1.2rem;
+}
+
+/* 보상 정보 */
+.rewardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(125, 211, 252, 0.1);
+  border-radius: 12px;
+}
+
+.rewardItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rewardIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.rewardText {
+  flex: 1;
+}
+
+.rewardTitle {
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.rewardDesc {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+/* 초대 통계 */
+.inviteStats {
+  text-align: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.statsTitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.statsValue {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.statsNumber {
+  color: #7DD3FC;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.statsLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
 }
 
 /* NFT 버튼 */

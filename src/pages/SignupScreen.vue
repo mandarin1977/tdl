@@ -1,9 +1,11 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { hashPassword } from '@/utils/passwordUtils'
+import { processInviteCode } from '@/utils/referralUtils'
 
 const router = useRouter()
+const route = useRoute()
 
 // 폼 데이터
 const formData = ref({
@@ -11,6 +13,16 @@ const formData = ref({
   phone: '',
   email: '',
   password: ''
+})
+
+// 초대 코드 (URL 파라미터에서 가져오기)
+const inviteCode = ref(null)
+
+onMounted(() => {
+  // URL 파라미터에서 초대 코드 가져오기
+  if (route.query.ref) {
+    inviteCode.value = route.query.ref
+  }
 })
 
 // 비밀번호 표시/숨김 상태
@@ -96,7 +108,22 @@ const handleSignup = async (event) => {
   // 로컬 스토리지에 저장
   localStorage.setItem('users', JSON.stringify(existingUsers))
   
-  alert('회원가입이 완료되었습니다!')
+  // 초대 코드 처리
+  if (inviteCode.value) {
+    try {
+      const result = await processInviteCode(newUser.id, inviteCode.value)
+      if (result.success) {
+        alert(`회원가입이 완료되었습니다!\n${result.inviter}님의 초대로 가입하셨습니다!\n초대 보상: ${result.newUserReward} 포인트를 받았습니다!`)
+      } else {
+        alert(`회원가입이 완료되었습니다!\n${result.error}`)
+      }
+    } catch (error) {
+      console.error('초대 코드 처리 오류:', error)
+      alert('회원가입이 완료되었습니다!')
+    }
+  } else {
+    alert('회원가입이 완료되었습니다!')
+  }
   
   // 로그인 화면으로 이동
   router.push('/login')

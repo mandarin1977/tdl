@@ -27,12 +27,30 @@ export const createWalletUser = (walletAddress) => {
     return existingUser
   }
   
+  // 초대 코드 생성 (간단한 해시 기반)
+  const generateInviteCode = (id) => {
+    const hash = id.toString().split('').reduce((acc, char) => {
+      return ((acc << 5) - acc) + char.charCodeAt(0)
+    }, 0)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // 0, O, I 제외
+    let code = ''
+    let num = Math.abs(hash)
+    for (let i = 0; i < 6; i++) {
+      code += chars[num % chars.length]
+      num = Math.floor(num / chars.length)
+    }
+    return code
+  }
+  const inviteCode = generateInviteCode(walletAddress)
+  
   // 새 사용자 생성
   const newUser = {
     id: walletAddress,
     walletAddress: walletAddress,
     loginType: 'wallet',
+    inviteCode: inviteCode,
     createdAt: new Date().toISOString(),
+    referrals: [],
     gameData: {
       level: 1,
       coins: 0,
@@ -432,6 +450,24 @@ export const getI18nTexts = () => {
       alreadyChecked: '이미 체크된 날짜입니다.',
       nextOrderOnly: '다음 순서의 출석체크만 가능합니다.',
       marketplace: '마켓플레이스',
+      inviteFriends: '친구 초대',
+      inviteCode: '초대 코드',
+      copyInviteCode: '초대 코드 복사',
+      shareKakao: '카카오톡으로 공유',
+      inviteDescription: '친구를 초대하고 보상을 받으세요!',
+      inviteReward: '초대 보상',
+      inviteRewardDesc: '친구 1명 초대 시 100 포인트',
+      newUserReward: '신규 가입 보상: 50 포인트',
+      totalInvites: '총 초대',
+      invites: '명',
+      codeCopied: '초대 코드가 복사되었습니다!',
+      shareSuccess: '카카오톡 공유가 완료되었습니다!',
+      shareFailed: '카카오톡 공유에 실패했습니다.',
+      inviteStats: '초대 통계',
+      shareLink: '링크 공유',
+      copyLink: '링크 복사',
+      linkCopied: '링크가 복사되었습니다!',
+      shareNative: '공유하기',
       myNFTs: '내 NFT',
       myListings: '내 판매',
       onSale: '판매 중',
@@ -829,7 +865,25 @@ export const getI18nTexts = () => {
       pointsEarned: 'points earned!',
       alreadyCheckedToday: 'Already checked in today! Please try again tomorrow.',
       alreadyChecked: 'Already checked.',
-      nextOrderOnly: 'Only the next order can be checked.'
+      nextOrderOnly: 'Only the next order can be checked.',
+      inviteFriends: 'Invite Friends',
+      inviteCode: 'Invite Code',
+      copyInviteCode: 'Copy Invite Code',
+      shareKakao: 'Share via KakaoTalk',
+      inviteDescription: 'Invite friends and get rewards!',
+      inviteReward: 'Invite Reward',
+      inviteRewardDesc: '100 Points per friend invited',
+      newUserReward: 'New User Reward: 50 Points',
+      totalInvites: 'Total Invites',
+      invites: 'friends',
+      codeCopied: 'Invite code copied!',
+      shareSuccess: 'Shared via KakaoTalk successfully!',
+      shareFailed: 'Failed to share via KakaoTalk.',
+      inviteStats: 'Invite Statistics',
+      shareLink: 'Share Link',
+      copyLink: 'Copy Link',
+      linkCopied: 'Link copied!',
+      shareNative: 'Share'
     }
   }[lang === '한국어' ? 'ko' : 'en']
 }

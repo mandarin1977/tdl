@@ -37,6 +37,7 @@ VITE_FIREBASE_STORAGE_BUCKET=your_project_id.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+VITE_KAKAO_APP_KEY=584452592bd145e42fd18a9448e24ab3
 ```
 
 **중요**: `.env` 파일은 Git에 커밋하지 마세요! (이미 .gitignore에 포함되어 있습니다)
