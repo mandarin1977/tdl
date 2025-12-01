@@ -3,20 +3,21 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { connectWallet, isMetaMaskInstalled, formatAddress } from '@/utils/wallet'
 
 const router = useRouter()
 const store = useAppStore()
 
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
+
 // appStore에서 게임 데이터 가져오기 (반응형)
 const coinCount = computed(() => store.state.coins)
 const currentUser = ref(null)
-const language = ref('한국어')
-const region = ref('부산')
-const soundEnabled = ref(true)
-const vibrationEnabled = ref(true)
+const language = ref(localStorage.getItem('appLanguage') || 'English')
+const region = ref('Busan')
 const showLanguageDropdown = ref(false)
 const showRegionDropdown = ref(false)
 const isCheckedInToday = ref(false)
@@ -31,37 +32,11 @@ const isWalletConnected = computed(() => store.state.isWalletConnected)
 const showDepositPopup = ref(false)
 
 // 언어 옵션
-const languages = ['한국어', 'English']
+const languages = ['English', '한국어']
 const regions = ['부산', '서울', '대구', '인천']
 
-// 언어에 따른 텍스트
-const texts = {
-  ko: {
-    language: '언어',
-    region: '지역',
-    soundSettings: '소리 설정',
-    soundToggle: '소리 토글',
-    viToggle: 'Vi 토글',
-    userID: 'User ID',
-    copySuccess: 'User ID가 복사되었습니다!',
-    english: 'English'
-  },
-  en: {
-    language: 'Language',
-    region: 'Region',
-    soundSettings: 'Sound Settings',
-    soundToggle: 'Sound Toggle',
-    viToggle: 'Vibration Toggle',
-    userID: 'User ID',
-    copySuccess: 'User ID copied!',
-    english: 'English'
-  }
-}
-
-// 현재 언어에 따른 텍스트
-const currentTexts = computed(() => {
-  return language.value === '한국어' ? texts.ko : texts.en
-})
+// 현재 언어에 따른 텍스트 (getI18nTexts 사용)
+const currentTexts = computed(() => texts.value)
 
 const toggleLanguage = (lang) => {
   language.value = lang
@@ -71,17 +46,6 @@ const toggleLanguage = (lang) => {
   localStorage.setItem('appLanguage', lang)
 }
 
-// 소리 설정 토글 함수
-const toggleSound = () => {
-  soundEnabled.value = !soundEnabled.value
-  // localStorage에 저장
-  localStorage.setItem('soundEnabled', soundEnabled.value.toString())
-  
-  // 전역 이벤트 발생하여 모든 오디오 제어
-  window.dispatchEvent(new CustomEvent('soundSettingChanged', { 
-    detail: { enabled: soundEnabled.value } 
-  }))
-}
 
 onMounted(() => {
   const user = getCurrentUser()
@@ -90,19 +54,14 @@ onMounted(() => {
     coinCount.value = user.gameData?.coins || 0
   }
   
-  // localStorage에서 언어 설정 로드
+  // localStorage에서 언어 설정 로드 (기본값: English)
   const savedLanguage = localStorage.getItem('appLanguage')
   if (savedLanguage) {
     language.value = savedLanguage
-  }
-  
-  // localStorage에서 소리 설정 로드
-  const savedSoundSetting = localStorage.getItem('soundEnabled')
-  if (savedSoundSetting !== null) {
-    soundEnabled.value = savedSoundSetting === 'true'
   } else {
-    // 기본값 저장
-    localStorage.setItem('soundEnabled', 'true')
+    // 저장된 언어가 없으면 기본값으로 English 설정
+    language.value = 'English'
+    localStorage.setItem('appLanguage', 'English')
   }
   
   // 출석체크 상태 확인
@@ -123,7 +82,7 @@ onMounted(() => {
 // 출석체크 기능
 const checkAttendance = async () => {
   if (!currentUser.value) {
-    alert('로그인이 필요합니다.')
+    alert(texts.value.loginRequired)
     return
   }
   
@@ -133,7 +92,7 @@ const checkAttendance = async () => {
   
   // 이미 출석체크 했는지 확인
   if (lastCheckInDate === today) {
-    checkInMessage.value = '오늘 이미 출석체크를 완료했습니다!'
+    checkInMessage.value = texts.value.alreadyCheckedIn
     setTimeout(() => {
       checkInMessage.value = ''
     }, 3000)
@@ -151,7 +110,7 @@ const checkAttendance = async () => {
   localStorage.setItem(`checkIn_${currentUser.value.id}`, today)
   isCheckedInToday.value = true
   
-  checkInMessage.value = `출석체크 완료! ${reward} 코인을 받았습니다!`
+  checkInMessage.value = `${texts.value.checkInComplete} ${reward} ${texts.value.coin}!`
   setTimeout(() => {
     checkInMessage.value = ''
   }, 3000)
@@ -174,8 +133,8 @@ const handleWalletConnect = async () => {
     
     // MetaMask 설치 확인
     if (!isMetaMaskInstalled()) {
-      walletError.value = 'MetaMask가 설치되어 있지 않습니다.'
-      const install = confirm('MetaMask를 설치하시겠습니까?')
+      walletError.value = texts.value.walletNotInstalled
+      const install = confirm(texts.value.installMetaMask)
       if (install) {
         window.open('https://metamask.io/download/', '_blank')
       }
@@ -188,11 +147,11 @@ const handleWalletConnect = async () => {
     if (result.success) {
       walletError.value = ''
       // 성공 메시지 (선택적)
-      alert('지갑이 연결되었습니다!')
+      alert(texts.value.walletConnected)
     } else {
-      walletError.value = result.error || '지갑 연결에 실패했습니다.'
+      walletError.value = result.error || texts.value.walletConnectFailed
       if (result.needInstall) {
-        const install = confirm('MetaMask를 설치하시겠습니까?')
+        const install = confirm(texts.value.installMetaMask)
         if (install) {
           window.open('https://metamask.io/download/', '_blank')
         }
@@ -200,7 +159,7 @@ const handleWalletConnect = async () => {
     }
   } catch (error) {
     console.error('지갑 연결 오류:', error)
-    walletError.value = '지갑 연결 중 오류가 발생했습니다.'
+    walletError.value = texts.value.walletConnectError
   } finally {
     isWalletConnecting.value = false
   }
@@ -208,7 +167,7 @@ const handleWalletConnect = async () => {
 
 // 지갑 연결 해제
 const handleWalletDisconnect = () => {
-  if (confirm('지갑 연결을 해제하시겠습니까?')) {
+  if (confirm(texts.value.disconnectWalletConfirm)) {
     store.disconnectWalletFromApp()
     router.push('/login')
   }
@@ -219,10 +178,10 @@ const copyWalletAddress = async () => {
   if (walletAddress.value) {
     try {
       await navigator.clipboard.writeText(walletAddress.value)
-      alert('지갑 주소가 복사되었습니다!')
+      alert(texts.value.walletAddressCopied)
     } catch (error) {
       console.error('복사 실패:', error)
-      alert('복사에 실패했습니다.')
+      alert(texts.value.copyFailed)
     }
   }
 }
@@ -249,13 +208,13 @@ const goToDeposit = (exchange) => {
       name: 'Phantom',
       url: 'https://phantom.app/',
       icon: '👻',
-      description: '팬텀 지갑으로 이동'
+      description: texts.value.goToPhantomWallet
     },
     upbit: {
       name: 'Upbit',
       url: 'https://upbit.com/',
       icon: '💰',
-      description: '업비트 거래소로 이동'
+      description: texts.value.goToUpbitExchange
     }
   }
   
@@ -283,14 +242,14 @@ const goToDeposit = (exchange) => {
           @click="router.push('/profile')"
         >
           <span class="userProfileIcon">👤</span>
-          <span>사용자 설정</span>
+          <span>{{ texts.userSettings }}</span>
           <span class="arrowIcon">→</span>
         </button>
       </div>
       
       <!-- 언어 설정 -->
       <div class="settingGroup">
-        <label class="settingLabel">{{ language === '한국어' ? '언어' : 'Language' }}</label>
+        <label class="settingLabel">{{ texts.language }}</label>
         <div class="settingInputWrapper">
           <div class="settingInput" @click="showLanguageDropdown = !showLanguageDropdown">
             <span>{{ language }}</span>
@@ -334,16 +293,16 @@ const goToDeposit = (exchange) => {
       
       <!-- 지갑 연결 섹션 -->
       <div class="settingSection">
-        <h3 class="sectionTitle">지갑 연결</h3>
+        <h3 class="sectionTitle">{{ texts.walletConnection }}</h3>
         
         <!-- 지갑 연결 상태 -->
         <div v-if="isWalletConnected" class="walletConnectedCard">
           <div class="walletStatusHeader">
             <div class="walletStatusIndicator">
               <div class="walletIndicatorDot"></div>
-              <span>연결됨</span>
+              <span>{{ texts.connected }}</span>
             </div>
-            <button class="refreshBtn" @click="refreshWalletBalance" title="잔액 새로고침">
+            <button class="refreshBtn" @click="refreshWalletBalance" :title="texts.refreshBalance">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -355,10 +314,10 @@ const goToDeposit = (exchange) => {
           
           <div class="walletInfo">
             <div class="walletInfoRow">
-              <span class="walletInfoLabel">주소:</span>
+              <span class="walletInfoLabel">{{ texts.address }}:</span>
               <div class="walletInfoValue">
                 <span class="walletAddressText">{{ walletAddress }}</span>
-                <button class="walletCopyBtn" @click="copyWalletAddress" title="복사">
+                <button class="walletCopyBtn" @click="copyWalletAddress" :title="texts.copy">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -368,7 +327,7 @@ const goToDeposit = (exchange) => {
             </div>
             
             <div class="walletInfoRow">
-              <span class="walletInfoLabel">잔액:</span>
+              <span class="walletInfoLabel">{{ texts.balance }}:</span>
               <span class="walletBalanceText">{{ walletBalance }}</span>
             </div>
           </div>
@@ -377,26 +336,26 @@ const goToDeposit = (exchange) => {
             <svg class="depositIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2v20M2 12h20"/>
             </svg>
-            <span>지갑에서 충전하기</span>
+            <span>{{ texts.depositFromWallet }}</span>
           </button>
           
           <button class="walletDisconnectBtn" @click="handleWalletDisconnect">
-            연결 해제
+            {{ texts.disconnect }}
           </button>
         </div>
         
         <!-- 지갑 미연결 상태 -->
         <div v-else class="walletNotConnectedCard">
           <div class="walletNotConnectedIcon">🔗</div>
-          <p class="walletNotConnectedText">지갑이 연결되지 않았습니다</p>
-          <p class="walletNotConnectedDesc">NFT 게임을 즐기려면 지갑을 연결해주세요</p>
+          <p class="walletNotConnectedText">{{ texts.walletNotConnected }}</p>
+          <p class="walletNotConnectedDesc">{{ texts.walletConnectDesc }}</p>
           <button 
             class="walletConnectBtn" 
             @click="handleWalletConnect"
             :disabled="isWalletConnecting"
           >
-            <span v-if="!isWalletConnecting">지갑 연결</span>
-            <span v-else>연결 중...</span>
+            <span v-if="!isWalletConnecting">{{ texts.connectWallet }}</span>
+            <span v-else>{{ texts.connecting }}</span>
           </button>
           <div v-if="walletError" class="walletErrorMsg">
             {{ walletError }}
@@ -404,43 +363,14 @@ const goToDeposit = (exchange) => {
         </div>
       </div>
       
-      <!-- 소리 설정 -->
-      <div class="settingSection">
-        <h3 class="sectionTitle">{{ currentTexts.soundSettings }}</h3>
-        
-        <!-- 소리 토글 -->
-        <div class="settingToggle">
-          <label class="toggleLabel">{{ currentTexts.soundToggle }}</label>
-          <button 
-            class="toggleSwitch" 
-            :class="{ active: soundEnabled }"
-            @click="toggleSound"
-          >
-            <div class="toggleHandle"></div>
-          </button>
-        </div>
-        
-        <!-- Vi 토글 -->
-        <div class="settingToggle">
-          <label class="toggleLabel">{{ currentTexts.viToggle }}</label>
-          <button 
-            class="toggleSwitch" 
-            :class="{ active: vibrationEnabled }"
-            @click="vibrationEnabled = !vibrationEnabled"
-          >
-            <div class="toggleHandle"></div>
-          </button>
-        </div>
-      </div>
-      
       <!-- 출석체크 -->
       <div class="settingGroup">
-        <label class="settingLabel">출석체크</label>
+        <label class="settingLabel">{{ texts.attendance }}</label>
         <button 
           class="checkInBtn" 
           @click="router.push('/attendance')"
         >
-          출석체크 하기
+          {{ texts.doAttendanceCheck }}
         </button>
       </div>
       
@@ -462,19 +392,19 @@ const goToDeposit = (exchange) => {
     <div v-if="showDepositPopup" class="depositPopupOverlay" @click="closeDepositPopup">
       <div class="depositPopup" @click.stop>
         <div class="depositPopupHeader">
-          <h3 class="depositPopupTitle">충전 방법 선택</h3>
+          <h3 class="depositPopupTitle">{{ texts.selectDepositMethod }}</h3>
           <button class="depositPopupClose" @click="closeDepositPopup">×</button>
         </div>
         
         <div class="depositPopupContent">
-          <p class="depositPopupDesc">충전할 거래소를 선택해주세요</p>
+          <p class="depositPopupDesc">{{ texts.selectExchangeToDeposit }}</p>
           
           <div class="depositOptions">
             <button class="depositOption" @click="goToDeposit('phantom')">
               <div class="depositOptionIcon">👻</div>
               <div class="depositOptionInfo">
                 <div class="depositOptionName">Phantom</div>
-                <div class="depositOptionDesc">팬텀 지갑으로 이동</div>
+                <div class="depositOptionDesc">{{ texts.goToPhantomWallet }}</div>
               </div>
               <div class="depositOptionArrow">→</div>
             </button>
@@ -483,16 +413,16 @@ const goToDeposit = (exchange) => {
               <div class="depositOptionIcon">💰</div>
               <div class="depositOptionInfo">
                 <div class="depositOptionName">Upbit</div>
-                <div class="depositOptionDesc">업비트 거래소로 이동</div>
+                <div class="depositOptionDesc">{{ texts.goToUpbitExchange }}</div>
               </div>
               <div class="depositOptionArrow">→</div>
             </button>
           </div>
           
           <div class="depositPopupFooter">
-            <p class="depositPopupNote">💡 지갑 주소를 복사하여 거래소에서 입금하세요</p>
+            <p class="depositPopupNote">💡 {{ texts.copyWalletAddressAndDeposit }}</p>
             <button class="depositCopyAddressBtn" @click="copyWalletAddress">
-              지갑 주소 복사
+              {{ texts.copyWalletAddress }}
             </button>
           </div>
         </div>

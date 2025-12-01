@@ -2,11 +2,14 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { trackGameAction } from '@/utils/questUtils'
 import { addRarityToNFT, getRarityName, getRarityColors, getRarityStyle } from '@/utils/rarityUtils'
 import { calculateMaxExp } from '@/utils/nftLevelUtils'
+
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
 
 // appStore 사용
 const store = useAppStore()
@@ -42,12 +45,12 @@ onMounted(() => {
 // 고양이 제작하기
 const createCat = async () => {
   if (totalCoin.value < requiredCoin.value) {
-    alert(`코인이 부족합니다. (필요: ${requiredCoin.value})`)
+    alert(`${texts.value.insufficientCoins} (Required: ${requiredCoin.value})`)
     return
   }
   
   if (catFragments.value < requiredFragments.value) {
-    alert(`고양이 파편이 부족합니다. (필요: ${requiredFragments.value})`)
+    alert(`${texts.value.insufficientFragments} (Required: ${requiredFragments.value})`)
     return
   }
   
@@ -142,12 +145,12 @@ const closePopup = () => {
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
       <!-- 제목 -->
-      <h1 class="pageTitle">고양이 제작하기</h1>
+      <h1 class="pageTitle">{{ texts.factory }}</h1>
       
       <!-- 고양이 실루엣 -->
       <div class="catSilhouette">
         <div class="catCircle">
-          <img src="@/assets/img/factory_cat.png" alt="고양이" class="catShape" />
+          <img src="@/assets/img/factory_cat.png" alt="Cat" class="catShape" />
         </div>
       </div>
 
@@ -163,16 +166,16 @@ const closePopup = () => {
       <!-- 재료 섹션 -->
       <div class="materialsSection">
         <div class="materialItem" :class="{ insufficient: !hasEnoughCoins }">
-          <img src="@/assets/img/mainCoin.png" alt="코인" class="materialIcon">
+          <img src="@/assets/img/mainCoin.png" :alt="texts.coin" class="materialIcon">
           <span class="materialText">
-            <span class="materialCount">{{ totalCoin }}</span> / {{ requiredCoin }} Coin
+            <span class="materialCount">{{ totalCoin }}</span> / {{ requiredCoin }} {{ texts.coin }}
           </span>
         </div>
         <div class="plusSign">+</div>
         <div class="materialItem" :class="{ insufficient: !hasEnoughFragments }">
-          <img src="@/assets/img/cat_ico.png" alt="고양이" class="materialIcon">
+          <img src="@/assets/img/cat_ico.png" alt="Cat" class="materialIcon">
           <span class="materialText">
-            <span class="materialCount">{{ catFragments }}</span> / {{ requiredFragments }} 고양이 파편
+            <span class="materialCount">{{ catFragments }}</span> / {{ requiredFragments }} {{ texts.catFragments }}
           </span>
         </div>
       </div>
@@ -184,7 +187,7 @@ const closePopup = () => {
         @click="createCat"
         :disabled="!canCreate"
       >
-        데려 오기
+        {{ texts.createCat }}
       </button>
     </main>
     
@@ -200,9 +203,9 @@ const closePopup = () => {
         <div v-if="newCatRarity" class="rarityBadge" :style="getRarityStyle(newCatRarity)">
           {{ getRarityName(newCatRarity) }}
         </div>
-        <h2 class="popupTitle">고양이 데려오기 성공!</h2>
-        <p class="popupMessage">새로운 고양이가 인벤토리에 추가되었습니다!</p>
-        <button class="popupCloseBtn" @click="closePopup">확인</button>
+        <h2 class="popupTitle">{{ texts.createCatSuccess }}</h2>
+        <p class="popupMessage">{{ texts.newCatAdded }}</p>
+        <button class="popupCloseBtn" @click="closePopup">{{ texts.confirm }}</button>
       </div>
     </div>
   </div>

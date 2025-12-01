@@ -16,13 +16,13 @@ import bottom005_on from '@/assets/img/bottom005_on.png'
 const router = useRouter()
 const activeTab = ref('home')
 
-const language = ref(localStorage.getItem('appLanguage') || '한국어')
+const language = ref(localStorage.getItem('appLanguage') || 'English')
 const texts = computed(() => getI18nTexts())
 
 // localStorage 변경 감지
 const handleStorageChange = (e) => {
   if (e.key === 'appLanguage') {
-    language.value = e.newValue || '한국어'
+    language.value = e.newValue || 'English'
   }
 }
 
@@ -31,13 +31,13 @@ const setActiveTabByRoute = () => {
   const path = router.currentRoute.value.path
   switch(path) {
     case '/main':
+      activeTab.value = 'game'
+      break
+    case '/home':
       activeTab.value = 'home'
       break
     case '/exchange':
       activeTab.value = 'exchange'
-      break
-    case '/quest':
-      activeTab.value = 'quest'
       break
     case '/inventory':
       activeTab.value = 'inventory'
@@ -60,7 +60,7 @@ onMounted(() => {
   
   // 같은 페이지 내 localStorage 변경 감지
   interval = setInterval(() => {
-    const currentLang = localStorage.getItem('appLanguage') || '한국어'
+    const currentLang = localStorage.getItem('appLanguage') || 'English'
     if (currentLang !== language.value) {
       language.value = currentLang
     }
@@ -86,9 +86,9 @@ watch(language, () => {
 })
 
 const tabs = computed(() => [
-  { id: 'home', img: bottom001, imgActive: bottom001_on, label: texts.value.home },
+  { id: 'game', img: bottom001, imgActive: bottom001_on, label: texts.value.game },
   { id: 'exchange', img: bottom002, imgActive: bottom002_on, label: texts.value.exchange },
-  { id: 'quest', img: bottom003, imgActive: bottom003_on, label: texts.value.quest },
+  { id: 'home', emoji: '🏠', label: texts.value.home },
   { id: 'inventory', img: bottom004, imgActive: bottom004_on, label: texts.value.inventory },
   { id: 'factory', img: bottom005, imgActive: bottom005_on, label: texts.value.factory }
 ])
@@ -99,13 +99,13 @@ const setActiveTab = (tabId) => {
   // 각 탭별 페이지 이동
   switch(tabId) {
     case 'home':
+      router.push('/home')
+      break
+    case 'game':
       router.push('/main')
       break
     case 'exchange':
       router.push('/exchange')
-      break
-    case 'quest':
-      router.push('/quest')
       break
     case 'inventory':
       router.push('/inventory')
@@ -131,10 +131,12 @@ const setActiveTab = (tabId) => {
         >
           <div class="tabContent">
             <img 
+              v-if="tab.img"
               :src="activeTab === tab.id ? tab.imgActive : tab.img"
               :alt="tab.label"
               class="tabIcon"
             />
+            <span v-if="tab.emoji" class="tabEmoji">{{ tab.emoji }}</span>
             <span class="tabLabel">{{ tab.label }}</span>
           </div>
           <div v-if="activeTab === tab.id" class="activeIndicator"></div>
@@ -148,10 +150,13 @@ const setActiveTab = (tabId) => {
 footer {
   width: 100%;
   height: 70px;
-  position: sticky;
+  position: fixed;
   bottom: 0;
+  left: 0;
   z-index: 1000;
   overflow-y: clip;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
 }
 
 .footerCont {
@@ -216,6 +221,14 @@ footer {
   width: 28px;
   height: 28px;
   object-fit: contain;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.tabEmoji {
+  font-size: 28px;
+  line-height: 1;
   transition: all 0.3s ease;
   position: relative;
   z-index: 2;

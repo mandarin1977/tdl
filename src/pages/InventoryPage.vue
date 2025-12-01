@@ -2,13 +2,16 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { getRarityName, getRarityColors, getRarityStyle, RARITY_TIERS, addRarityToNFT } from '@/utils/rarityUtils'
 import { canLevelUp, getLevelUpCost, calculateStatIncrease, calculateMaxExp, initializeNFTExp } from '@/utils/nftLevelUtils'
 
 // appStore 사용
 const store = useAppStore()
+
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
 import statStar1 from '@/assets/img/statStar1.png'
 import statStar2 from '@/assets/img/statStar2.png'
 
@@ -28,16 +31,16 @@ const showSearchModal = ref(false) // 검색 팝업 표시
 // 각 캐릭터의 기본 스탯 생성 함수
 const generateStats = (baseStats) => {
   return [
-    { name: '근력', value: baseStats[0], progress: baseStats[0], color: '#FF6B6B' },
-    { name: '체력', value: baseStats[1], progress: baseStats[1], color: '#FF8A80' },
-    { name: '지능', value: baseStats[2], progress: baseStats[2], color: '#9C27B0' },
-    { name: '손재주', value: baseStats[3], progress: baseStats[3], color: '#FFA726' },
-    { name: '용기', value: baseStats[4], progress: baseStats[4], color: '#00BCD4' },
-    { name: '행운', value: baseStats[5], progress: baseStats[5], color: '#66BB6A' }
+    { name: texts.value.strength, value: baseStats[0], progress: baseStats[0], color: '#FF6B6B' },
+    { name: texts.value.health, value: baseStats[1], progress: baseStats[1], color: '#FF8A80' },
+    { name: texts.value.intelligence, value: baseStats[2], progress: baseStats[2], color: '#9C27B0' },
+    { name: texts.value.dexterity, value: baseStats[3], progress: baseStats[3], color: '#FFA726' },
+    { name: texts.value.courage, value: baseStats[4], progress: baseStats[4], color: '#00BCD4' },
+    { name: texts.value.luck, value: baseStats[5], progress: baseStats[5], color: '#66BB6A' }
   ]
 }
 
-// 고양이에 스탯이 없으면 생성
+// 고양이에 스탯이 없으면 생성, 있으면 스탯 이름 업데이트
 const ensureStats = (cat) => {
   if (!cat.stats) {
     // stars에 따라 기본 스탯 범위 설정
@@ -50,6 +53,16 @@ const ensureStats = (cat) => {
       baseValue + Math.floor(Math.random() * 20),
       baseValue + Math.floor(Math.random() * 20)
     ])
+  } else {
+    // 이미 스탯이 있으면 스탯 이름만 현재 언어로 업데이트
+    cat.stats = cat.stats.map((stat, index) => {
+      const statNames = [texts.value.strength, texts.value.health, texts.value.intelligence, 
+                          texts.value.dexterity, texts.value.courage, texts.value.luck]
+      return {
+        ...stat,
+        name: statNames[index] || stat.name
+      }
+    })
   }
   return cat
 }
@@ -131,7 +144,7 @@ const selectedCharacterStats = computed(() => {
 // 선택된 캐릭터의 이름
 const selectedCharacterName = computed(() => {
   const selectedItem = inventoryItems.value.find(item => item.selected)
-  return selectedItem ? selectedItem.name : '인벤토리가 비어있습니다'
+  return selectedItem ? selectedItem.name : 'Inventory is empty'
 })
 
 // 고양이 이미지 경로 가져오기 함수
@@ -209,7 +222,7 @@ const handleLevelUp = async () => {
   
   // 코인 확인
   if (coinCount.value < cost) {
-    alert(`코인이 부족합니다. (필요: ${cost})`)
+    alert(`${texts.value.insufficientCoins} (Required: ${cost})`)
     return
   }
   
@@ -263,10 +276,10 @@ const handleLevelUp = async () => {
       // 인벤토리 목록도 업데이트
       loadInventory()
       
-      alert(`레벨업 성공! 레벨 ${newLevel}이 되었습니다.`)
+      alert(`${texts.value.levelUp} Success! Level ${newLevel}`)
     } catch (error) {
       console.error('레벨업 실패:', error)
-      alert('레벨업 중 오류가 발생했습니다.')
+      alert('An error occurred during level up.')
     }
   }
 }
@@ -322,7 +335,7 @@ onUnmounted(() => {
         <div class="magicPanel">
           <div class="panelTitle">{{ selectedCharacterName }}</div>
           <div class="characterBox">
-            <img :src="selectedCharacterImage" alt="선택된 캐릭터" class="selectedCharacter" />
+            <img :src="selectedCharacterImage" :alt="texts.selectedCharacter" class="selectedCharacter" />
           </div>
         </div>
         
@@ -344,11 +357,11 @@ onUnmounted(() => {
       <!-- 검색 버튼 및 NFT 개수 -->
       <div class="inventoryHeader">
         <div class="inventoryCount">
-          총 {{ filteredAndSortedItems.length }}개 / {{ inventoryItems.length }}개
+          {{ texts.totalItems }} {{ filteredAndSortedItems.length }} / {{ inventoryItems.length }} {{ texts.items }}
         </div>
         <button class="searchBtn" @click="showSearchModal = true">
           <span class="searchIcon">🔍</span>
-          <span>검색</span>
+          <span>{{ texts.search }}</span>
         </button>
       </div>
       
@@ -388,18 +401,18 @@ onUnmounted(() => {
           </div>
           
           <!-- 캐릭터 이미지 -->
-          <img :src="getCatImage(item.imageId || item.id)" alt="고양이" class="itemIcon" />
+          <img :src="getCatImage(item.imageId || item.id)" :alt="texts.cat" class="itemIcon" />
           
           <!-- 더블클릭 안내 -->
-          <div class="detailHint">더블클릭으로 상세보기</div>
+          <div class="detailHint">{{ texts.doubleClickDetail }}</div>
         </div>
       </div>
       
       <!-- 인벤토리 비어있을 때 -->
       <div v-else class="emptyInventory">
         <div class="emptyIcon">📦</div>
-        <div class="emptyText">NFT가 없습니다</div>
-        <div class="emptySubtext">제작소에서 고양이를 만들어보세요!</div>
+        <div class="emptyText">{{ texts.noNFTs }}</div>
+        <div class="emptySubtext">{{ texts.createCatInFactory }}</div>
       </div>
     </main>
     
@@ -410,7 +423,7 @@ onUnmounted(() => {
     <div v-if="showSearchModal" class="modalOverlay" @click="showSearchModal = false">
       <div class="searchModal" @click.stop>
         <div class="searchModalHeader">
-          <h3 class="searchModalTitle">검색 및 필터</h3>
+          <h3 class="searchModalTitle">{{ texts.searchAndFilter }}</h3>
           <button class="searchModalClose" @click="showSearchModal = false">×</button>
         </div>
         
@@ -419,7 +432,7 @@ onUnmounted(() => {
             <input 
               type="text" 
               v-model="searchQuery" 
-              placeholder="NFT 이름 또는 ID로 검색..."
+              :placeholder="texts.searchPlaceholder"
               class="searchInput"
               @keyup.enter="showSearchModal = false"
             />
@@ -427,20 +440,20 @@ onUnmounted(() => {
           
           <div class="filterControls">
             <div class="filterGroup">
-              <label class="filterLabel">별 등급</label>
+              <label class="filterLabel">{{ texts.starRating }}</label>
               <select v-model="filterStars" class="filterSelect">
-                <option value="all">전체</option>
-                <option value="2">2성</option>
-                <option value="3">3성</option>
-                <option value="4">4성</option>
-                <option value="5">5성</option>
+                <option value="all">{{ texts.all }}</option>
+                <option value="2">2 {{ texts.stars }}</option>
+                <option value="3">3 {{ texts.stars }}</option>
+                <option value="4">4 {{ texts.stars }}</option>
+                <option value="5">5 {{ texts.stars }}</option>
               </select>
             </div>
             
             <div class="filterGroup">
-              <label class="filterLabel">레벨</label>
+              <label class="filterLabel">{{ texts.levelFilter }}</label>
               <select v-model="filterLevel" class="filterSelect">
-                <option value="all">전체</option>
+                <option value="all">{{ texts.all }}</option>
                 <option value="1-5">1-5</option>
                 <option value="6-10">6-10</option>
                 <option value="11+">11+</option>
@@ -448,32 +461,32 @@ onUnmounted(() => {
             </div>
             
             <div class="filterGroup">
-              <label class="filterLabel">레어리티</label>
+              <label class="filterLabel">{{ texts.rarityFilter }}</label>
               <select v-model="filterRarity" class="filterSelect">
-                <option value="all">전체</option>
-                <option value="common">일반</option>
-                <option value="rare">레어</option>
-                <option value="epic">에픽</option>
-                <option value="legendary">레전더리</option>
+                <option value="all">{{ texts.all }}</option>
+                <option value="common">{{ texts.common }}</option>
+                <option value="rare">{{ texts.rare }}</option>
+                <option value="epic">{{ texts.epic }}</option>
+                <option value="legendary">{{ texts.legendary }}</option>
               </select>
             </div>
             
             <div class="filterGroup">
-              <label class="filterLabel">정렬</label>
+              <label class="filterLabel">{{ texts.sortBy }}</label>
               <select v-model="sortBy" class="filterSelect">
-                <option value="newest">최신순</option>
-                <option value="oldest">오래된순</option>
-                <option value="level">레벨 높은순</option>
-                <option value="stars">별 등급 높은순</option>
-                <option value="rarity">레어리티 높은순</option>
-                <option value="name">이름순</option>
+                <option value="newest">{{ texts.newest }}</option>
+                <option value="oldest">{{ texts.oldest }}</option>
+                <option value="level">{{ texts.levelHighToLow }}</option>
+                <option value="stars">{{ texts.starsHighToLow }}</option>
+                <option value="rarity">{{ texts.rarityHighToLow }}</option>
+                <option value="name">{{ texts.nameOrder }}</option>
               </select>
             </div>
           </div>
           
           <div class="searchModalFooter">
-            <button class="resetFilterBtn" @click="resetFilters">초기화</button>
-            <button class="applyFilterBtn" @click="showSearchModal = false">적용</button>
+            <button class="resetFilterBtn" @click="resetFilters">{{ texts.reset }}</button>
+            <button class="applyFilterBtn" @click="showSearchModal = false">{{ texts.apply }}</button>
           </div>
         </div>
       </div>
@@ -504,7 +517,7 @@ onUnmounted(() => {
           </div>
           
           <div class="modalStatsSection">
-            <h4 class="sectionTitle">스탯</h4>
+            <h4 class="sectionTitle">{{ texts.stats }}</h4>
             <div class="modalStats">
               <div v-for="(stat, index) in selectedNFT.stats" :key="index" class="modalStat">
                 <div class="modalStatLabel">{{ stat.name }}</div>
@@ -525,18 +538,18 @@ onUnmounted(() => {
               <span class="infoValue">#{{ selectedNFT.id }}</span>
             </div>
             <div class="infoRow">
-              <span class="infoLabel">이미지 ID:</span>
+              <span class="infoLabel">{{ texts.imageId }}:</span>
               <span class="infoValue">#{{ selectedNFT.imageId }}</span>
             </div>
             <div class="infoRow">
-              <span class="infoLabel">생성일:</span>
+              <span class="infoLabel">{{ texts.createdAt }}:</span>
               <span class="infoValue">{{ new Date(selectedNFT.id).toLocaleDateString() }}</span>
             </div>
           </div>
           
           <!-- 경험치 섹션 -->
           <div class="expSection">
-            <div class="expLabel">경험치</div>
+            <div class="expLabel">{{ texts.exp }}</div>
             <div class="expBar">
               <div 
                 class="expFill" 
@@ -556,10 +569,10 @@ onUnmounted(() => {
             @click="handleLevelUp"
             :disabled="coinCount < getLevelUpCost(selectedNFT.level || 1)"
           >
-            레벨업 ({{ getLevelUpCost(selectedNFT.level || 1) }} 코인)
+            {{ texts.levelUpButton }} ({{ getLevelUpCost(selectedNFT.level || 1) }} {{ texts.coin }})
           </button>
           <button class="modalBtn selectBtn" @click="selectCharacter(selectedNFT); closeDetailModal()">
-            선택하기
+            {{ texts.selectButton }}
           </button>
         </div>
       </div>

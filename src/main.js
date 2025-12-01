@@ -22,6 +22,7 @@ import AttendancePage from './pages/AttendancePage.vue'
 import NFTPage from './pages/NFTPage.vue'
 import NotificationPage from './pages/NotificationPage.vue'
 import ShopPage from './pages/ShopPage.vue'
+import HomePage from './pages/HomePage.vue'
 
 // 공개 ?�이지 (로그???�이 ?�근 가??
 const publicRoutes = ['/loading', '/login', '/signup']
@@ -46,7 +47,8 @@ const routes = [
   { path: '/attendance', component: AttendancePage },
   { path: '/nft', component: NFTPage },
   { path: '/notification', component: NotificationPage },
-  { path: '/shop', component: ShopPage }
+  { path: '/shop', component: ShopPage },
+  { path: '/home', component: HomePage }
 ]
 
 const router = createRouter({

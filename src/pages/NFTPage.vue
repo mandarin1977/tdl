@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser, updateUserGameData } from '@/utils/userUtils'
+import { getCurrentUser, updateUserGameData, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 
 // appStore 사용
@@ -53,6 +53,9 @@ const activeSubTab = ref('tokens') // 'tokens' | 'nfts'
 
 // 현재 사용자 정보 로드
 const currentUser = ref(null)
+
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
 
 // 고양이 이미지 경로 가져오기 함수
 const getCatImage = (id) => {
@@ -145,12 +148,12 @@ const confirmSell = async () => {
   
   const price = parseFloat(sellPrice.value)
   if (!price || price <= 0) {
-    alert('올바른 가격을 입력해주세요.')
+    alert(texts.value.enterValidPrice)
     return
   }
   
   if (!currentUser.value) {
-    alert('로그인이 필요합니다.')
+    alert(texts.value.loginRequired)
     return
   }
   
@@ -171,7 +174,7 @@ const confirmSell = async () => {
   // 마켓플레이스 새로고침
   loadMarketplace()
   
-  alert(`NFT가 마켓플레이스에 등록되었습니다! (가격: ${price.toLocaleString()} 코인)`)
+  alert(`${texts.value.nftListedOnMarketplace} (${texts.value.price}: ${price.toLocaleString()} ${texts.value.coin})`)
   closeSellModal()
 }
 
@@ -195,7 +198,7 @@ const confirmBuy = async () => {
   // 코인 확인
   const userCoins = currentUser.value.gameData?.totalCoin || 0
   if (userCoins < listing.price) {
-    alert(`코인이 부족합니다. (필요: ${listing.price.toLocaleString()}, 보유: ${userCoins.toLocaleString()})`)
+    alert(`${texts.value.insufficientCoinsForPurchase} (${texts.value.required}: ${listing.price.toLocaleString()}, ${texts.value.ownedCoins}: ${userCoins.toLocaleString()})`)
     return
   }
   
@@ -235,13 +238,13 @@ const confirmBuy = async () => {
   // 마켓플레이스 새로고침
   loadMarketplace()
   
-  alert(`NFT를 구매했습니다! (${listing.price.toLocaleString()} 코인 지불)`)
+  alert(`${texts.value.nftPurchased} (${listing.price.toLocaleString()} ${texts.value.coinsPaid})`)
   closeBuyModal()
 }
 
 // 판매 취소
 const cancelSale = async (listing) => {
-  if (!confirm('정말 판매를 취소하시겠습니까?')) return
+  if (!confirm(texts.value.confirmCancelSale)) return
   
   if (!currentUser.value) return
   
@@ -265,7 +268,7 @@ const cancelSale = async (listing) => {
   // 마켓플레이스 새로고침
   loadMarketplace()
   
-  alert('판매가 취소되었습니다.')
+  alert(texts.value.saleCancelled)
 }
 
 // NFT 상세 정보 보기
@@ -402,28 +405,28 @@ const switchTab = (tab) => {
           :class="{ active: activeTab === 'wallet' }"
           @click="switchTab('wallet')"
         >
-          지갑
+          {{ texts.wallet }}
         </button>
         <button 
           class="tab" 
           :class="{ active: activeTab === 'marketplace' }"
           @click="switchTab('marketplace')"
         >
-          마켓플레이스
+          {{ texts.marketplace }}
         </button>
         <button 
           class="tab" 
           :class="{ active: activeTab === 'myNFTs' }"
           @click="switchTab('myNFTs')"
         >
-          내 NFT
+          {{ texts.myNFTs }}
         </button>
         <button 
           class="tab" 
           :class="{ active: activeTab === 'myListings' }"
           @click="switchTab('myListings')"
         >
-          내 판매
+          {{ texts.myListings }}
         </button>
       </div>
       
@@ -529,7 +532,7 @@ const switchTab = (tab) => {
           
           <div v-if="walletNFTs.length === 0" class="emptyNFTs">
             <div class="emptyIcon">📦</div>
-            <div class="emptyText">NFT가 없습니다</div>
+            <div class="emptyText">{{ texts.noNFTsInWallet }}</div>
           </div>
         </div>
       </div>
@@ -539,39 +542,39 @@ const switchTab = (tab) => {
         <!-- 검색 및 필터 -->
         <div class="marketplaceHeader">
           <div class="marketplaceStats">
-            <span>판매 중: {{ marketplaceStats.activeListings }}개</span>
-            <span>총 거래량: {{ marketplaceStats.totalVolume.toLocaleString() }} 코인</span>
+            <span>{{ texts.onSale }}: {{ marketplaceStats.activeListings }}{{ texts.itemsCount }}</span>
+            <span>{{ texts.totalVolume }}: {{ marketplaceStats.totalVolume.toLocaleString() }} {{ texts.coin }}</span>
           </div>
           <button class="searchBtn" @click="showSearchModal = true">
             <span>🔍</span>
-            <span>검색</span>
+            <span>{{ texts.searchNFT }}</span>
           </button>
         </div>
         
         <!-- 필터 바 -->
         <div class="filterBar">
           <select v-model="filterRarity" class="filterSelect">
-            <option value="all">전체 레어리티</option>
-            <option value="common">일반</option>
-            <option value="rare">레어</option>
-            <option value="epic">에픽</option>
-            <option value="legendary">레전더리</option>
+            <option value="all">{{ texts.allRarity }}</option>
+            <option value="common">{{ texts.common }}</option>
+            <option value="rare">{{ texts.rare }}</option>
+            <option value="epic">{{ texts.epic }}</option>
+            <option value="legendary">{{ texts.legendary }}</option>
           </select>
           
           <select v-model="filterPrice" class="filterSelect">
-            <option value="all">전체 가격</option>
-            <option value="low">1,000 코인 미만</option>
-            <option value="mid">1,000 - 5,000 코인</option>
-            <option value="high">5,000 코인 이상</option>
+            <option value="all">{{ texts.allPrice }}</option>
+            <option value="low">{{ texts.under1000Coins }}</option>
+            <option value="mid">{{ texts.midPriceRange }}</option>
+            <option value="high">{{ texts.over5000Coins }}</option>
           </select>
           
           <select v-model="sortBy" class="filterSelect">
-            <option value="newest">최신순</option>
-            <option value="oldest">오래된순</option>
-            <option value="priceLow">가격 낮은순</option>
-            <option value="priceHigh">가격 높은순</option>
-            <option value="level">레벨 높은순</option>
-            <option value="stars">별 등급 높은순</option>
+            <option value="newest">{{ texts.newest }}</option>
+            <option value="oldest">{{ texts.oldest }}</option>
+            <option value="priceLow">{{ texts.priceLow }}</option>
+            <option value="priceHigh">{{ texts.priceHigh }}</option>
+            <option value="level">{{ texts.levelHigh }}</option>
+            <option value="stars">{{ texts.starsHigh }}</option>
           </select>
         </div>
         
@@ -597,12 +600,12 @@ const switchTab = (tab) => {
             <div class="nftCardInfo">
               <div class="nftCardName">{{ listing.nftData.name }}</div>
               <div class="nftCardPrice">
-                <span class="priceLabel">가격:</span>
-                <span class="priceValue">{{ listing.price.toLocaleString() }} 코인</span>
+                <span class="priceLabel">{{ texts.price }}:</span>
+                <span class="priceValue">{{ listing.price.toLocaleString() }} {{ texts.coin }}</span>
               </div>
             </div>
             <button class="buyBtn" @click.stop="openBuyModal(listing)">
-              구매하기
+              {{ texts.buy }}
             </button>
           </div>
         </div>
@@ -610,15 +613,15 @@ const switchTab = (tab) => {
         <!-- 빈 마켓플레이스 -->
         <div v-else class="emptyMarketplace">
           <div class="emptyIcon">🏪</div>
-          <div class="emptyText">판매 중인 NFT가 없습니다</div>
+          <div class="emptyText">{{ texts.noNFTsOnSale }}</div>
         </div>
       </div>
       
       <!-- 내 NFT 탭 -->
       <div v-if="activeTab === 'myNFTs'" class="myNFTsContent">
         <div class="sectionHeader">
-          <h3>내 NFT ({{ myNFTs.length }}개)</h3>
-          <div class="myCoinBalance">보유 코인: {{ totalCoin.toLocaleString() }}</div>
+          <h3>{{ texts.myNFTsCount }} ({{ myNFTs.length }}{{ texts.itemsCount }})</h3>
+          <div class="myCoinBalance">{{ texts.ownedCoins }}: {{ totalCoin.toLocaleString() }}</div>
         </div>
         
         <div v-if="myNFTs.length > 0" class="nftGrid">
@@ -646,21 +649,21 @@ const switchTab = (tab) => {
               <div class="nftCardName">{{ nft.name }}</div>
             </div>
             <button class="sellBtn" @click.stop="openSellModal(nft)">
-              판매하기
+              {{ texts.sell }}
             </button>
           </div>
         </div>
         
         <div v-else class="emptyMarketplace">
           <div class="emptyIcon">📦</div>
-          <div class="emptyText">판매 가능한 NFT가 없습니다</div>
+          <div class="emptyText">{{ texts.noNFTsAvailableForSale }}</div>
         </div>
       </div>
       
       <!-- 내 판매 탭 -->
       <div v-if="activeTab === 'myListings'" class="myListingsContent">
         <div class="sectionHeader">
-          <h3>내 판매 목록 ({{ myListings.length }}개)</h3>
+          <h3>{{ texts.mySalesList }} ({{ myListings.length }}{{ texts.itemsCount }})</h3>
         </div>
         
         <div v-if="myListings.length > 0" class="nftGrid">
@@ -683,19 +686,19 @@ const switchTab = (tab) => {
             <div class="nftCardInfo">
               <div class="nftCardName">{{ listing.nftData.name }}</div>
               <div class="nftCardPrice">
-                <span class="priceLabel">판매 가격:</span>
-                <span class="priceValue">{{ listing.price.toLocaleString() }} 코인</span>
+                <span class="priceLabel">{{ texts.salePrice }}:</span>
+                <span class="priceValue">{{ listing.price.toLocaleString() }} {{ texts.coin }}</span>
               </div>
             </div>
             <button class="cancelBtn" @click="cancelSale(listing)">
-              판매 취소
+              {{ texts.cancelSale }}
             </button>
           </div>
         </div>
         
         <div v-else class="emptyMarketplace">
           <div class="emptyIcon">📋</div>
-          <div class="emptyText">판매 중인 NFT가 없습니다</div>
+          <div class="emptyText">{{ texts.noNFTsOnSaleList }}</div>
         </div>
       </div>
     </main>
@@ -707,7 +710,7 @@ const switchTab = (tab) => {
     <div v-if="showSellModal && selectedNFT" class="modalOverlay" @click="closeSellModal">
       <div class="modalContent" @click.stop>
         <div class="modalHeader">
-          <h3 class="modalTitle">NFT 판매하기</h3>
+          <h3 class="modalTitle">{{ texts.sellNFT }}</h3>
           <button class="modalClose" @click="closeSellModal">×</button>
         </div>
         
@@ -717,28 +720,28 @@ const switchTab = (tab) => {
             <div class="sellNFTInfo">
               <div class="sellNFTName">{{ selectedNFT.name }}</div>
               <div class="sellNFTDetails">
-                <span>⭐ {{ selectedNFT.stars || 0 }}성</span>
+                <span>⭐ {{ selectedNFT.stars || 0 }}{{ texts.starsRating }}</span>
                 <span>Lv {{ selectedNFT.level || 1 }}</span>
               </div>
             </div>
           </div>
           
           <div class="sellPriceInput">
-            <label class="inputLabel">판매 가격 (코인)</label>
+            <label class="inputLabel">{{ texts.sellPriceLabel }}</label>
             <input 
               type="number" 
               v-model="sellPrice" 
-              placeholder="가격을 입력하세요"
+              :placeholder="texts.enterPrice"
               class="priceInput"
               min="1"
             />
-            <div class="priceHint">현재 보유 코인: {{ totalCoin.toLocaleString() }}</div>
+            <div class="priceHint">{{ texts.currentOwnedCoins }}: {{ totalCoin.toLocaleString() }}</div>
           </div>
         </div>
         
         <div class="modalFooter">
-          <button class="modalBtn cancelBtn" @click="closeSellModal">취소</button>
-          <button class="modalBtn confirmBtn" @click="confirmSell">판매 등록</button>
+          <button class="modalBtn cancelBtn" @click="closeSellModal">{{ texts.cancel }}</button>
+          <button class="modalBtn confirmBtn" @click="confirmSell">{{ texts.registerSale }}</button>
         </div>
       </div>
     </div>
@@ -747,7 +750,7 @@ const switchTab = (tab) => {
     <div v-if="showBuyModal && selectedNFT" class="modalOverlay" @click="closeBuyModal">
       <div class="modalContent" @click.stop>
         <div class="modalHeader">
-          <h3 class="modalTitle">NFT 구매하기</h3>
+          <h3 class="modalTitle">{{ texts.buyNFT }}</h3>
           <button class="modalClose" @click="closeBuyModal">×</button>
         </div>
         
@@ -757,7 +760,7 @@ const switchTab = (tab) => {
             <div class="buyNFTInfo">
               <div class="buyNFTName">{{ selectedNFT.nftData.name }}</div>
               <div class="buyNFTDetails">
-                <span>⭐ {{ selectedNFT.nftData.stars || 0 }}성</span>
+                <span>⭐ {{ selectedNFT.nftData.stars || 0 }}{{ texts.starsRating }}</span>
                 <span>Lv {{ selectedNFT.nftData.level || 1 }}</span>
               </div>
             </div>
@@ -765,30 +768,30 @@ const switchTab = (tab) => {
           
           <div class="buyPriceInfo">
             <div class="priceRow">
-              <span class="priceLabel">판매 가격:</span>
-              <span class="priceValue">{{ selectedNFT.price.toLocaleString() }} 코인</span>
+              <span class="priceLabel">{{ texts.salePrice }}:</span>
+              <span class="priceValue">{{ selectedNFT.price.toLocaleString() }} {{ texts.coin }}</span>
             </div>
             <div class="priceRow">
-              <span class="priceLabel">보유 코인:</span>
+              <span class="priceLabel">{{ texts.ownedCoins }}:</span>
               <span class="priceValue" :class="{ insufficient: totalCoin < selectedNFT.price }">
-                {{ totalCoin.toLocaleString() }} 코인
+                {{ totalCoin.toLocaleString() }} {{ texts.coin }}
               </span>
             </div>
             <div v-if="totalCoin < selectedNFT.price" class="insufficientWarning">
-              코인이 부족합니다!
+              {{ texts.insufficientCoinsWarning }}
             </div>
           </div>
         </div>
         
         <div class="modalFooter">
-          <button class="modalBtn cancelBtn" @click="closeBuyModal">취소</button>
+          <button class="modalBtn cancelBtn" @click="closeBuyModal">{{ texts.cancel }}</button>
           <button 
             class="modalBtn confirmBtn" 
             @click="confirmBuy"
             :disabled="totalCoin < selectedNFT.price"
             :class="{ disabled: totalCoin < selectedNFT.price }"
           >
-            구매하기
+            {{ texts.buy }}
           </button>
         </div>
       </div>
@@ -821,7 +824,7 @@ const switchTab = (tab) => {
               <span class="detailValue">#{{ selectedNFT.id }}</span>
             </div>
             <div class="detailRow">
-              <span class="detailLabel">이미지 ID:</span>
+              <span class="detailLabel">{{ texts.imageId }}:</span>
               <span class="detailValue">#{{ selectedNFT.imageId }}</span>
             </div>
           </div>
@@ -833,13 +836,13 @@ const switchTab = (tab) => {
     <div v-if="showSendPopup" class="popupOverlay" @click="closeSendPopup">
       <div class="popupContent" @click.stop>
         <div class="popupHeader">
-          <h2 class="popupTitle">전송하기</h2>
+          <h2 class="popupTitle">{{ texts.send }}</h2>
           <button class="closeBtn" @click="closeSendPopup">×</button>
         </div>
         <div class="popupBody">
-          <p class="popupMessage">전송 기능은 준비 중입니다.</p>
+          <p class="popupMessage">{{ texts.sendFeatureComingSoon }}</p>
           <div class="popupActions">
-            <button class="popupBtn cancelBtn" @click="closeSendPopup">확인</button>
+            <button class="popupBtn cancelBtn" @click="closeSendPopup">{{ texts.confirm }}</button>
           </div>
         </div>
       </div>
@@ -849,13 +852,13 @@ const switchTab = (tab) => {
     <div v-if="showBuyPopup" class="popupOverlay" @click="closeBuyPopup">
       <div class="popupContent" @click.stop>
         <div class="popupHeader">
-          <h2 class="popupTitle">구매하기</h2>
+          <h2 class="popupTitle">{{ texts.buy }}</h2>
           <button class="closeBtn" @click="closeBuyPopup">×</button>
         </div>
         <div class="popupBody">
-          <p class="popupMessage">구매 기능은 준비 중입니다.</p>
+          <p class="popupMessage">{{ texts.buyFeatureComingSoon }}</p>
           <div class="popupActions">
-            <button class="popupBtn cancelBtn" @click="closeBuyPopup">확인</button>
+            <button class="popupBtn cancelBtn" @click="closeBuyPopup">{{ texts.confirm }}</button>
           </div>
         </div>
       </div>
@@ -865,13 +868,13 @@ const switchTab = (tab) => {
     <div v-if="showReceivePopup" class="popupOverlay" @click="closeReceivePopup">
       <div class="popupContent" @click.stop>
         <div class="popupHeader">
-          <h2 class="popupTitle">받기</h2>
+          <h2 class="popupTitle">{{ texts.receive }}</h2>
           <button class="closeBtn" @click="closeReceivePopup">×</button>
         </div>
         <div class="popupBody">
-          <p class="popupMessage">받기 기능은 준비 중입니다.</p>
+          <p class="popupMessage">{{ texts.receiveFeatureComingSoon }}</p>
           <div class="popupActions">
-            <button class="popupBtn cancelBtn" @click="closeReceivePopup">확인</button>
+            <button class="popupBtn cancelBtn" @click="closeReceivePopup">{{ texts.confirm }}</button>
           </div>
         </div>
       </div>
@@ -881,7 +884,7 @@ const switchTab = (tab) => {
     <div v-if="showSearchModal" class="modalOverlay" @click="showSearchModal = false">
       <div class="searchModal" @click.stop>
         <div class="searchModalHeader">
-          <h3 class="searchModalTitle">검색</h3>
+          <h3 class="searchModalTitle">{{ texts.searchNFT }}</h3>
           <button class="searchModalClose" @click="showSearchModal = false">×</button>
         </div>
         
@@ -889,15 +892,15 @@ const switchTab = (tab) => {
           <input 
             type="text" 
             v-model="searchQuery" 
-            placeholder="NFT 이름 또는 ID로 검색..."
+            :placeholder="texts.searchPlaceholderNFT"
             class="searchInput"
             @keyup.enter="showSearchModal = false"
           />
         </div>
         
         <div class="searchModalFooter">
-          <button class="modalBtn resetBtn" @click="resetFilters">초기화</button>
-          <button class="modalBtn applyBtn" @click="showSearchModal = false">적용</button>
+          <button class="modalBtn resetBtn" @click="resetFilters">{{ texts.reset }}</button>
+          <button class="modalBtn applyBtn" @click="showSearchModal = false">{{ texts.apply }}</button>
         </div>
       </div>
     </div>

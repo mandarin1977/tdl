@@ -2,11 +2,14 @@
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 
 // appStore 사용
 const store = useAppStore()
+
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
 
 // appStore에서 게임 데이터 가져오기 (반응형)
 const coinCount = computed(() => store.state.coins) // 포인트 (P)
@@ -41,12 +44,12 @@ const loadUserData = () => {
 // 거래 실행
 const executeTrade = async () => {
   if (!currentUser.value) {
-    alert('로그인이 필요합니다.')
+    alert(texts.value.loginRequired)
     return
   }
 
   if (!coinAmount.value || parseFloat(coinAmount.value) <= 0) {
-    alert('코인 수량을 입력해주세요.')
+    alert('Please enter the coin amount.')
     return
   }
 
@@ -58,7 +61,7 @@ const executeTrade = async () => {
     const pointsNeeded = totalCost.value
 
     if (coinCount.value < pointsNeeded) {
-      alert(`포인트가 부족합니다.\n필요: ${pointsNeeded.toLocaleString()} Point\n보유: ${coinCount.value.toLocaleString()} Point`)
+      alert(`${texts.value.insufficientPoints}\nRequired: ${pointsNeeded.toLocaleString()} Point\nOwned: ${coinCount.value.toLocaleString()} Point`)
       return
     }
 
@@ -72,15 +75,15 @@ const executeTrade = async () => {
     })
 
     if (success) {
-      alert(`구매 완료!\n${amount} Coin 구매\n사용한 Point: ${pointsNeeded.toLocaleString()}`)
+      alert(`${texts.value.purchaseSuccess}\n${amount} ${texts.value.coin} ${texts.value.buy}\n${texts.value.pointUsed}: ${pointsNeeded.toLocaleString()}`)
       coinAmount.value = ''
     } else {
-      alert('거래 실패. 다시 시도해주세요.')
+      alert(texts.value.tradeFailed)
     }
   } else {
     // Coin 판매: Coin을 Point로 판매
     if (totalCoin.value < coinValue) {
-      alert(`코인이 부족합니다.\n필요: ${amount} Coin\n보유: ${totalCoin.value.toLocaleString()} Coin`)
+      alert(`${texts.value.insufficientCoins}\nRequired: ${amount} ${texts.value.coin}\nOwned: ${totalCoin.value.toLocaleString()} ${texts.value.coin}`)
       return
     }
 
@@ -95,10 +98,10 @@ const executeTrade = async () => {
     })
 
     if (success) {
-      alert(`판매 완료!\n${amount} Coin 판매\n받은 Point: ${pointsToReceive.toLocaleString()}`)
+      alert(`${texts.value.tradeSuccess}\n${amount} ${texts.value.coin} ${texts.value.sell}\n${texts.value.pointReceived}: ${pointsToReceive.toLocaleString()}`)
       coinAmount.value = ''
     } else {
-      alert('거래 실패. 다시 시도해주세요.')
+      alert(texts.value.tradeFailed)
     }
   }
 }
@@ -138,53 +141,53 @@ onMounted(() => {
           :class="{ active: activeTab === 'buy' }"
           @click="activeTab = 'buy'"
         >
-          Coin 구매
+          {{ texts.buy }} {{ texts.coin }}
         </button>
         <button 
           class="tab" 
           :class="{ active: activeTab === 'sell' }"
           @click="activeTab = 'sell'"
         >
-          Coin 판매
+          {{ texts.sell }} {{ texts.coin }}
         </button>
       </div>
       
       <!-- 거래 정보 -->
       <div class="infoCard">
         <div class="infoRow">
-          <span>보유 포인트</span>
+          <span>{{ texts.ownedPoints }}</span>
           <span class="value">{{ coinCount.toLocaleString() }} P</span>
         </div>
         <div class="infoRow">
-          <span>보유 코인</span>
+          <span>{{ texts.ownedCoins }}</span>
           <span class="value">{{ totalCoin.toLocaleString() }} C</span>
         </div>
         <div class="infoRow">
-          <span>거래가</span>
-          <span class="value">1 Coin = {{ fixedPrice.toLocaleString() }} Point</span>
+          <span>{{ texts.exchangeRate }}</span>
+          <span class="value">1 {{ texts.coin }} = {{ fixedPrice.toLocaleString() }} {{ texts.point }}</span>
         </div>
       </div>
       
       <!-- 입력 섹션 -->
       <div class="inputCard">
         <label class="inputLabel">
-          {{ activeTab === 'buy' ? '구매할 코인 수량' : '판매할 코인 수량' }}
+          {{ activeTab === 'buy' ? texts.buyCoinAmount : texts.sellCoinAmount }}
         </label>
         <div class="inputWrapper">
           <input 
             type="number" 
             v-model="coinAmount"
-            placeholder="예: 1"
+            :placeholder="texts.exampleAmount"
             class="amountInput"
             step="0.01"
             min="0"
           />
-          <span class="unit">Coin</span>
+          <span class="unit">{{ texts.coin }}</span>
         </div>
         
         <div v-if="coinAmount && parseFloat(coinAmount) > 0" class="resultInfo">
           <div class="resultRow">
-            <span>{{ activeTab === 'buy' ? '필요 포인트' : '받을 포인트' }}</span>
+            <span>{{ activeTab === 'buy' ? texts.requiredPoints : texts.pointsToReceive }}</span>
             <span class="resultValue">{{ totalCost.toLocaleString() }} P</span>
           </div>
         </div>
@@ -196,7 +199,7 @@ onMounted(() => {
         @click="executeTrade"
         :disabled="!coinAmount || parseFloat(coinAmount) <= 0"
       >
-        {{ activeTab === 'buy' ? '구매하기' : '판매하기' }}
+        {{ activeTab === 'buy' ? texts.buyButton : texts.sellButton }}
       </button>
     </main>
     

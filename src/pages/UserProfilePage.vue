@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
@@ -71,10 +71,14 @@ onMounted(() => {
     router.push('/login')
   }
   
-  // localStorage에서 언어 설정 로드
+  // localStorage에서 언어 설정 로드 (기본값: English)
   const savedLanguage = localStorage.getItem('appLanguage')
   if (savedLanguage) {
     language.value = savedLanguage
+  } else {
+    // 저장된 언어가 없으면 기본값으로 English 설정
+    language.value = 'English'
+    localStorage.setItem('appLanguage', 'English')
   }
   
   // appStore 데이터 변경 감지하여 동기화
@@ -88,6 +92,16 @@ onMounted(() => {
     window.removeEventListener('userDataUpdated', handleUserDataUpdate)
   })
 })
+
+// 뒤로 가기 처리
+const handleBack = () => {
+  // 히스토리가 있으면 뒤로 가기, 없으면 설정 페이지로 이동
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/settings')
+  }
+}
 
 // User ID 복사
 const copyUserId = () => {
@@ -132,7 +146,7 @@ const gameStats = computed(() => {
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
       <!-- 뒤로가기 버튼 -->
-      <button class="backBtn" @click="router.push('/settings')">
+      <button class="backBtn" @click="handleBack">
         {{ currentTexts.back }}
       </button>
       
@@ -227,16 +241,20 @@ const gameStats = computed(() => {
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
+  padding-bottom: 70px; /* Footer 높이만큼 여백 */
 }
 
 .mainContent {
   padding: 1.6rem;
+  padding-bottom: 5rem; /* Footer 공간 확보 */
   max-width: 500px;
   margin: 0 auto;
   min-height: calc(100vh - 130px);
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  position: relative;
+  z-index: 1; /* Footer보다 낮은 z-index */
 }
 
 /* 뒤로가기 버튼 */

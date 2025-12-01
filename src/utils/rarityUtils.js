@@ -200,16 +200,24 @@ export function getRarityStyle(rarity) {
 }
 
 /**
- * 레어리티 이름 가져오기 (한글)
+ * 레어리티 이름 가져오기 (현재 언어에 따라)
  * @param {string} rarity - 레어리티 등급
- * @returns {string} 한글 이름
+ * @returns {string} 레어리티 이름
  */
 export function getRarityName(rarity) {
-  return RARITY_NAMES[rarity] || RARITY_NAMES[RARITY_TIERS.COMMON]
+  // 현재 언어 확인
+  const currentLang = localStorage.getItem('appLanguage') || 'English'
+  
+  // 영어면 영문 이름, 한국어면 한글 이름 반환
+  if (currentLang === 'English') {
+    return RARITY_NAMES_EN[rarity] || RARITY_NAMES_EN[RARITY_TIERS.COMMON]
+  } else {
+    return RARITY_NAMES[rarity] || RARITY_NAMES[RARITY_TIERS.COMMON]
+  }
 }
 
 /**
- * 레어리티 이름 가져오기 (영문)
+ * 레어리티 이름 가져오기 (영문) - 하위 호환성 유지
  * @param {string} rarity - 레어리티 등급
  * @returns {string} 영문 이름
  */

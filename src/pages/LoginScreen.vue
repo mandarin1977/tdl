@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { connectWallet, isMetaMaskInstalled } from '@/utils/wallet'
 import { verifyPassword, hashPassword } from '@/utils/passwordUtils'
 
@@ -16,6 +16,9 @@ const walletError = ref('')
 
 // 비밀번호 표시/숨김 상태
 const showPassword = ref(false)
+
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
 
 
 // 회원가입 페이지로 이동
@@ -33,7 +36,7 @@ const handleLogin = async (event) => {
   
   // ID와 PW가 모두 입력되었는지 확인
   if (!loginId.value.trim() || !loginPw.value.trim()) {
-    alert('ID와 비밀번호를 모두 입력해주세요.')
+    alert('Please enter both email and password.')
     return
   }
   
@@ -72,9 +75,9 @@ const handleLogin = async (event) => {
           passwordMatch = await verifyPassword(loginPw.value, user.password)
         }
       } catch (error) {
-        console.error('비밀번호 검증 오류:', error)
+        console.error('Password verification error:', error)
         setLoading(false)
-        alert('로그인 중 오류가 발생했습니다. 다시 시도해주세요.')
+        alert('An error occurred during login. Please try again.')
         return
       }
       
@@ -88,7 +91,7 @@ const handleLogin = async (event) => {
         sessionStorage.setItem('currentUser', JSON.stringify(userWithoutPassword))
         
         // 상태 저장 (실제로는 서버에서 받은 사용자 정보를 저장)
-        setWalletConnected(user.email, `${user.gameData?.coins || 0} 코인`)
+        setWalletConnected(user.email, `${user.gameData?.coins || 0} coins`)
         setLoading(false)
         
         // 로그인 완료 후 메인 화면으로 이동
@@ -98,12 +101,12 @@ const handleLogin = async (event) => {
       } else {
         // 로그인 실패
         setLoading(false)
-        alert('이메일 또는 비밀번호가 올바르지 않습니다.')
+        alert('Email or password is incorrect.')
       }
     } else {
       // 사용자를 찾을 수 없음
       setLoading(false)
-      alert('이메일 또는 비밀번호가 올바르지 않습니다.')
+      alert('Email or password is incorrect.')
     }
   }, 2000)
 }
@@ -122,8 +125,8 @@ const handleWalletConnect = async () => {
     
     // MetaMask 설치 확인
     if (!isMetaMaskInstalled()) {
-      walletError.value = 'MetaMask가 설치되어 있지 않습니다.'
-      const install = confirm('MetaMask를 설치하시겠습니까?')
+      walletError.value = 'MetaMask is not installed.'
+      const install = confirm('Would you like to install MetaMask?')
       if (install) {
         window.open('https://metamask.io/download/', '_blank')
       }
@@ -141,17 +144,17 @@ const handleWalletConnect = async () => {
         router.push('/main')
       }, 1000)
     } else {
-      walletError.value = result.error || '지갑 연결에 실패했습니다.'
+      walletError.value = result.error || 'Failed to connect wallet.'
       if (result.needInstall) {
-        const install = confirm('MetaMask를 설치하시겠습니까?')
+        const install = confirm('Would you like to install MetaMask?')
         if (install) {
           window.open('https://metamask.io/download/', '_blank')
         }
       }
     }
   } catch (error) {
-    console.error('지갑 연결 오류:', error)
-    walletError.value = '지갑 연결 중 오류가 발생했습니다.'
+    console.error('Wallet connection error:', error)
+    walletError.value = 'An error occurred while connecting wallet.'
   } finally {
     isWalletConnecting.value = false
     setLoading(false)
@@ -190,13 +193,13 @@ onMounted(() => {
 <template>
   <div class="login-screen">
     <!-- 타이틀 -->
-    <h1 class="login-title">로그인</h1>
+    <h1 class="login-title">{{ texts.login }}</h1>
 
     <!-- 로그인 폼 -->
     <form @submit="handleLogin" class="login-form">
       <!-- 아이디(이메일계정) -->
       <div class="input-group">
-        <label class="input-label">아이디(이메일계정)</label>
+        <label class="input-label">{{ texts.email }}</label>
         <div class="input-container">
           <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -206,7 +209,7 @@ onMounted(() => {
             type="email" 
             v-model="loginId"
             class="input-field"
-            placeholder="이메일을 입력하세요"
+            :placeholder="texts.enterEmail"
             required
           >
         </div>
@@ -214,7 +217,7 @@ onMounted(() => {
 
       <!-- 비밀번호 -->
       <div class="input-group">
-        <label class="input-label">비밀번호</label>
+        <label class="input-label">{{ texts.password }}</label>
         <div class="input-container">
           <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -225,7 +228,7 @@ onMounted(() => {
             :type="showPassword ? 'text' : 'password'"
             v-model="loginPw"
             class="input-field"
-            placeholder="비밀번호를 입력하세요"
+            :placeholder="texts.enterPassword"
             required
           >
           <button 
@@ -256,26 +259,26 @@ onMounted(() => {
         }"
       >
         <div v-if="!isConnecting && !walletConnected" class="btn-content">
-          로그인
+          {{ texts.loginButton }}
         </div>
         
         <div v-if="isConnecting" class="btn-content">
           <div class="spinner-small"></div>
-          로그인 중...
+          {{ texts.loading }}
         </div>
         
         <div v-if="walletConnected" class="btn-content">
           <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
-          성공!
+          {{ texts.success }}!
         </div>
       </button>
     </form>
 
     <!-- 구분선 -->
     <div class="divider">
-      <span class="divider-text">또는</span>
+      <span class="divider-text">or</span>
     </div>
 
     <!-- 지갑 연결 버튼 -->
@@ -290,7 +293,7 @@ onMounted(() => {
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
         </svg>
         <div v-if="isWalletConnecting" class="spinner-small"></div>
-        <span>{{ isWalletConnecting ? '연결 중...' : '지갑 연결' }}</span>
+        <span>{{ isWalletConnecting ? texts.loading : texts.walletConnect }}</span>
       </div>
     </button>
 
@@ -302,7 +305,7 @@ onMounted(() => {
     <!-- 회원가입 링크 -->
     <div class="signup-link">
       <button @click="goToSignup" class="signup-btn">
-        회원 가입하기
+        {{ texts.signupButton }}
       </button>
     </div>
   </div>

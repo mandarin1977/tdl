@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 
 const router = useRouter()
@@ -11,6 +11,9 @@ const router = useRouter()
 const store = useAppStore()
 // appStore에서 게임 데이터 가져오기 (반응형)
 const coinCount = computed(() => store.state.coins)
+
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
 
 onMounted(() => {
   // appStore에서 사용자 데이터 로드
@@ -72,13 +75,13 @@ const startMining = () => {
     <main class="mainContent">
       <div class="miningContainer">
         <div class="pageHeader">
-          <button class="backBtn" @click="router.push('/main')">← 뒤로</button>
-          <h2>⛏️ 채굴</h2>
+          <button class="backBtn" @click="router.push('/main')">{{ texts.back }}</button>
+          <h2>⛏️ {{ texts.mining }}</h2>
         </div>
         
         <!-- 채굴 레벨 -->
         <div class="levelInfo">
-          <span>채굴 레벨: {{ miningLevel }}</span>
+          <span>{{ texts.miningLevel }}: {{ miningLevel }}</span>
         </div>
         
         <!-- 채굴 진행 상황 -->
@@ -99,28 +102,28 @@ const startMining = () => {
           @click="startMining"
           :disabled="isMining"
         >
-          <span v-if="!isMining">⛏️ 채굴 시작</span>
-          <span v-else>⛏️ 채굴 중...</span>
+          <span v-if="!isMining">⛏️ {{ texts.miningStart }}</span>
+          <span v-else>⛏️ {{ texts.miningInProgress }}</span>
         </button>
         
         <!-- 보유 자원 -->
         <div class="resources">
-          <h3>보유 자원</h3>
+          <h3>{{ texts.ownedResources }}</h3>
           <div class="resourceList">
             <div class="resourceItem">
-              <span>🪨 돌</span>
+              <span>🪨 {{ texts.stone }}</span>
               <span>{{ resources.stone }}</span>
             </div>
             <div class="resourceItem">
-              <span>⚒️ 철</span>
+              <span>⚒️ {{ texts.iron }}</span>
               <span>{{ resources.iron }}</span>
             </div>
             <div class="resourceItem">
-              <span>🥇 금</span>
+              <span>🥇 {{ texts.gold }}</span>
               <span>{{ resources.gold }}</span>
             </div>
             <div class="resourceItem">
-              <span>💎 다이아몬드</span>
+              <span>💎 {{ texts.diamond }}</span>
               <span>{{ resources.diamond }}</span>
             </div>
           </div>

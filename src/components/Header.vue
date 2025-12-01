@@ -5,7 +5,7 @@ import { getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { checkAndResetEnergy } from '@/utils/energyUtils'
 
-const language = ref(localStorage.getItem('appLanguage') || '한국어')
+const language = ref(localStorage.getItem('appLanguage') || 'English')
 const texts = computed(() => getI18nTexts())
 
 const router = useRouter()
@@ -23,6 +23,15 @@ const currentEnergy = ref(4000)
 const maxEnergy = ref(4000)
 
 // 에너지 체크 및 리셋은 유틸리티 함수 사용
+
+// 에너지 업데이트 함수
+const updateEnergy = () => {
+  const savedEnergy = localStorage.getItem('currentEnergy')
+  if (savedEnergy) {
+    currentEnergy.value = parseInt(savedEnergy, 10)
+  }
+  checkAndResetEnergy(currentEnergy, maxEnergy)
+}
 
 const isMenuOpen = ref(false)
 
@@ -42,6 +51,10 @@ const goToShop = () => {
   router.push('/shop')
 }
 
+const goToNFT = () => {
+  router.push('/nft')
+}
+
 let interval = null
 
 onMounted(() => {
@@ -49,20 +62,23 @@ onMounted(() => {
   store.loadCurrentUser()
   
   // 에너지 체크 및 리셋
-  checkAndResetEnergy(currentEnergy, maxEnergy)
+  updateEnergy()
   
-  // localStorage 변경 감지 (언어)
+  // localStorage 변경 감지 (언어 및 에너지)
   interval = setInterval(() => {
-    const currentLang = localStorage.getItem('appLanguage') || '한국어'
+    const currentLang = localStorage.getItem('appLanguage') || 'English'
     if (currentLang !== language.value) {
       language.value = currentLang
     }
-  }, 100)
+    // 에너지 업데이트
+    updateEnergy()
+  }, 500)
   
   // 커스텀 이벤트 리스너: 사용자 데이터 즉시 업데이트
   // 스토어가 자동으로 동기화하므로 여기서는 스토어만 새로고침
   const handleUserDataUpdate = () => {
     store.loadCurrentUser()
+    updateEnergy()
   }
   window.addEventListener('userDataUpdated', handleUserDataUpdate)
   
@@ -84,44 +100,60 @@ const formatNumber = store.formatNumber
 <template>
   <header>
     <div class="headerCont">
+      <!-- 상단 리소스 바 -->
       <div class="headerBar">
-        <!-- 번개 아이콘 + 숫자 -->
-        <button class="headerItem energyItem" @click="goToShop">
-          <img src="@/assets/img/lighting.png" alt="에너지" class="energyIcon" />
-          <span class="headerValue">{{ formatNumber(currentEnergy) }} / {{ formatNumber(maxEnergy) }}</span>
+        <!-- 에너지 (빨간 원) -->
+        <button class="resourceItem energyItem" @click="goToShop">
+          <div class="resourceIconCircle energyCircle">
+            <img src="@/assets/img/lighting.png" alt="에너지" class="resourceIcon" />
+          </div>
+          <span class="resourceValue">{{ formatNumber(currentEnergy) }} / {{ formatNumber(maxEnergy) }}</span>
         </button>
-        <div class="divider"></div>
         
-        <!-- P 아이콘 + 숫자 -->
-        <button class="headerItem clickableItem" @click="goToShop">
-          <img src="@/assets/img/point_ico.png" alt="P" class="pointIcon" />
-          <span class="headerValue">{{ formatNumber(coinCount) }}</span>
+        <!-- 포인트 (파란 원) -->
+        <button class="resourceItem" @click="goToShop">
+          <div class="resourceIconCircle pointCircle">
+            <span class="resourceTextIcon">P</span>
+          </div>
+          <span class="resourceValue">{{ formatNumber(coinCount) }}</span>
         </button>
-        <div class="divider"></div>
         
-        <!-- C 아이콘 + 숫자 -->
-        <button class="headerItem clickableItem" @click="goToShop">
-          <img src="@/assets/img/coin_ico.png" alt="C" class="coinIcon" />
-          <span class="headerValue">{{ formatNumber(totalCoin) }}</span>
+        <!-- 코인 (노란 원) -->
+        <button class="resourceItem" @click="goToShop">
+          <div class="resourceIconCircle coinCircle">
+            <span class="resourceTextIcon">C</span>
+          </div>
+          <span class="resourceValue">{{ formatNumber(totalCoin) }}</span>
         </button>
-        <div class="divider"></div>
         
-        <!-- 고양이 아이콘 + 숫자 -->
-        <button class="headerItem clickableItem" @click="goToShop">
-          <img src="@/assets/img/cat_ico.png" alt="고양이" class="catIcon">
-          <span class="headerValue">{{ catFragments }}</span>
+        <!-- 고양이 파편 (보라색 원) -->
+        <button class="resourceItem" @click="goToShop">
+          <div class="resourceIconCircle catCircle">
+            <img src="@/assets/img/cat_ico.png" alt="고양이" class="resourceIcon">
+          </div>
+          <span class="resourceValue">{{ catFragments }}</span>
         </button>
-        <div class="divider"></div>
-        
-        <!-- 알림 아이콘 -->
-        <button class="headerIconBtn notifi" @click="goToNotification">
-          <img src="@/assets/img/notice.png" alt="알림" class="icon-img">
+      </div>
+      
+      <!-- 오른쪽 세로 아이콘 버튼들 -->
+      <div class="rightIconButtons">
+        <!-- NFT 아이콘 -->
+        <button class="iconButton nftButton" @click="goToNFT" title="NFT">
+          <img src="@/assets/img/store.png" alt="NFT" class="icon-img">
         </button>
-        <div class="divider"></div>
         
         <!-- 설정 아이콘 -->
-        <button class="headerIconBtn menuBtn" @click="goToSettings">
-          <img src="@/assets/img/setting.png" alt="설정" class="icon-img">
+        <button class="iconButton settingsButton" @click="goToSettings" title="설정">
+          <div class="iconCircle settingsIconCircle">
+            <img src="@/assets/img/setting.png" alt="설정" class="icon-img">
+          </div>
+        </button>
+        
+        <!-- 알림 아이콘 -->
+        <button class="iconButton notificationButton" @click="goToNotification" title="알림">
+          <div class="iconCircle notificationIconCircle">
+            <img src="@/assets/img/notice.png" alt="알림" class="icon-img">
+          </div>
         </button>
       </div>
     </div>
@@ -131,128 +163,179 @@ const formatNumber = store.formatNumber
 <style scoped>
 header {
   width: 100%;
-  height: 60px;
+  min-height: 80px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   position: sticky;
   top: 0;
   z-index: 1000;
+  padding: 0.8rem 1rem;
 }
 
 .headerCont {
   width: 100%;
   max-width: 500px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1rem;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  position: absolute;
+  padding: 0.8rem 1rem;
 }
 
+/* 상단 리소스 바 */
 .headerBar {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  padding: 0.6rem 1rem;
-  width: 100%;
+  flex: 1;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  padding-right: 0.5rem;
+  justify-content: space-between;
 }
 
 .headerBar::-webkit-scrollbar {
   display: none;
 }
 
-.headerItem {
+/* 리소스 아이템 */
+.resourceItem {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: white;
+  /* gap: 0.5rem; */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.energyItem,
-.clickableItem {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.3s ease;
-}
-
-.energyItem:hover,
-.clickableItem:hover {
-  opacity: 0.8;
+.resourceItem:hover {
   transform: scale(1.05);
+  opacity: 0.9;
 }
 
-.energyIcon {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-.pointIcon, .coinIcon {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-.catIcon {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-.headerValue {
-  font-weight: 600;
-  font-size: 1.4rem;
-}
-
-.divider {
-  width: 1px;
-  height: 20px;
-  background: transparent;
-  border-left: 1px dotted rgba(255, 255, 255, 0.5);
-  flex-shrink: 0;
-}
-
-.headerIconBtn {
+/* 리소스 아이콘 원형 배경 */
+.resourceIconCircle {
   width: 32px;
   height: 32px;
-  border: none;
-  background: transparent;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   flex-shrink: 0;
-  padding: 0;
+  z-index: 1;
 }
 
-.notifi{
-  margin-left: auto;
+.energyCircle {
+  background: #ff4444; /* 빨간색 */
 }
 
-.notifi, .menuBtn {
-  transition: all 0.3s ease;
+.pointCircle {
+  background: #4a90e2; /* 파란색 */
 }
 
-/* .notifi:hover, .menuBtn:hover {
-  background: rgba(102, 126, 234, 0.2);
-  transform: scale(1.05);
-} */
+.coinCircle {
+  background: #f5a623; /* 노란색 */
+}
 
-.icon-img {
-  width: 17px;
-  height: 17px;
+.catCircle {
+  background: #9013fe; /* 보라색 */
+}
+
+.resourceIcon {
+  width: 18px;
+  height: 18px;
   object-fit: contain;
 }
 
+.resourceTextIcon {
+  color: white;
+  font-weight: 700;
+  font-size: 1.2rem;
+  line-height: 1;
+}
 
+.resourceValue {
+  color: white;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 0.2rem 0.5rem 0.2rem 1.5rem;
+  border-radius: 0 1rem 1rem 0;
+  font-weight: 600;
+  font-size: 1.2rem;
+  white-space: nowrap;
+  margin-left: -10px;
+}
+
+/* 오른쪽 세로 아이콘 버튼들 */
+.rightIconButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: end;
+  flex-shrink: 0;
+  width: max-content;
+  position: absolute;
+    right: 2rem;
+    top: 5rem;
+}
+
+.iconButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+.iconButton:hover {
+  transform: scale(1.1);
+}
+
+.nftButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nftButton .icon-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.iconCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.iconButton:hover .iconCircle {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.homeIconCircle {
+  background: rgba(128, 128, 128, 0.6);
+}
+
+.settingsIconCircle {
+  background: rgba(128, 128, 128, 0.6);
+}
+
+.notificationIconCircle {
+  background: rgba(128, 128, 128, 0.6);
+}
 
 .icon-img {
   width: 18px;
@@ -260,30 +343,68 @@ header {
   object-fit: contain;
 }
 
+.iconButton svg {
+  color: white;
+  stroke: currentColor;
+}
+
+/* 반응형 */
 @media (max-width: 480px) {
-  .headerBar {
+  header {
+    min-height: 70px;
+    padding: 0.6rem 0.8rem;
+  }
+  
+  /* .headerBar {
     gap: 0.6rem;
-    padding: 0.5rem 0.8rem;
+  } */
+  
+  .resourceIconCircle {
+    width: 28px;
+    height: 28px;
   }
   
-  .headerValue {
-    font-size: 1.2rem;
+  .resourceIcon {
+    width: 16px;
+    height: 16px;
   }
   
-  .pointIcon, .coinIcon, .catIcon, .energyIcon {
-    width: 20px;
-    height: 20px;
+  .resourceTextIcon {
+    font-size: 1rem;
+  }
+  
+  .resourceValue {
+    font-size: 1rem;
+  }
+  
+  .iconCircle {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .icon-img {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .rightIconButtons {
+    gap: 0.5rem;
   }
 }
 
 @media (max-width: 360px) {
-  .headerValue {
-    font-size: 1rem;
+  .resourceValue {
+    font-size: 0.9rem;
   }
   
-  .pointIcon, .coinIcon, .catIcon, .energyIcon {
-    width: 18px;
-    height: 18px;
+  .resourceIconCircle {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .iconCircle {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>

@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 
 // appStore 사용
@@ -12,36 +12,39 @@ const store = useAppStore()
 const coinCount = computed(() => store.state.coins) // 포인트 (P)
 const totalCoin = computed(() => store.state.totalCoin) // 코인 (C)
 
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
+
 // 상점 아이템 목록
-const energyItems = ref([
+const energyItems = computed(() => [
   {
     id: 1,
-    name: '에너지 100',
-    description: '에너지를 100 회복합니다',
+    name: texts.value.energy100,
+    description: `${texts.value.energyRecover} 100 ${texts.value.energy}`,
     price: 100,
     currency: 'point', // point 또는 coin
     amount: 100
   },
   {
     id: 2,
-    name: '에너지 500',
-    description: '에너지를 500 회복합니다',
+    name: texts.value.energy500,
+    description: `${texts.value.energyRecover} 500 ${texts.value.energy}`,
     price: 450,
     currency: 'point',
     amount: 500
   },
   {
     id: 3,
-    name: '에너지 1000',
-    description: '에너지를 1000 회복합니다',
+    name: texts.value.energy1000,
+    description: `${texts.value.energyRecover} 1000 ${texts.value.energy}`,
     price: 800,
     currency: 'point',
     amount: 1000
   },
   {
     id: 4,
-    name: '에너지 2000',
-    description: '에너지를 2000 회복합니다',
+    name: texts.value.energy2000,
+    description: `${texts.value.energyRecover} 2000 ${texts.value.energy}`,
     price: 1500,
     currency: 'point',
     amount: 2000
@@ -58,18 +61,18 @@ const loadUserData = () => {
 const purchaseItem = async (item) => {
   const user = getCurrentUser()
   if (!user) {
-    alert('로그인이 필요합니다.')
+    alert(texts.value.loginRequired)
     return
   }
 
   // 포인트 또는 코인 확인
   if (item.currency === 'point' && coinCount.value < item.price) {
-    alert('포인트가 부족합니다.')
+    alert(texts.value.insufficientPoints)
     return
   }
 
   if (item.currency === 'coin' && totalCoin.value < item.price) {
-    alert('코인이 부족합니다.')
+    alert(texts.value.insufficientCoins)
     return
   }
 
@@ -88,7 +91,7 @@ const purchaseItem = async (item) => {
   }
 
   if (!success) {
-    alert('구매 실패. 다시 시도해주세요.')
+    alert(texts.value.purchaseFailed)
     return
   }
 
@@ -99,7 +102,7 @@ const purchaseItem = async (item) => {
   const newEnergy = Math.min(currentEnergy + item.amount, maxEnergy)
   localStorage.setItem('currentEnergy', newEnergy.toString())
   localStorage.setItem('energyLastDate', new Date().toDateString())
-  alert(`${item.name} 구매 완료! 에너지가 ${item.amount} 회복되었습니다. (현재: ${newEnergy}/${maxEnergy})`)
+  alert(`${item.name} ${texts.value.purchaseComplete} ${item.amount} ${texts.value.energyRecovered}! (${texts.value.currentEnergy}: ${newEnergy}/${maxEnergy})`)
 }
 
 onMounted(() => {
@@ -148,7 +151,7 @@ onMounted(() => {
             :disabled="(item.currency === 'point' && coinCount < item.price) || (item.currency === 'coin' && totalCoin < item.price)"
             @click="purchaseItem(item)"
           >
-            구매
+            {{ texts.buy }}
           </button>
         </div>
       </div>

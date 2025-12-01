@@ -3,7 +3,7 @@ import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser } from '@/utils/userUtils'
+import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { formatNumber } from '@/utils/formatUtils'
 import { checkAndResetEnergy } from '@/utils/energyUtils'
@@ -12,6 +12,9 @@ import '@/styles/main.css'
 
 // appStore 사용
 const store = useAppStore()
+
+// 다국어 텍스트
+const texts = computed(() => getI18nTexts())
 
 const router = useRouter()
 
@@ -322,7 +325,7 @@ const handleClick = async (mode) => {
       // 레벨업 알림
       const bubble = {
         id: Date.now(),
-        text: `채굴 레벨업! Lv.${miningLevel.value}`,
+        text: `${texts.value.mining} ${texts.value.levelUp} Lv.${miningLevel.value}`,
         x: Math.random() * (Math.min(window.innerWidth || 500, 500) - 220 - 40) + 20,
         y: Math.random() * (window.innerHeight || 800 - 60 - 40 - 200) + 100
       }
@@ -430,12 +433,12 @@ const handleClick = async (mode) => {
       
       // 보상 텍스트 생성
       const nftBonusPercent = Math.round(getMiningEfficiency())
-      let rewardText = `채굴 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      let rewardText = `${texts.value.miningComplete}\n${pointsGained.toLocaleString()} ${texts.value.pointsEarned}`
       if (nftBonusPercent > 0) {
-        rewardText += `\n(NFT 보너스: +${nftBonusPercent}%)`
+        rewardText += `\n(NFT Bonus: +${nftBonusPercent}%)`
       }
       if (fragmentsGained > 0) {
-        rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
+        rewardText += `\n${texts.value.fragmentsEarned} ${fragmentsGained} ${texts.value.fragmentsEarnedCount}`
       }
       
       const bubble = {
@@ -468,7 +471,7 @@ const handleClick = async (mode) => {
       
       const bubble = {
         id: Date.now(),
-        text: `채굴 진행: ${miningClickCount.value}/10`,
+        text: `${texts.value.miningProgress}: ${miningClickCount.value}/10`,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -491,7 +494,7 @@ const handleClick = async (mode) => {
       // 레벨업 알림
       const bubble = {
         id: Date.now(),
-        text: `탐험 레벨업! Lv.${explorationLevel.value}`,
+        text: `${texts.value.exploration} ${texts.value.levelUp} Lv.${explorationLevel.value}`,
         x: Math.random() * (Math.min(window.innerWidth || 500, 500) - 220 - 40) + 20,
         y: Math.random() * (window.innerHeight || 800 - 60 - 40 - 200) + 100
       }
@@ -602,12 +605,12 @@ const handleClick = async (mode) => {
       
       // 보상 텍스트 생성
       const nftBonusPercent = Math.round(getExplorationReward())
-      let rewardText = `탐험 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      let rewardText = `${texts.value.explorationComplete}\n${pointsGained.toLocaleString()} ${texts.value.pointsEarned}`
       if (nftBonusPercent > 0) {
-        rewardText += `\n(NFT 보너스: +${nftBonusPercent}%)`
+        rewardText += `\n(NFT Bonus: +${nftBonusPercent}%)`
       }
       if (fragmentsGained > 0) {
-        rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
+        rewardText += `\n${texts.value.fragmentsEarned} ${fragmentsGained} ${texts.value.fragmentsEarnedCount}`
       }
       
       const bubble = {
@@ -640,7 +643,7 @@ const handleClick = async (mode) => {
       
       const bubble = {
         id: Date.now(),
-        text: `탐험 진행: ${explorationClickCount.value}/10`,
+        text: `${texts.value.explorationProgress}: ${explorationClickCount.value}/10`,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -663,7 +666,7 @@ const handleClick = async (mode) => {
       // 레벨업 알림
       const bubble = {
         id: Date.now(),
-        text: `사냥 레벨업! Lv.${huntingLevel.value}`,
+        text: `${texts.value.hunting} ${texts.value.levelUp} Lv.${huntingLevel.value}`,
         x: Math.random() * (Math.min(window.innerWidth || 500, 500) - 220 - 40) + 20,
         y: Math.random() * (window.innerHeight || 800 - 60 - 40 - 200) + 100
       }
@@ -773,9 +776,9 @@ const handleClick = async (mode) => {
       const padding = 20
       
       // 보상 텍스트 생성
-      let rewardText = `사냥 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      let rewardText = `${texts.value.huntingComplete}\n${pointsGained.toLocaleString()} ${texts.value.pointsEarned}`
       if (fragmentsGained > 0) {
-        rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
+        rewardText += `\n${texts.value.fragmentsEarned} ${fragmentsGained} ${texts.value.fragmentsEarnedCount}`
       }
       
       const bubble = {
@@ -808,7 +811,7 @@ const handleClick = async (mode) => {
       
       const bubble = {
         id: Date.now(),
-        text: `사냥 진행: ${huntingClickCount.value}/10`,
+        text: `${texts.value.huntingProgress}: ${huntingClickCount.value}/10`,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -831,7 +834,7 @@ const handleClick = async (mode) => {
       // 레벨업 알림
       const bubble = {
         id: Date.now(),
-        text: `생산 레벨업! Lv.${productionLevel.value}`,
+        text: `${texts.value.production} ${texts.value.levelUp} Lv.${productionLevel.value}`,
         x: Math.random() * (Math.min(window.innerWidth || 500, 500) - 220 - 40) + 20,
         y: Math.random() * (window.innerHeight || 800 - 60 - 40 - 200) + 100
       }
@@ -942,12 +945,12 @@ const handleClick = async (mode) => {
       
       // 보상 텍스트 생성
       const nftBonusPercent = Math.round(getProductionSpeed())
-      let rewardText = `생산 완료!\n${pointsGained.toLocaleString()}point 획득!`
+      let rewardText = `${texts.value.productionComplete}\n${pointsGained.toLocaleString()} ${texts.value.pointsEarned}`
       if (nftBonusPercent > 0) {
-        rewardText += `\n(NFT 보너스: +${nftBonusPercent}%)`
+        rewardText += `\n(NFT Bonus: +${nftBonusPercent}%)`
       }
       if (fragmentsGained > 0) {
-        rewardText += `\n고양이 파편 ${fragmentsGained}개 획득!`
+        rewardText += `\n${texts.value.fragmentsEarned} ${fragmentsGained} ${texts.value.fragmentsEarnedCount}`
       }
       
       const bubble = {
@@ -980,7 +983,7 @@ const handleClick = async (mode) => {
       
       const bubble = {
         id: Date.now(),
-        text: `생산 진행: ${productionClickCount.value}/10`,
+        text: `${texts.value.productionProgress}: ${productionClickCount.value}/10`,
         x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
         y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
       }
@@ -999,12 +1002,12 @@ const handleClick = async (mode) => {
 // 랜덤 메시지 생성
 const getRandomMessage = (mode) => {
   const messages = {
-    mining: ['채굴 성공!', '광물 발견!', '돈벌었다!', '더 파자!'],
-    hunting: ['몬스터 처치!', '경험치 획득!', '골드 획득!', '레벨업!'],
-    exploration: ['새 지역 발견!', '보물 획득!', '모험 성공!', '신비한 발견!'],
-    production: ['제작 완료!', '아이템 생성!', '기술 향상!', '완벽한 작품!']
+    mining: [texts.value.miningSuccess, texts.value.oreFound, texts.value.moneyEarned, texts.value.digMore],
+    hunting: [texts.value.monsterKilled, texts.value.expEarned, texts.value.goldEarned, texts.value.levelUp],
+    exploration: [texts.value.newAreaFound, texts.value.treasureFound, texts.value.adventureSuccess, texts.value.mysteriousDiscovery],
+    production: [texts.value.craftComplete, texts.value.itemCreated, texts.value.skillImproved, texts.value.perfectWork]
   }
-  const modeMessages = messages[mode] || ['성공!', '좋아!', '완료!', '대박!']
+  const modeMessages = messages[mode] || [texts.value.success, texts.value.good, texts.value.complete, texts.value.amazing]
   return modeMessages[Math.floor(Math.random() * modeMessages.length)]
 }
 
@@ -1429,10 +1432,10 @@ const startAutoPointGeneration = (mode) => {
     // 고양이들은 에너지를 소모하지 않고 자동으로 포인트 획득
     // 각 고양이가 1씩 클릭되게 함 (클리커 버튼과 동일한 방식)
     const modeNames = {
-      mining: '채굴',
-      hunting: '사냥',
-      exploration: '탐험',
-      production: '생산'
+      mining: texts.value.mining,
+      hunting: texts.value.hunting,
+      exploration: texts.value.exploration,
+      production: texts.value.production
     }
     const modeName = modeNames[mode] || '작업'
     
@@ -1550,7 +1553,7 @@ const startAutoPointGeneration = (mode) => {
         if (activeMode.value === mode) {
           const bubble = {
             id: Date.now() + actualIndex + cat.id * 10000,
-            text: `${modeName} 완료! 100원 획득!`,
+            text: `${modeName} ${texts.value.complete}! 100 ${texts.value.coin} ${texts.value.earned}!`,
             x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
             y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
           }
@@ -1568,7 +1571,7 @@ const startAutoPointGeneration = (mode) => {
         if (activeMode.value === mode) {
           const bubble = {
             id: Date.now() + actualIndex + cat.id * 1000 + currentClickCount * 100,
-            text: `${modeName} 진행: ${currentClickCount}/10`,
+            text: `${modeName} ${texts.value.progress}: ${currentClickCount}/10`,
             x: Math.random() * (maxWidth - bubbleWidth - padding * 2) + padding,
             y: Math.random() * (maxHeight - bubbleHeight - padding * 2 - 200) + 100
           }
@@ -1935,7 +1938,7 @@ const canProduce = (recipe) => {
         <!-- 총 포인트 & 총 코인 -->
         <div class="totalStats">
           <div class="totalPoint">
-            <div class="statLabel">총 포인트</div>
+            <div class="statLabel">{{ texts.totalPoints }}</div>
             <div class="statValue">
               <div class="iconCircle pointIcon">
                 <img src="@/assets/img/mainPoint.png" alt="P" />
@@ -1945,7 +1948,7 @@ const canProduce = (recipe) => {
           </div>
           <div class="divider"></div>
           <div class="totalCoin">
-            <div class="statLabel">총코인</div>
+            <div class="statLabel">{{ texts.totalCoins }}</div>
             <div class="statValue">
               <div class="iconCircle coinIcon">
                 <img src="@/assets/img/mainCoin.png" alt="C" />
@@ -1959,22 +1962,22 @@ const canProduce = (recipe) => {
         <div class="gameModeGrid">
           <div class="modeCard miningCard" @click="setActiveMode('mining')">
             <div class="mainmenuBtns"></div>
-            <div class="modeTitle">채굴</div>
+            <div class="modeTitle">{{ texts.mining }}</div>
             <div class="modeLevel">Level {{ String(miningLevel).padStart(2, '0') }}</div>
           </div>
           <div class="modeCard huntingCard" @click="setActiveMode('hunting')">
             <div class="mainmenuBtns"></div>
-            <div class="modeTitle">사냥</div>
+            <div class="modeTitle">{{ texts.hunting }}</div>
             <div class="modeLevel">Level {{ String(huntingLevel).padStart(2, '0') }}</div>
           </div>
           <div class="modeCard explorationCard" @click="setActiveMode('exploration')">
             <div class="mainmenuBtns"></div>
-            <div class="modeTitle">탐험</div>
+            <div class="modeTitle">{{ texts.exploration }}</div>
             <div class="modeLevel">Level {{ String(explorationLevel).padStart(2, '0') }}</div>
           </div>
           <div class="modeCard productionCard" @click="setActiveMode('production')">
             <div class="mainmenuBtns"></div>
-            <div class="modeTitle">생산</div>
+            <div class="modeTitle">{{ texts.production }}</div>
             <div class="modeLevel">Level {{ String(productionLevel).padStart(2, '0') }}</div>
           </div>
         </div>
@@ -1983,7 +1986,7 @@ const canProduce = (recipe) => {
       <!-- 채굴 모드 -->
       <div v-if="activeMode === 'mining'" class="miningMode">
         <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
+          <button class="backBtn" @click="setActiveMode('main')">{{ texts.back }}</button>
         </div>
         
         <!-- 상단 총 포인트 -->
@@ -2001,10 +2004,10 @@ const canProduce = (recipe) => {
           >
           </button>
           <div v-if="isMiningComplete" class="completeMessageContainer">
-            <div class="completeMessageText">채굴 완료!</div>
+            <div class="completeMessageText">{{ texts.miningComplete }}</div>
             <div class="rewardInfo">
-              <div class="rewardItem">{{ miningReward.points.toLocaleString() }}point 획득!</div>
-              <div v-if="miningReward.fragments > 0" class="rewardItem">고양이 파편 {{ miningReward.fragments }}개 획득!</div>
+              <div class="rewardItem">{{ miningReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
+              <div v-if="miningReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ miningReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
             </div>
           </div>
         </div>
@@ -2022,7 +2025,7 @@ const canProduce = (recipe) => {
         
         <!-- 채굴 냥이 목록 -->
         <div class="miningCatsSection">
-          <div class="catsListLabel">채굴 냥이 목록</div>
+          <div class="catsListLabel">{{ texts.miningCatList }}</div>
           <div class="catsListScroll">
             <template v-for="(cat, index) in miningCats" :key="index">
               <div 
@@ -2032,7 +2035,7 @@ const canProduce = (recipe) => {
               >
                 <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
                 <div v-if="cat" class="catImage">
-                  <img :src="getCatImage(cat.imageId)" alt="고양이" />
+                  <img :src="getCatImage(cat.imageId)" alt="Cat" />
                 </div>
                 <div v-if="cat" class="catStars">
                   <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
@@ -2049,7 +2052,7 @@ const canProduce = (recipe) => {
       <!-- 사냥 모드 -->
       <div v-if="activeMode === 'hunting'" class="miningMode">
         <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
+          <button class="backBtn" @click="setActiveMode('main')">{{ texts.back }}</button>
         </div>
         
         <!-- 상단 총 포인트 -->
@@ -2067,10 +2070,10 @@ const canProduce = (recipe) => {
           >
           </button>
           <div v-if="isHuntingComplete" class="completeMessageContainer">
-            <div class="completeMessageText">사냥 완료!</div>
+            <div class="completeMessageText">{{ texts.huntingComplete }}</div>
             <div class="rewardInfo">
-              <div class="rewardItem">{{ huntingReward.points.toLocaleString() }}point 획득!</div>
-              <div v-if="huntingReward.fragments > 0" class="rewardItem">고양이 파편 {{ huntingReward.fragments }}개 획득!</div>
+              <div class="rewardItem">{{ huntingReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
+              <div v-if="huntingReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ huntingReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
             </div>
           </div>
         </div>
@@ -2088,7 +2091,7 @@ const canProduce = (recipe) => {
         
         <!-- 사냥 냥이 목록 -->
         <div class="miningCatsSection">
-          <div class="catsListLabel">사냥 냥이 목록</div>
+          <div class="catsListLabel">{{ texts.huntingCatList }}</div>
           <div class="catsListScroll">
             <template v-for="(cat, index) in huntingCats" :key="index">
               <div 
@@ -2098,7 +2101,7 @@ const canProduce = (recipe) => {
               >
                 <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
                 <div v-if="cat" class="catImage">
-                  <img :src="getCatImage(cat.imageId)" alt="고양이" />
+                  <img :src="getCatImage(cat.imageId)" alt="Cat" />
                 </div>
                 <div v-if="cat" class="catStars">
                   <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
@@ -2115,7 +2118,7 @@ const canProduce = (recipe) => {
       <!-- 탐험 모드 -->
       <div v-if="activeMode === 'exploration'" class="miningMode">
         <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
+          <button class="backBtn" @click="setActiveMode('main')">{{ texts.back }}</button>
         </div>
         
         <!-- 상단 총 포인트 -->
@@ -2133,10 +2136,10 @@ const canProduce = (recipe) => {
           >
           </button>
           <div v-if="isExplorationComplete" class="completeMessageContainer">
-            <div class="completeMessageText">탐험 완료!</div>
+            <div class="completeMessageText">{{ texts.explorationComplete }}</div>
             <div class="rewardInfo">
-              <div class="rewardItem">{{ explorationReward.points.toLocaleString() }}point 획득!</div>
-              <div v-if="explorationReward.fragments > 0" class="rewardItem">고양이 파편 {{ explorationReward.fragments }}개 획득!</div>
+              <div class="rewardItem">{{ explorationReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
+              <div v-if="explorationReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ explorationReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
             </div>
           </div>
         </div>
@@ -2154,7 +2157,7 @@ const canProduce = (recipe) => {
         
         <!-- 탐험 냥이 목록 -->
         <div class="miningCatsSection">
-          <div class="catsListLabel">탐험 냥이 목록</div>
+          <div class="catsListLabel">{{ texts.explorationCatList }}</div>
           <div class="catsListScroll">
             <template v-for="(cat, index) in explorationCats" :key="index">
               <div 
@@ -2164,7 +2167,7 @@ const canProduce = (recipe) => {
               >
                 <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
                 <div v-if="cat" class="catImage">
-                  <img :src="getCatImage(cat.imageId)" alt="고양이" />
+                  <img :src="getCatImage(cat.imageId)" alt="Cat" />
                 </div>
                 <div v-if="cat" class="catStars">
                   <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
@@ -2181,7 +2184,7 @@ const canProduce = (recipe) => {
       <!-- 생산 모드 -->
       <div v-if="activeMode === 'production'" class="miningMode">
         <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">← 뒤로</button>
+          <button class="backBtn" @click="setActiveMode('main')">{{ texts.back }}</button>
         </div>
         
         <!-- 상단 총 포인트 -->
@@ -2199,10 +2202,10 @@ const canProduce = (recipe) => {
           >
           </button>
           <div v-if="isProductionComplete" class="completeMessageContainer">
-            <div class="completeMessageText">생산 완료!</div>
+            <div class="completeMessageText">{{ texts.productionComplete }}</div>
             <div class="rewardInfo">
-              <div class="rewardItem">{{ productionReward.points.toLocaleString() }}point 획득!</div>
-              <div v-if="productionReward.fragments > 0" class="rewardItem">고양이 파편 {{ productionReward.fragments }}개 획득!</div>
+              <div class="rewardItem">{{ productionReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
+              <div v-if="productionReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ productionReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
             </div>
           </div>
         </div>
@@ -2220,7 +2223,7 @@ const canProduce = (recipe) => {
         
         <!-- 생산 냥이 목록 -->
         <div class="miningCatsSection">
-          <div class="catsListLabel">생산 냥이 목록</div>
+          <div class="catsListLabel">{{ texts.productionCatList }}</div>
           <div class="catsListScroll">
             <template v-for="(cat, index) in productionCats" :key="index">
               <div 
@@ -2230,7 +2233,7 @@ const canProduce = (recipe) => {
               >
                 <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
                 <div v-if="cat" class="catImage">
-                  <img :src="getCatImage(cat.imageId)" alt="고양이" />
+                  <img :src="getCatImage(cat.imageId)" alt="Cat" />
                 </div>
                 <div v-if="cat" class="catStars">
                   <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
@@ -2281,14 +2284,14 @@ const canProduce = (recipe) => {
     <div v-if="showCatSelectPopup" class="catSelectPopupOverlay" @click="closeCatSelectPopup">
       <div class="catSelectPopupContent" @click.stop>
         <div class="catSelectPopupHeader">
-          <h3>고양이 선택</h3>
+          <h3>{{ texts.selectCat }}</h3>
           <button class="closePopupBtn" @click="closeCatSelectPopup">×</button>
         </div>
         <div class="catSelectPopupBody">
           <!-- 현재 슬롯에 고양이가 있으면 제거 버튼 표시 -->
           <div v-if="getCurrentSlotCat()" class="removeCatSection">
             <button class="removeCatBtn" @click="removeCatFromSlot">
-              고양이 제거
+              {{ texts.removeCat }}
             </button>
           </div>
           <div class="availableCatsGrid">
@@ -2299,7 +2302,7 @@ const canProduce = (recipe) => {
               @click="selectCatForSlot(cat)"
             >
               <div class="availableCatImage">
-                <img :src="getCatImage(cat.imageId || cat.id)" alt="고양이" />
+                <img :src="getCatImage(cat.imageId || cat.id)" alt="Cat" />
               </div>
               <div class="availableCatInfo">
                 <div class="availableCatName">{{ cat.name }}</div>
