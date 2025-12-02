@@ -40,6 +40,9 @@ const generateStats = (baseStats) => {
   ]
 }
 
+// 성격 목록 (영문)
+const personalities = ['Active', 'Quiet', 'Playful', 'Friendly', 'Independent', 'Affectionate', 'Curious', 'Brave']
+
 // 고양이에 스탯이 없으면 생성, 있으면 스탯 이름 업데이트
 const ensureStats = (cat) => {
   if (!cat.stats) {
@@ -64,6 +67,17 @@ const ensureStats = (cat) => {
       }
     })
   }
+  
+  // 성격이 없으면 랜덤 생성
+  if (!cat.personality) {
+    cat.personality = personalities[Math.floor(Math.random() * personalities.length)]
+  }
+  
+  // 친밀도가 없으면 랜덤 생성 (30-100%)
+  if (cat.affinity === undefined) {
+    cat.affinity = 30 + Math.floor(Math.random() * 71) // 30-100
+  }
+  
   return cat
 }
 
@@ -139,6 +153,26 @@ const selectedCharacterStats = computed(() => {
   }
   // 기본 스탯 (fallback)
   return generateStats([33, 7, 29, 10, 11, 10])
+})
+
+// 선택된 캐릭터의 성격
+const selectedCharacterPersonality = computed(() => {
+  const selectedItem = inventoryItems.value.find(item => item.selected)
+  if (selectedItem) {
+    const cat = ensureStats(selectedItem)
+    return cat.personality || 'Active'
+  }
+  return 'Active'
+})
+
+// 선택된 캐릭터의 친밀도
+const selectedCharacterAffinity = computed(() => {
+  const selectedItem = inventoryItems.value.find(item => item.selected)
+  if (selectedItem) {
+    const cat = ensureStats(selectedItem)
+    return cat.affinity || 50
+  }
+  return 50
 })
 
 // 선택된 캐릭터의 이름
@@ -299,7 +333,17 @@ const loadInventory = () => {
       inventoryItems.value = userInventory.map(cat => {
         const catWithRarity = cat.rarity ? cat : addRarityToNFT(cat)
         const catWithStats = ensureStats({ ...catWithRarity })
-        return initializeNFTExp(catWithStats) // 경험치 초기화 (기존 NFT 호환성)
+        const catWithExp = initializeNFTExp(catWithStats)
+        
+        // 성격과 친밀도가 없으면 랜덤 생성 (기존 NFT 호환성)
+        if (!catWithExp.personality) {
+          catWithExp.personality = personalities[Math.floor(Math.random() * personalities.length)]
+        }
+        if (catWithExp.affinity === undefined) {
+          catWithExp.affinity = 30 + Math.floor(Math.random() * 71) // 30-100
+        }
+        
+        return catWithExp
       })
     } else {
       inventoryItems.value = []
@@ -341,9 +385,29 @@ onUnmounted(() => {
         
         <!-- Profile Panel -->
         <div class="profilePanel">
-          <div class="panelTitle">Profile</div>
+          <div class="panelTitle">
+            Profile
+            <span class="starIcon">⭐</span>
+          </div>
           <div class="progressBars">
-            <div v-for="(stat, index) in selectedCharacterStats" :key="index" class="progressBar">
+            <!-- 성격 -->
+            <div class="progressBar">
+              <div class="statLabel">Personality</div>
+              <div class="barBg">
+                <div :style="{ width: '100%', backgroundColor: '#FF6B6B' }" class="barFill"></div>
+              </div>
+              <span class="value">{{ selectedCharacterPersonality }}</span>
+            </div>
+            <!-- 친밀도 -->
+            <div class="progressBar">
+              <div class="statLabel">Affinity</div>
+              <div class="barBg">
+                <div :style="{ width: selectedCharacterAffinity + '%', backgroundColor: '#FF8A80' }" class="barFill"></div>
+              </div>
+              <span class="value">{{ selectedCharacterAffinity }}%</span>
+            </div>
+            <!-- 숨겨진 기존 스탯들 -->
+            <div v-for="(stat, index) in selectedCharacterStats" :key="index" class="progressBar hiddenStats">
               <div class="statLabel">{{ stat.name }}</div>
               <div class="barBg">
                 <div :style="{ width: stat.progress + '%', backgroundColor: stat.color }" class="barFill"></div>
@@ -632,6 +696,19 @@ onUnmounted(() => {
   font-weight: 600;
   font-size: 1.1rem;
   margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.starIcon {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* 숨겨진 스탯 */
+.hiddenStats {
+  display: none !important;
 }
 
 /* Magic Panel */

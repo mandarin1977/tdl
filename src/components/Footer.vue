@@ -120,7 +120,6 @@ const setActiveTab = (tabId) => {
 <template>
   <footer>
     <div class="footerCont">
-      <div class="footerBackground"></div>
       <div class="footerBar">
         <div 
           v-for="tab in tabs" 
@@ -139,7 +138,6 @@ const setActiveTab = (tabId) => {
             <span v-if="tab.emoji" class="tabEmoji">{{ tab.emoji }}</span>
             <span class="tabLabel">{{ tab.label }}</span>
           </div>
-          <div v-if="activeTab === tab.id" class="activeIndicator"></div>
         </div>
       </div>
     </div>
@@ -163,15 +161,6 @@ footer {
   width: 100%;
   height: 100%;
   position: relative;
-}
-
-.footerBackground {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 10px;
-  background: #80BEBD;
 }
 
 .footerBar {
@@ -202,19 +191,6 @@ footer {
   gap: 0.25rem;
   position: relative;
   z-index: 2;
-}
-
-.activeIndicator {
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70px;
-  height: auto;
-  aspect-ratio: 3 / 1.3;
-  background: #80BEBD;
-  border-radius: 50%;
-  z-index: 1;
 }
 
 .tabIcon {
