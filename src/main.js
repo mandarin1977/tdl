@@ -63,10 +63,10 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = !!currentUser
   const isPublicRoute = publicRoutes.includes(to.path)
 
-  // 로그인된 상태에서 로그인/회원가입 페이지 접근 시 메인으로 리다이렉트
+  // 로그인된 상태에서 로그인/회원가입 페이지 접근 시 홈으로 리다이렉트
   if (isAuthenticated && (to.path === '/login' || to.path === '/signup')) {
-    console.log('Router guard: authenticated user hitting login/signup, redirecting to /main')
-    next('/main')
+    console.log('Router guard: authenticated user hitting login/signup, redirecting to /home')
+    next('/home')
     return
   }
 

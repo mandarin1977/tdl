@@ -23,8 +23,8 @@ onMounted(() => {
       setTimeout(() => {
         const currentUser = getCurrentUser()
         if (currentUser) {
-          // 로그인된 상태면 메인 화면으로
-          router.push('/main')
+          // 로그인된 상태면 홈 화면으로
+          router.push('/home')
         } else {
           // 로그인하지 않은 상태면 로그인 화면으로
           router.push('/login')

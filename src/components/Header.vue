@@ -102,35 +102,27 @@ const formatNumber = store.formatNumber
     <div class="headerCont">
       <!-- 상단 리소스 바 -->
       <div class="headerBar">
-        <!-- 에너지 (빨간 원) -->
+        <!-- 에너지 -->
         <button class="resourceItem energyItem" @click="goToShop">
-          <div class="resourceIconCircle energyCircle">
-            <img src="@/assets/img/lighting.png" alt="에너지" class="resourceIcon" />
-          </div>
-          <span class="resourceValue">{{ formatNumber(currentEnergy) }} / {{ formatNumber(maxEnergy) }}</span>
+          <img src="@/assets/img/energyIcon.png" alt="에너지" class="resourceIcon" />
+          <span class="resourceValue">{{ formatNumber(currentEnergy) }}</span>
         </button>
         
-        <!-- 포인트 (파란 원) -->
+        <!-- 포인트 -->
         <button class="resourceItem" @click="goToShop">
-          <div class="resourceIconCircle pointCircle">
-            <span class="resourceTextIcon">P</span>
-          </div>
+          <img src="@/assets/img/pointIcon.png" alt="포인트" class="resourceIcon" />
           <span class="resourceValue">{{ formatNumber(coinCount) }}</span>
         </button>
         
-        <!-- 코인 (노란 원) -->
+        <!-- 코인 -->
         <button class="resourceItem" @click="goToShop">
-          <div class="resourceIconCircle coinCircle">
-            <span class="resourceTextIcon">C</span>
-          </div>
+          <img src="@/assets/img/coinIcon.png" alt="코인" class="resourceIcon" />
           <span class="resourceValue">{{ formatNumber(totalCoin) }}</span>
         </button>
         
-        <!-- 고양이 파편 (보라색 원) -->
+        <!-- 고양이 파편 -->
         <button class="resourceItem" @click="goToShop">
-          <div class="resourceIconCircle catCircle">
-            <img src="@/assets/img/cat_ico.png" alt="고양이" class="resourceIcon">
-          </div>
+          <img src="@/assets/img/catPoint.png" alt="고양이" class="resourceIcon">
           <span class="resourceValue">{{ catFragments }}</span>
         </button>
       </div>
@@ -139,7 +131,7 @@ const formatNumber = store.formatNumber
       <div class="rightIconButtons">
         <!-- NFT 아이콘 -->
         <button class="iconButton nftButton" @click="goToNFT" title="NFT">
-          <img src="@/assets/img/store.png" alt="NFT" class="icon-img">
+          <img src="@/assets/img/shopIcon.png" alt="NFT" class="icon-img">
         </button>
         
         <!-- 설정 아이콘 -->
@@ -171,6 +163,7 @@ header {
   top: 0;
   z-index: 1000;
   padding: 0.8rem 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .headerCont {
@@ -204,7 +197,7 @@ header {
 .resourceItem {
   display: flex;
   align-items: center;
-  /* gap: 0.5rem; */
+  gap: 0.5rem;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -219,38 +212,11 @@ header {
   opacity: 0.9;
 }
 
-/* 리소스 아이콘 원형 배경 */
-.resourceIconCircle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  z-index: 1;
-}
-
-.energyCircle {
-  background: #ff4444; /* 빨간색 */
-}
-
-.pointCircle {
-  background: #4a90e2; /* 파란색 */
-}
-
-.coinCircle {
-  background: #f5a623; /* 노란색 */
-}
-
-.catCircle {
-  background: #9013fe; /* 보라색 */
-}
-
 .resourceIcon {
-  width: 18px;
-  height: 18px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 .resourceTextIcon {
@@ -262,13 +228,10 @@ header {
 
 .resourceValue {
   color: white;
-  background-color: rgba(0, 0, 0, 0.5);
-  padding: 0.2rem 0.5rem 0.2rem 1.5rem;
-  border-radius: 0 1rem 1rem 0;
-  font-weight: 600;
-  font-size: 1.2rem;
+  font-weight: 700;
+  font-size: 1.6rem;
   white-space: nowrap;
-  margin-left: -10px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* 오른쪽 세로 아이콘 버튼들 */
@@ -281,7 +244,7 @@ header {
   width: max-content;
   position: absolute;
     right: 2rem;
-    top: 5rem;
+    top: 8rem;
 }
 
 .iconButton {
@@ -359,14 +322,9 @@ header {
     gap: 0.6rem;
   } */
   
-  .resourceIconCircle {
-    width: 28px;
-    height: 28px;
-  }
-  
   .resourceIcon {
-    width: 16px;
-    height: 16px;
+    width: 40px;
+    height: 40px;
   }
   
   .resourceTextIcon {
@@ -374,7 +332,7 @@ header {
   }
   
   .resourceValue {
-    font-size: 1rem;
+    font-size: 1.3rem;
   }
   
   .iconCircle {
@@ -394,12 +352,12 @@ header {
 
 @media (max-width: 360px) {
   .resourceValue {
-    font-size: 0.9rem;
+    font-size: 1.1rem;
   }
   
-  .resourceIconCircle {
-    width: 26px;
-    height: 26px;
+  .resourceIcon {
+    width: 36px;
+    height: 36px;
   }
   
   .iconCircle {

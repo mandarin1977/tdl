@@ -94,9 +94,9 @@ const handleLogin = async (event) => {
         setWalletConnected(user.email, `${user.gameData?.coins || 0} coins`)
         setLoading(false)
         
-        // 로그인 완료 후 메인 화면으로 이동
+        // 로그인 완료 후 홈 화면으로 이동
         setTimeout(() => {
-          router.push('/main')
+          router.push('/home')
         }, 1000)
       } else {
         // 로그인 실패
@@ -139,9 +139,9 @@ const handleWalletConnect = async () => {
     if (result.success) {
       walletConnected.value = true
       
-      // 메인 화면으로 이동
+      // 홈 화면으로 이동
       setTimeout(() => {
-        router.push('/main')
+        router.push('/home')
       }, 1000)
     } else {
       walletError.value = result.error || 'Failed to connect wallet.'
@@ -171,7 +171,7 @@ onMounted(() => {
     if (import.meta.env.DEV) {
       console.log('LoginScreen: 이미 로그인된 사용자:', currentUser.email)
     }
-    router.push('/main')
+    router.push('/home')
     return
   }
   
