@@ -8,6 +8,16 @@ import { useAppStore } from '@/store/appStore'
 import { formatNumber } from '@/utils/formatUtils'
 import { checkAndResetEnergy } from '@/utils/energyUtils'
 import { calculateMaxExp, initializeNFTExp } from '@/utils/nftLevelUtils'
+import mainTab1 from '@/assets/img/mainTab1.png'
+import mainTab1Off from '@/assets/img/mainTab1_off.png'
+import mainTab2 from '@/assets/img/mainTab2.png'
+import mainTab2Off from '@/assets/img/mainTab2_off.png'
+import mainTab3 from '@/assets/img/mainTab3.png'
+import mainTab3Off from '@/assets/img/mainTab3_off.png'
+import mainTab4 from '@/assets/img/mainTab4.png'
+import mainTab4Off from '@/assets/img/mainTab4_off.png'
+import plusMini from '@/assets/img/plusMini.png'
+import energyMini from '@/assets/img/energyMini.png'
 import '@/styles/main.css'
 
 // appStore 사용
@@ -21,14 +31,23 @@ const router = useRouter()
 // 현재 사용자 정보
 const currentUser = ref(null)
 
-// 현재 활성화된 게임 모드
-const activeMode = ref('main')
+// 현재 활성화된 게임 모드 (기본값을 mining으로 변경)
+const activeMode = ref('mining')
 
 // 게임 데이터 (appStore에서 가져오기 - 반응형)
 const coinCount = computed(() => store.state.coins) // 포인트 (P)
 const pointCount = computed(() => store.state.coins) // 포인트 (P) - coinCount와 동일
 const totalCoin = computed(() => store.state.totalCoin) // 코인 (C)
 const catFragments = computed(() => store.state.catFragments) // 고양이 파편
+
+// 현재 활성 모드의 클릭 횟수
+const currentClickCount = computed(() => {
+  if (activeMode.value === 'mining') return miningClickCount.value
+  if (activeMode.value === 'hunting') return huntingClickCount.value
+  if (activeMode.value === 'exploration') return explorationClickCount.value
+  if (activeMode.value === 'production') return productionClickCount.value
+  return 0
+})
 
 // appStore에 업데이트하는 함수 (간편 함수 - 에러 처리 포함)
 const updateStoreCoins = async (newCoins) => {
@@ -61,6 +80,8 @@ const updateStoreCatFragments = async (newFragments) => {
 const speechBubbles = ref([])
 // 고양이 이모지 애니메이션
 const catEmojis = ref([])
+// 포인트 획득 애니메이션
+const pointAnimations = ref([])
 
 // 클릭 사운드
 const clickSound = ref(null)
@@ -158,33 +179,16 @@ const grantExpToNFTs = async (catsList, expAmount) => {
   }
 }
 
-// 게임 모드 변경 함수
+// 게임 모드 변경 함수 (모드만 변경, 카운터는 리셋하지 않음)
 const setActiveMode = (mode) => {
   activeMode.value = mode
-  
-  // 모든 모드의 카운터와 상태 리셋
-  miningClickCount.value = 0
-  isMiningComplete.value = false
-  showNewMiningButton.value = true
-  
-  explorationClickCount.value = 0
-  isExplorationComplete.value = false
-  showNewExplorationButton.value = true
-  
-  huntingClickCount.value = 0
-  isHuntingComplete.value = false
-  showNewHuntingButton.value = true
-  
-  productionClickCount.value = 0
-  isProductionComplete.value = false
-  showNewProductionButton.value = true
 }
 
-// 라우터 이벤트 감지
+// 라우터 이벤트 감지 (더 이상 필요 없음 - 항상 클리커 화면)
 const handleRouteChange = () => {
-  // 메인 화면으로 돌아올 때 메인 모드로 리셋
-  if (router.currentRoute.value.path === '/main') {
-    activeMode.value = 'main'
+  // 메인 화면에서는 항상 클리커 모드 유지
+  if (router.currentRoute.value.path === '/main' && activeMode.value === 'main') {
+    activeMode.value = 'mining' // 기본값으로 설정
   }
 }
 
@@ -207,35 +211,23 @@ onMounted(() => {
     // 행성 에너지 및 레벨 로드
     planetLevel.value = currentUser.value.gameData?.planetLevel || 1
     planetEnergy.value = currentUser.value.gameData?.planetEnergy || 0
-    // 각 모드별 냥이 목록 로드
-    if (currentUser.value.gameData?.miningCats) {
-      // 빈 배열이면 null 배열로 변환 (기존 Firebase 사용자 호환)
-      if (Array.isArray(currentUser.value.gameData.miningCats) && currentUser.value.gameData.miningCats.length === 0) {
-        miningCats.value = [null, null, null, null, null, null]
-      } else {
-        miningCats.value = currentUser.value.gameData.miningCats
-      }
+    // 각 모드별 냥이 목록 로드 (4개로 제한)
+    const ensure4Slots = (arr) => {
+      const sliced = (arr || []).slice(0, 4)
+      return sliced.length === 4 ? sliced : [...sliced, ...Array(4 - sliced.length).fill(null)]
     }
-    if (currentUser.value.gameData?.huntingCats) {
-      if (Array.isArray(currentUser.value.gameData.huntingCats) && currentUser.value.gameData.huntingCats.length === 0) {
-        huntingCats.value = [null, null, null, null, null, null]
-      } else {
-        huntingCats.value = currentUser.value.gameData.huntingCats
-      }
+    
+    if (currentUser.value.gameData?.miningCats !== undefined) {
+      miningCats.value = ensure4Slots(currentUser.value.gameData.miningCats)
     }
-    if (currentUser.value.gameData?.explorationCats) {
-      if (Array.isArray(currentUser.value.gameData.explorationCats) && currentUser.value.gameData.explorationCats.length === 0) {
-        explorationCats.value = [null, null, null, null, null, null]
-      } else {
-        explorationCats.value = currentUser.value.gameData.explorationCats
-      }
+    if (currentUser.value.gameData?.huntingCats !== undefined) {
+      huntingCats.value = ensure4Slots(currentUser.value.gameData.huntingCats)
     }
-    if (currentUser.value.gameData?.productionCats) {
-      if (Array.isArray(currentUser.value.gameData.productionCats) && currentUser.value.gameData.productionCats.length === 0) {
-        productionCats.value = [null, null, null, null, null, null]
-      } else {
-        productionCats.value = currentUser.value.gameData.productionCats
-      }
+    if (currentUser.value.gameData?.explorationCats !== undefined) {
+      explorationCats.value = ensure4Slots(currentUser.value.gameData.explorationCats)
+    }
+    if (currentUser.value.gameData?.productionCats !== undefined) {
+      productionCats.value = ensure4Slots(currentUser.value.gameData.productionCats)
     }
   }
   
@@ -380,6 +372,21 @@ const handleClick = async (mode) => {
       
       // 보상 정보 저장
       miningReward.value = { points: pointsGained, fragments: fragmentsGained }
+      
+      // 포인트 획득 애니메이션 추가
+      const animation = {
+        id: Date.now(),
+        points: pointsGained,
+        x: 50, // 클리커 영역 중앙 (퍼센트)
+        y: 20 // 상단 근처에서 시작
+      }
+      pointAnimations.value.push(animation)
+      setTimeout(() => {
+        const index = pointAnimations.value.findIndex(a => a.id === animation.id)
+        if (index > -1) {
+          pointAnimations.value.splice(index, 1)
+        }
+      }, 2000)
       
       if (fragmentsGained > 0) {
         const newFragments = catFragments.value + fragmentsGained
@@ -549,6 +556,21 @@ const handleClick = async (mode) => {
       
       // 보상 정보 저장
       explorationReward.value = { points: pointsGained, fragments: fragmentsGained }
+      
+      // 포인트 획득 애니메이션 추가
+      const animation = {
+        id: Date.now(),
+        points: pointsGained,
+        x: 50, // 클리커 영역 중앙 (퍼센트)
+        y: 20 // 상단 근처에서 시작
+      }
+      pointAnimations.value.push(animation)
+      setTimeout(() => {
+        const index = pointAnimations.value.findIndex(a => a.id === animation.id)
+        if (index > -1) {
+          pointAnimations.value.splice(index, 1)
+        }
+      }, 2000)
       
       // NFT 경험치 부여 (슬롯에 배치된 NFT들)
       await grantExpToNFTs(explorationCats.value, 10)
@@ -722,6 +744,21 @@ const handleClick = async (mode) => {
       // 보상 정보 저장
       huntingReward.value = { points: pointsGained, fragments: fragmentsGained }
       
+      // 포인트 획득 애니메이션 추가
+      const animation = {
+        id: Date.now(),
+        points: pointsGained,
+        x: 50, // 클리커 영역 중앙 (퍼센트)
+        y: 20 // 상단 근처에서 시작
+      }
+      pointAnimations.value.push(animation)
+      setTimeout(() => {
+        const index = pointAnimations.value.findIndex(a => a.id === animation.id)
+        if (index > -1) {
+          pointAnimations.value.splice(index, 1)
+        }
+      }, 2000)
+      
       // NFT 경험치 부여 (슬롯에 배치된 NFT들)
       await grantExpToNFTs(huntingCats.value, 10)
       
@@ -889,6 +926,21 @@ const handleClick = async (mode) => {
       
       // 보상 정보 저장
       productionReward.value = { points: pointsGained, fragments: fragmentsGained }
+      
+      // 포인트 획득 애니메이션 추가
+      const animation = {
+        id: Date.now(),
+        points: pointsGained,
+        x: 50, // 클리커 영역 중앙 (퍼센트)
+        y: 20 // 상단 근처에서 시작
+      }
+      pointAnimations.value.push(animation)
+      setTimeout(() => {
+        const index = pointAnimations.value.findIndex(a => a.id === animation.id)
+        if (index > -1) {
+          pointAnimations.value.splice(index, 1)
+        }
+      }, 2000)
       
       // NFT 경험치 부여 (슬롯에 배치된 NFT들)
       await grantExpToNFTs(productionCats.value, 10)
@@ -1124,9 +1176,9 @@ const handleImageError = (emojiId) => {
   }
 }
 
-// 채굴 냥이 목록 (처음에는 빈칸)
+// 채굴 냥이 목록 (처음에는 빈칸) - 4개로 제한
 const miningCats = ref([
-  null, null, null, null, null, null
+  null, null, null, null
 ])
 
 // 고양이 선택 팝업 관련
@@ -1184,7 +1236,7 @@ const getCurrentSlotCat = () => {
   const mode = currentSelectMode.value
   const slotIndex = selectedSlotIndex.value
   
-  if (slotIndex < 0 || slotIndex >= 6) return null
+  if (slotIndex < 0 || slotIndex >= 4) return null
   
   let catsList = null
   if (mode === 'mining') catsList = miningCats.value
@@ -1208,7 +1260,7 @@ const openCatSelectPopup = (slotIndex, mode, event) => {
 
 // 고양이 선택 핸들러
 const selectCatForSlot = async (cat) => {
-  if (selectedSlotIndex.value >= 0 && selectedSlotIndex.value < 6) {
+  if (selectedSlotIndex.value >= 0 && selectedSlotIndex.value < 4) {
     const selectedCat = {
       id: cat.id,
       level: cat.level || 1,
@@ -1285,7 +1337,7 @@ const selectCatForSlot = async (cat) => {
 
 // 고양이 제거 함수
 const removeCatFromSlot = async () => {
-  if (selectedSlotIndex.value >= 0 && selectedSlotIndex.value < 6) {
+  if (selectedSlotIndex.value >= 0 && selectedSlotIndex.value < 4) {
     const mode = currentSelectMode.value
     let catsList = []
     
@@ -1348,19 +1400,19 @@ const closeCatSelectPopup = () => {
   currentSelectMode.value = 'mining'
 }
 
-// 사냥 냥이 목록 (처음에는 빈칸)
+// 사냥 냥이 목록 (처음에는 빈칸) - 4개로 제한
 const huntingCats = ref([
-  null, null, null, null, null, null
+  null, null, null, null
 ])
 
-// 탐험 냥이 목록 (처음에는 빈칸)
+// 탐험 냥이 목록 (처음에는 빈칸) - 4개로 제한
 const explorationCats = ref([
-  null, null, null, null, null, null
+  null, null, null, null
 ])
 
-// 생산 냥이 목록 (처음에는 빈칸)
+// 생산 냥이 목록 (처음에는 빈칸) - 4개로 제한
 const productionCats = ref([
-  null, null, null, null, null, null
+  null, null, null, null
 ])
 
 // 현재 선택 중인 모드 (mining, hunting, exploration, production)
@@ -1933,317 +1985,239 @@ const canProduce = (recipe) => {
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
-      <!-- 메인 메뉴 -->
-      <article v-if="activeMode === 'main'" class="mainMenuNew">
-        <!-- 총 포인트 & 총 코인 -->
-        <div class="totalStats">
-          <div class="totalPoint">
-            <div class="statLabel">{{ texts.totalPoints }}</div>
-            <div class="statValue">
-              <div class="iconCircle pointIcon">
-                <img src="@/assets/img/mainPoint.png" alt="P" />
-              </div>
-              <span class="statNumber">{{ formatNumber(pointCount) }}</span>
-            </div>
-          </div>
-          <div class="divider"></div>
-          <div class="totalCoin">
-            <div class="statLabel">{{ texts.totalCoins }}</div>
-            <div class="statValue">
-              <div class="iconCircle coinIcon">
-                <img src="@/assets/img/mainCoin.png" alt="C" />
-              </div>
-              <span class="statNumber">{{ formatNumber(totalCoin) }}</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 게임 모드 그리드 -->
-        <div class="gameModeGrid">
-          <div class="modeCard miningCard" @click="setActiveMode('mining')">
-            <div class="mainmenuBtns"></div>
-            <div class="modeTitle">{{ texts.mining }}</div>
-            <div class="modeLevel">Level {{ String(miningLevel).padStart(2, '0') }}</div>
-          </div>
-          <div class="modeCard huntingCard" @click="setActiveMode('hunting')">
-            <div class="mainmenuBtns"></div>
-            <div class="modeTitle">{{ texts.hunting }}</div>
-            <div class="modeLevel">Level {{ String(huntingLevel).padStart(2, '0') }}</div>
-          </div>
-          <div class="modeCard explorationCard" @click="setActiveMode('exploration')">
-            <div class="mainmenuBtns"></div>
-            <div class="modeTitle">{{ texts.exploration }}</div>
-            <div class="modeLevel">Level {{ String(explorationLevel).padStart(2, '0') }}</div>
-          </div>
-          <div class="modeCard productionCard" @click="setActiveMode('production')">
-            <div class="mainmenuBtns"></div>
-            <div class="modeTitle">{{ texts.production }}</div>
-            <div class="modeLevel">Level {{ String(productionLevel).padStart(2, '0') }}</div>
-          </div>
-        </div>
-      </article>
+      <!-- 상단 모드 탭 -->
+      <div class="modeTabs">
+        <button 
+          class="modeTab" 
+          :class="{ active: activeMode === 'mining' }"
+          @click="setActiveMode('mining')"
+        >
+          <img 
+            :src="activeMode === 'mining' ? mainTab1 : mainTab1Off" 
+            alt="Mining" 
+            class="modeTabIcon"
+          />
+          <span class="modeTabLevel">Lv.{{ miningLevel }}</span>
+        </button>
+        <button 
+          class="modeTab" 
+          :class="{ active: activeMode === 'hunting' }"
+          @click="setActiveMode('hunting')"
+        >
+          <img 
+            :src="activeMode === 'hunting' ? mainTab2 : mainTab2Off" 
+            alt="Hunting" 
+            class="modeTabIcon"
+          />
+          <span class="modeTabLevel">Lv.{{ huntingLevel }}</span>
+        </button>
+        <button 
+          class="modeTab" 
+          :class="{ active: activeMode === 'exploration' }"
+          @click="setActiveMode('exploration')"
+        >
+          <img 
+            :src="activeMode === 'exploration' ? mainTab3 : mainTab3Off" 
+            alt="Exploration" 
+            class="modeTabIcon"
+          />
+          <span class="modeTabLevel">Lv.{{ explorationLevel }}</span>
+        </button>
+        <button 
+          class="modeTab" 
+          :class="{ active: activeMode === 'production' }"
+          @click="setActiveMode('production')"
+        >
+          <img 
+            :src="activeMode === 'production' ? mainTab4 : mainTab4Off" 
+            alt="Production" 
+            class="modeTabIcon"
+          />
+          <span class="modeTabLevel">Lv.{{ productionLevel }}</span>
+        </button>
+      </div>
 
-      <!-- 채굴 모드 -->
-      <div v-if="activeMode === 'mining'" class="miningMode">
-        <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">{{ texts.back }}</button>
-        </div>
-        
-        <!-- 상단 총 포인트 -->
+      <!-- 가운데 클리커 영역 -->
+      <div class="clickerArea">
+        <!-- 상단 클릭 횟수 -->
         <div class="totalPointsDisplay">
-          {{ formatNumber(pointCount) }}
+          {{ currentClickCount }}
         </div>
         
-        <!-- 클리커 버튼 (구름 모양) -->
-        <div class="miningButtonContainer">
-          <button 
-            v-if="showNewMiningButton && !isMiningComplete" 
-            @click="handleClick('mining')" 
-            class="clickerBtn miningBtn"
-            :class="{ 'mining-active': miningClickCount > 0 }"
+        <!-- 포인트 획득 애니메이션 -->
+        <div class="pointAnimations">
+          <div 
+            v-for="animation in pointAnimations" 
+            :key="animation.id"
+            class="pointAnimation"
+            :style="{ left: animation.x + '%', top: animation.y + '%' }"
           >
-          </button>
-          <div v-if="isMiningComplete" class="completeMessageContainer">
-            <div class="completeMessageText">{{ texts.miningComplete }}</div>
-            <div class="rewardInfo">
-              <div class="rewardItem">{{ miningReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
-              <div v-if="miningReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ miningReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
-            </div>
+            +{{ formatNumber(animation.points) }}
           </div>
         </div>
         
-        <!-- 행성 에너지 섹션 -->
-        <div class="energySection">
-          <div class="energyInfo">
-            <span class="energyIcon">⚡</span>
+        <!-- 클리커와 에너지 바를 나란히 배치 -->
+        <div class="clickerAndEnergyContainer">
+          <!-- 왼쪽: 세로 에너지 바 -->
+          <div class="energySection">
+            <img :src="energyMini" alt="Energy" class="energyIcon" />
+            <div class="energyBar">
+              <div class="energyFill" :style="{ height: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
+            </div>
             <span class="energyText">{{ planetEnergy.toLocaleString() }}/{{ maxPlanetEnergy.toLocaleString() }}</span>
           </div>
-          <div class="energyBar">
-            <div class="energyFill" :style="{ width: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
+          
+          <!-- 오른쪽: 클리커 버튼 -->
+          <div class="clickerButtonContainer">
+            <!-- 채굴 모드 클리커 -->
+            <template v-if="activeMode === 'mining'">
+              <button 
+                v-if="showNewMiningButton && !isMiningComplete" 
+                @click="handleClick('mining')" 
+                class="clickerBtn miningBtn"
+                :class="{ 'mining-active': miningClickCount > 0 }"
+              >
+              </button>
+              <div v-if="isMiningComplete" class="completeMessageContainer">
+                <div class="completeMessageText">{{ texts.miningComplete }}</div>
+                <div class="rewardInfo">
+                  <div class="rewardItem">{{ miningReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
+                  <div v-if="miningReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ miningReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
+                </div>
+              </div>
+            </template>
+            
+            <!-- 사냥 모드 클리커 -->
+            <template v-if="activeMode === 'hunting'">
+              <button 
+                v-if="showNewHuntingButton && !isHuntingComplete" 
+                @click="handleClick('hunting')" 
+                class="clickerBtn huntingBtn"
+                :class="{ 'hunting-active': huntingClickCount > 0 }"
+              >
+              </button>
+              <div v-if="isHuntingComplete" class="completeMessageContainer">
+                <div class="completeMessageText">{{ texts.huntingComplete }}</div>
+                <div class="rewardInfo">
+                  <div class="rewardItem">{{ huntingReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
+                  <div v-if="huntingReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ huntingReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
+                </div>
+              </div>
+            </template>
+            
+            <!-- 탐험 모드 클리커 -->
+            <template v-if="activeMode === 'exploration'">
+              <button 
+                v-if="showNewExplorationButton && !isExplorationComplete" 
+                @click="handleClick('exploration')" 
+                class="clickerBtn explorationBtn"
+                :class="{ 'exploration-active': explorationClickCount > 0 }"
+              >
+              </button>
+              <div v-if="isExplorationComplete" class="completeMessageContainer">
+                <div class="completeMessageText">{{ texts.explorationComplete }}</div>
+                <div class="rewardInfo">
+                  <div class="rewardItem">{{ explorationReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
+                  <div v-if="explorationReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ explorationReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
+                </div>
+              </div>
+            </template>
+            
+            <!-- 생산 모드 클리커 -->
+            <template v-if="activeMode === 'production'">
+              <button 
+                v-if="showNewProductionButton && !isProductionComplete" 
+                @click="handleClick('production')" 
+                class="clickerBtn productionBtn"
+                :class="{ 'production-active': productionClickCount > 0 }"
+              >
+              </button>
+              <div v-if="isProductionComplete" class="completeMessageContainer">
+                <div class="completeMessageText">{{ texts.productionComplete }}</div>
+                <div class="rewardInfo">
+                  <div class="rewardItem">{{ productionReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
+                  <div v-if="productionReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ productionReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
-        
-        <!-- 채굴 냥이 목록 -->
-        <div class="miningCatsSection">
-          <div class="catsListLabel">{{ texts.miningCatList }}</div>
-          <div class="catsListScroll">
+      </div>
+
+      <!-- 하단 고양이 슬롯 -->
+      <div class="catsSection">
+        <div class="catsListScroll">
+          <!-- 채굴 고양이 -->
+          <template v-if="activeMode === 'mining'">
             <template v-for="(cat, index) in miningCats" :key="index">
               <div 
                 class="catCard"
                 :class="{ 'emptySlot': !cat, 'working': cat && activeMode === 'mining' }"
                 @click="openCatSelectPopup(index, 'mining', $event)"
               >
-                <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
                 <div v-if="cat" class="catImage">
                   <img :src="getCatImage(cat.imageId)" alt="Cat" />
                 </div>
-                <div v-if="cat" class="catStars">
-                  <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
-                </div>
                 <div v-if="!cat" class="emptySlotContent">
-                  <span class="emptySlotText">+</span>
+                  <img :src="plusMini" alt="+" class="emptySlotIcon" />
                 </div>
               </div>
             </template>
-          </div>
-        </div>
-      </div>
-
-      <!-- 사냥 모드 -->
-      <div v-if="activeMode === 'hunting'" class="miningMode">
-        <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">{{ texts.back }}</button>
-        </div>
-        
-        <!-- 상단 총 포인트 -->
-        <div class="totalPointsDisplay">
-          {{ formatNumber(pointCount) }}
-        </div>
-        
-        <!-- 클리커 버튼 -->
-        <div class="miningButtonContainer">
-          <button 
-            v-if="showNewHuntingButton && !isHuntingComplete" 
-            @click="handleClick('hunting')" 
-            class="clickerBtn huntingBtn"
-            :class="{ 'hunting-active': huntingClickCount > 0 }"
-          >
-          </button>
-          <div v-if="isHuntingComplete" class="completeMessageContainer">
-            <div class="completeMessageText">{{ texts.huntingComplete }}</div>
-            <div class="rewardInfo">
-              <div class="rewardItem">{{ huntingReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
-              <div v-if="huntingReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ huntingReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 행성 에너지 섹션 -->
-        <div class="energySection">
-          <div class="energyInfo">
-            <span class="energyIcon">⚡</span>
-            <span class="energyText">{{ planetEnergy.toLocaleString() }}/{{ maxPlanetEnergy.toLocaleString() }}</span>
-          </div>
-          <div class="energyBar">
-            <div class="energyFill" :style="{ width: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
-          </div>
-        </div>
-        
-        <!-- 사냥 냥이 목록 -->
-        <div class="miningCatsSection">
-          <div class="catsListLabel">{{ texts.huntingCatList }}</div>
-          <div class="catsListScroll">
+          </template>
+          
+          <!-- 사냥 고양이 -->
+          <template v-if="activeMode === 'hunting'">
             <template v-for="(cat, index) in huntingCats" :key="index">
               <div 
                 class="catCard"
                 :class="{ 'emptySlot': !cat, 'working': cat && activeMode === 'hunting' }"
                 @click="openCatSelectPopup(index, 'hunting', $event)"
               >
-                <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
                 <div v-if="cat" class="catImage">
                   <img :src="getCatImage(cat.imageId)" alt="Cat" />
                 </div>
-                <div v-if="cat" class="catStars">
-                  <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
-                </div>
                 <div v-if="!cat" class="emptySlotContent">
-                  <span class="emptySlotText">+</span>
+                  <img :src="plusMini" alt="+" class="emptySlotIcon" />
                 </div>
               </div>
             </template>
-          </div>
-        </div>
-      </div>
-
-      <!-- 탐험 모드 -->
-      <div v-if="activeMode === 'exploration'" class="miningMode">
-        <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">{{ texts.back }}</button>
-        </div>
-        
-        <!-- 상단 총 포인트 -->
-        <div class="totalPointsDisplay">
-          {{ formatNumber(pointCount) }}
-        </div>
-        
-        <!-- 클리커 버튼 -->
-        <div class="miningButtonContainer">
-          <button 
-            v-if="showNewExplorationButton && !isExplorationComplete" 
-            @click="handleClick('exploration')" 
-            class="clickerBtn explorationBtn"
-            :class="{ 'exploration-active': explorationClickCount > 0 }"
-          >
-          </button>
-          <div v-if="isExplorationComplete" class="completeMessageContainer">
-            <div class="completeMessageText">{{ texts.explorationComplete }}</div>
-            <div class="rewardInfo">
-              <div class="rewardItem">{{ explorationReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
-              <div v-if="explorationReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ explorationReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 행성 에너지 섹션 -->
-        <div class="energySection">
-          <div class="energyInfo">
-            <span class="energyIcon">⚡</span>
-            <span class="energyText">{{ planetEnergy.toLocaleString() }}/{{ maxPlanetEnergy.toLocaleString() }}</span>
-          </div>
-          <div class="energyBar">
-            <div class="energyFill" :style="{ width: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
-          </div>
-        </div>
-        
-        <!-- 탐험 냥이 목록 -->
-        <div class="miningCatsSection">
-          <div class="catsListLabel">{{ texts.explorationCatList }}</div>
-          <div class="catsListScroll">
+          </template>
+          
+          <!-- 탐험 고양이 -->
+          <template v-if="activeMode === 'exploration'">
             <template v-for="(cat, index) in explorationCats" :key="index">
               <div 
                 class="catCard"
                 :class="{ 'emptySlot': !cat, 'working': cat && activeMode === 'exploration' }"
                 @click="openCatSelectPopup(index, 'exploration', $event)"
               >
-                <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
                 <div v-if="cat" class="catImage">
                   <img :src="getCatImage(cat.imageId)" alt="Cat" />
                 </div>
-                <div v-if="cat" class="catStars">
-                  <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
-                </div>
                 <div v-if="!cat" class="emptySlotContent">
-                  <span class="emptySlotText">+</span>
+                  <img :src="plusMini" alt="+" class="emptySlotIcon" />
                 </div>
               </div>
             </template>
-          </div>
-        </div>
-      </div>
-
-      <!-- 생산 모드 -->
-      <div v-if="activeMode === 'production'" class="miningMode">
-        <div class="pageHeader">
-          <button class="backBtn" @click="setActiveMode('main')">{{ texts.back }}</button>
-        </div>
-        
-        <!-- 상단 총 포인트 -->
-        <div class="totalPointsDisplay">
-          {{ formatNumber(pointCount) }}
-        </div>
-        
-        <!-- 클리커 버튼 -->
-        <div class="miningButtonContainer">
-          <button 
-            v-if="showNewProductionButton && !isProductionComplete" 
-            @click="handleClick('production')" 
-            class="clickerBtn productionBtn"
-            :class="{ 'production-active': productionClickCount > 0 }"
-          >
-          </button>
-          <div v-if="isProductionComplete" class="completeMessageContainer">
-            <div class="completeMessageText">{{ texts.productionComplete }}</div>
-            <div class="rewardInfo">
-              <div class="rewardItem">{{ productionReward.points.toLocaleString() }} {{ texts.pointsEarned }}</div>
-              <div v-if="productionReward.fragments > 0" class="rewardItem">{{ texts.fragmentsEarned }} {{ productionReward.fragments }} {{ texts.fragmentsEarnedCount }}</div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 행성 에너지 섹션 -->
-        <div class="energySection">
-          <div class="energyInfo">
-            <span class="energyIcon">⚡</span>
-            <span class="energyText">{{ planetEnergy.toLocaleString() }}/{{ maxPlanetEnergy.toLocaleString() }}</span>
-          </div>
-          <div class="energyBar">
-            <div class="energyFill" :style="{ width: (planetEnergy / maxPlanetEnergy * 100) + '%' }"></div>
-          </div>
-        </div>
-        
-        <!-- 생산 냥이 목록 -->
-        <div class="miningCatsSection">
-          <div class="catsListLabel">{{ texts.productionCatList }}</div>
-          <div class="catsListScroll">
+          </template>
+          
+          <!-- 생산 고양이 -->
+          <template v-if="activeMode === 'production'">
             <template v-for="(cat, index) in productionCats" :key="index">
               <div 
                 class="catCard"
                 :class="{ 'emptySlot': !cat, 'working': cat && activeMode === 'production' }"
                 @click="openCatSelectPopup(index, 'production', $event)"
               >
-                <div v-if="cat" class="catLevel">Lv {{ String(cat.level).padStart(2, '0') }}</div>
                 <div v-if="cat" class="catImage">
                   <img :src="getCatImage(cat.imageId)" alt="Cat" />
                 </div>
-                <div v-if="cat" class="catStars">
-                  <span v-for="n in cat.stars" :key="n" class="star"><img src="" alt=""></span>
-                </div>
                 <div v-if="!cat" class="emptySlotContent">
-                  <span class="emptySlotText">+</span>
+                  <img :src="plusMini" alt="+" class="emptySlotIcon" />
                 </div>
               </div>
             </template>
-          </div>
+          </template>
         </div>
       </div>
     </main>
@@ -2251,8 +2225,8 @@ const canProduce = (recipe) => {
     <!-- 푸터 -->
     <Footer />
     
-    <!-- 말풍선들 (메인 화면에서는 숨김) -->
-    <div v-if="activeMode !== 'main'" class="speechBubbles">
+    <!-- 말풍선들 -->
+    <div class="speechBubbles">
       <div 
         v-for="bubble in speechBubbles" 
         :key="bubble.id"
@@ -2263,8 +2237,8 @@ const canProduce = (recipe) => {
       </div>
     </div>
     
-    <!-- 고양이 이모지 애니메이션 (메인 화면에서는 숨김) -->
-    <div v-if="activeMode !== 'main'" class="catEmojis">
+    <!-- 고양이 이모지 애니메이션 -->
+    <div class="catEmojis">
       <div 
         v-for="emoji in catEmojis" 
         :key="emoji.id"
@@ -2781,5 +2755,167 @@ const canProduce = (recipe) => {
     opacity: 0;
     transform: scale(0.7) translateY(-150px) rotate(0deg);
   }
+}
+
+/* 모드 탭 스타일 */
+.modeTabs {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+  background-image: url('@/assets/img/mainLine.png');
+  background-size: contain;
+  background-position: center 60%;
+  background-repeat: no-repeat;
+}
+
+.modeTab {
+  flex: 1;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.8rem 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modeTab:hover {
+  transform: translateY(-2px);
+}
+
+.modeTab.active .modeTabIcon {
+  transform: scale(1.1);
+}
+
+.modeTabIcon {
+  width: 15vw;
+  height: auto;
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+.modeTabLabel {
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.modeTabLevel {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .modeTabs {
+    gap: 0.3rem;
+  }
+  
+  .modeTab {
+    padding: 0.6rem 0.3rem;
+  }
+  
+  .modeTabLabel {
+    font-size: 0.9rem;
+  }
+  
+  .modeTabLevel {
+    font-size: 1.2rem;
+  }
+}
+
+/* 클리커 영역 스타일 */
+.clickerArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.clickerAndEnergyContainer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.energySection {
+  position: relative;
+  z-index: 0;
+  flex-shrink: 0;
+}
+
+.clickerButtonContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  height: 300px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  width: 300px;
+}
+
+/* 고양이 섹션 스타일 (하단 고정) */
+.catsSection {
+  position: fixed;
+  bottom: 55px; /* Footer 높이만큼 위에 배치 */
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 1rem;
+  z-index: 999;
+}
+
+.catsListLabel {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.catsListScroll {
+  display: flex;
+  gap: 0.8rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.catsListScroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.catsListScroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.catsListScroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.catsListScroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 </style>

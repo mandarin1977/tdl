@@ -31,11 +31,11 @@ const state = reactive({
   explorationLevel: 1,
   productionLevel: 1,
   
-  // 고양이 슬롯
-  miningCats: [null, null, null, null, null, null],
-  huntingCats: [null, null, null, null, null, null],
-  explorationCats: [null, null, null, null, null, null],
-  productionCats: [null, null, null, null, null, null],
+  // 고양이 슬롯 (4개로 제한)
+  miningCats: [null, null, null, null],
+  huntingCats: [null, null, null, null],
+  explorationCats: [null, null, null, null],
+  productionCats: [null, null, null, null],
   
   // 인벤토리
   inventory: []
@@ -71,10 +71,16 @@ export const useAppStore = () => {
     state.explorationLevel = gameData.explorationLevel || 1
     state.productionLevel = gameData.productionLevel || 1
     
-    state.miningCats = gameData.miningCats || [null, null, null, null, null, null]
-    state.huntingCats = gameData.huntingCats || [null, null, null, null, null, null]
-    state.explorationCats = gameData.explorationCats || [null, null, null, null, null, null]
-    state.productionCats = gameData.productionCats || [null, null, null, null, null, null]
+    // 4개 슬롯으로 제한하는 헬퍼 함수
+    const ensure4Slots = (arr) => {
+      const sliced = (arr || []).slice(0, 4)
+      return sliced.length === 4 ? sliced : [...sliced, ...Array(4 - sliced.length).fill(null)]
+    }
+    
+    state.miningCats = ensure4Slots(gameData.miningCats)
+    state.huntingCats = ensure4Slots(gameData.huntingCats)
+    state.explorationCats = ensure4Slots(gameData.explorationCats)
+    state.productionCats = ensure4Slots(gameData.productionCats)
     
     state.inventory = gameData.inventory || []
   }

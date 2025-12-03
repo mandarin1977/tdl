@@ -244,7 +244,7 @@ header {
   width: max-content;
   position: absolute;
     right: 2rem;
-    top: 8rem;
+    top: 15rem;
 }
 
 .iconButton {

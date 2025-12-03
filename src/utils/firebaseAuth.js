@@ -23,10 +23,10 @@ export const convertFirebaseUserToAppUser = (firebaseUser, gameData) => {
       totalCoin: 0,
       catFragments: 50,
       nftCount: 0,
-      miningCats: [null, null, null, null, null, null],
-      huntingCats: [null, null, null, null, null, null],
-      explorationCats: [null, null, null, null, null, null],
-      productionCats: [null, null, null, null, null, null],
+      miningCats: [null, null, null, null],
+      huntingCats: [null, null, null, null],
+      explorationCats: [null, null, null, null],
+      productionCats: [null, null, null, null],
       inventory: []
     }
   }

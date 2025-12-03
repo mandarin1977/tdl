@@ -2,16 +2,11 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getI18nTexts } from '@/utils/userUtils'
-import bottom001 from '@/assets/img/bottom001.png'
-import bottom001_on from '@/assets/img/bottom001_on.png'
-import bottom002 from '@/assets/img/bottom002.png'
-import bottom002_on from '@/assets/img/bottom002_on.png'
-import bottom003 from '@/assets/img/bottom003.png'
-import bottom003_on from '@/assets/img/bottom003_on.png'
-import bottom004 from '@/assets/img/bottom004.png'
-import bottom004_on from '@/assets/img/bottom004_on.png'
-import bottom005 from '@/assets/img/bottom005.png'
-import bottom005_on from '@/assets/img/bottom005_on.png'
+import tabIcon1 from '@/assets/img/tabIcon1.png'
+import tabIcon2 from '@/assets/img/tabIcon2.png'
+import tabIcon3 from '@/assets/img/tabIcon3.png'
+import tabIcon4 from '@/assets/img/tabIcon4.png'
+import tabIcon5 from '@/assets/img/tabIcon5.png'
 
 const router = useRouter()
 const activeTab = ref('home')
@@ -86,11 +81,11 @@ watch(language, () => {
 })
 
 const tabs = computed(() => [
-  { id: 'game', img: bottom001, imgActive: bottom001_on, label: texts.value.game },
-  { id: 'exchange', img: bottom002, imgActive: bottom002_on, label: texts.value.exchange },
-  { id: 'home', emoji: '🏠', label: texts.value.home },
-  { id: 'inventory', img: bottom004, imgActive: bottom004_on, label: texts.value.inventory },
-  { id: 'factory', img: bottom005, imgActive: bottom005_on, label: texts.value.factory }
+  { id: 'game', img: tabIcon1, imgActive: tabIcon1, label: texts.value.game },
+  { id: 'exchange', img: tabIcon2, imgActive: tabIcon2, label: texts.value.exchange },
+  { id: 'home', img: tabIcon3, imgActive: tabIcon3, label: texts.value.home },
+  { id: 'inventory', img: tabIcon4, imgActive: tabIcon4, label: texts.value.inventory },
+  { id: 'factory', img: tabIcon5, imgActive: tabIcon5, label: texts.value.factory }
 ])
 
 const setActiveTab = (tabId) => {
@@ -136,7 +131,6 @@ const setActiveTab = (tabId) => {
               class="tabIcon"
             />
             <span v-if="tab.emoji" class="tabEmoji">{{ tab.emoji }}</span>
-            <span class="tabLabel">{{ tab.label }}</span>
           </div>
         </div>
       </div>
@@ -147,7 +141,7 @@ const setActiveTab = (tabId) => {
 <style scoped>
 footer {
   width: 100%;
-  height: 70px;
+  height: 55px;
   position: fixed;
   bottom: 0;
   left: 0;
@@ -181,21 +175,20 @@ footer {
   flex: 1;
   cursor: pointer;
   height: 100%;
-  gap: 0.25rem;
 }
 
 .tabContent {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: center;
   position: relative;
   z-index: 2;
 }
 
 .tabIcon {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   transition: all 0.3s ease;
   position: relative;
@@ -210,39 +203,18 @@ footer {
   z-index: 2;
 }
 
-.tabLabel {
-  color: #fff;
-  font-weight: 500;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 2;
-}
-
-.tabItem.active .tabLabel {
-  font-weight: 600;
-}
-
 /* 반응형 */
 @media (max-width: 480px) {
-  .tabLabel {
-    font-size: 0.9rem;
-  }
-  
   .tabIcon {
-    width: 24px;
-    height: 24px;
+    width: 36px;
+    height: 36px;
   }
 }
 
 @media (max-width: 360px) {
-  .tabLabel {
-    font-size: 0.8rem;
-  }
-  
   .tabIcon {
-    width: 22px;
-    height: 22px;
+    width: 32px;
+    height: 32px;
   }
 }
 </style>

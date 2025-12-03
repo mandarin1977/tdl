@@ -61,10 +61,10 @@ export const createWalletUser = (walletAddress) => {
       huntingLevel: 1,
       explorationLevel: 1,
       productionLevel: 1,
-      miningCats: [null, null, null, null, null, null],
-      huntingCats: [null, null, null, null, null, null],
-      explorationCats: [null, null, null, null, null, null],
-      productionCats: [null, null, null, null, null, null],
+      miningCats: [null, null, null, null],
+      huntingCats: [null, null, null, null],
+      explorationCats: [null, null, null, null],
+      productionCats: [null, null, null, null],
       inventory: []
     }
   }
