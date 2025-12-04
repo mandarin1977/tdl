@@ -1,9 +1,15 @@
 <script setup>
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
+import factoryBtnOff from '@/assets/img/factoryBtn_off.png'
+import factoryBtnOn from '@/assets/img/factoryBtn_on.png'
+
+// 라우터 사용
+const router = useRouter()
 
 // appStore 사용
 const store = useAppStore()
@@ -11,23 +17,33 @@ const store = useAppStore()
 // 다국어 텍스트
 const texts = computed(() => getI18nTexts())
 
+// 탭 상태
+const activeTab = ref('exchange') // 기본값: Exchange
+
 // appStore에서 게임 데이터 가져오기 (반응형)
 const coinCount = computed(() => store.state.coins) // 포인트 (P)
 const totalCoin = computed(() => store.state.totalCoin) // 코인 (C)
 
 const currentUser = ref(null)
-const activeTab = ref('buy')
 
 // 입력값
-const coinAmount = ref('') // 코인 수량
+const buyPointAmount = ref('') // 구매할 포인트 수량
+const sellCoinAmount = ref('') // 판매 코인 수량
 
 // 고정 가격
 const fixedPrice = 1000 // 1 Coin = 1000 Point
 
-// 계산된 값
-const totalCost = computed(() => {
-  if (!coinAmount.value) return 0
-  const amount = parseFloat(coinAmount.value) || 0
+// 계산된 값 (구매 - 포인트 입력 시 코인 계산)
+const buyCoinAmount = computed(() => {
+  if (!buyPointAmount.value) return 0
+  const points = parseFloat(buyPointAmount.value) || 0
+  return Math.floor(points / fixedPrice) // 포인트를 코인으로 변환
+})
+
+// 계산된 값 (판매)
+const sellTotalCost = computed(() => {
+  if (!sellCoinAmount.value) return 0
+  const amount = parseFloat(sellCoinAmount.value) || 0
   return Math.floor(amount * fixedPrice) // 1 Coin = 1000 Point
 })
 
@@ -41,75 +57,85 @@ const loadUserData = () => {
   store.loadCurrentUser()
 }
 
-// 거래 실행
-const executeTrade = async () => {
+// 구매 거래 실행
+const executeBuy = async () => {
   if (!currentUser.value) {
     alert(texts.value.loginRequired)
     return
   }
 
-  if (!coinAmount.value || parseFloat(coinAmount.value) <= 0) {
+  if (!buyPointAmount.value || parseFloat(buyPointAmount.value) <= 0) {
+    alert('Please enter the point amount.')
+    return
+  }
+
+  const pointsToSpend = parseFloat(buyPointAmount.value)
+  const coinsToReceive = buyCoinAmount.value
+
+  if (coinCount.value < pointsToSpend) {
+    alert(`${texts.value.insufficientPoints}\nRequired: ${pointsToSpend.toLocaleString()} Point\nOwned: ${coinCount.value.toLocaleString()} Point`)
+    return
+  }
+
+  if (coinsToReceive <= 0) {
+    alert('Not enough points to buy at least 1 coin.')
+    return
+  }
+
+  const newPoints = coinCount.value - pointsToSpend
+  const newCoins = totalCoin.value + coinsToReceive
+
+  // appStore를 통해 업데이트 (데이터 일관성 보장)
+  const success = await store.updateMultiple({
+    coins: newPoints,
+    totalCoin: newCoins
+  })
+
+  if (success) {
+    alert(`${texts.value.purchaseSuccess}\n${coinsToReceive} ${texts.value.coin} ${texts.value.buy}\n${texts.value.pointUsed}: ${pointsToSpend.toLocaleString()}`)
+    buyPointAmount.value = ''
+  } else {
+    alert(texts.value.tradeFailed)
+  }
+}
+
+// 판매 거래 실행
+const executeSell = async () => {
+  if (!currentUser.value) {
+    alert(texts.value.loginRequired)
+    return
+  }
+
+  if (!sellCoinAmount.value || parseFloat(sellCoinAmount.value) <= 0) {
     alert('Please enter the coin amount.')
     return
   }
 
-  const amount = parseFloat(coinAmount.value)
+  const amount = parseFloat(sellCoinAmount.value)
   const coinValue = amount // 1 = 1 Coin
 
-  if (activeTab.value === 'buy') {
-    // Coin 구매: Point로 Coin 구매
-    const pointsNeeded = totalCost.value
+  if (totalCoin.value < coinValue) {
+    alert(`${texts.value.insufficientCoins}\nRequired: ${amount} ${texts.value.coin}\nOwned: ${totalCoin.value.toLocaleString()} ${texts.value.coin}`)
+    return
+  }
 
-    if (coinCount.value < pointsNeeded) {
-      alert(`${texts.value.insufficientPoints}\nRequired: ${pointsNeeded.toLocaleString()} Point\nOwned: ${coinCount.value.toLocaleString()} Point`)
-      return
-    }
+  const pointsToReceive = sellTotalCost.value
+  const newPoints = coinCount.value + pointsToReceive
+  const newCoins = totalCoin.value - coinValue
 
-    const newPoints = coinCount.value - pointsNeeded
-    const newCoins = totalCoin.value + coinValue
+  // appStore를 통해 업데이트 (데이터 일관성 보장)
+  const success = await store.updateMultiple({
+    coins: newPoints,
+    totalCoin: newCoins
+  })
 
-    // appStore를 통해 업데이트 (데이터 일관성 보장)
-    const success = await store.updateMultiple({
-      coins: newPoints,
-      totalCoin: newCoins
-    })
-
-    if (success) {
-      alert(`${texts.value.purchaseSuccess}\n${amount} ${texts.value.coin} ${texts.value.buy}\n${texts.value.pointUsed}: ${pointsNeeded.toLocaleString()}`)
-      coinAmount.value = ''
-    } else {
-      alert(texts.value.tradeFailed)
-    }
+  if (success) {
+    alert(`${texts.value.tradeSuccess}\n${amount} ${texts.value.coin} ${texts.value.sell}\n${texts.value.pointReceived}: ${pointsToReceive.toLocaleString()}`)
+    sellCoinAmount.value = ''
   } else {
-    // Coin 판매: Coin을 Point로 판매
-    if (totalCoin.value < coinValue) {
-      alert(`${texts.value.insufficientCoins}\nRequired: ${amount} ${texts.value.coin}\nOwned: ${totalCoin.value.toLocaleString()} ${texts.value.coin}`)
-      return
-    }
-
-    const pointsToReceive = totalCost.value
-    const newPoints = coinCount.value + pointsToReceive
-    const newCoins = totalCoin.value - coinValue
-
-    // appStore를 통해 업데이트 (데이터 일관성 보장)
-    const success = await store.updateMultiple({
-      coins: newPoints,
-      totalCoin: newCoins
-    })
-
-    if (success) {
-      alert(`${texts.value.tradeSuccess}\n${amount} ${texts.value.coin} ${texts.value.sell}\n${texts.value.pointReceived}: ${pointsToReceive.toLocaleString()}`)
-      coinAmount.value = ''
-    } else {
-      alert(texts.value.tradeFailed)
-    }
+    alert(texts.value.tradeFailed)
   }
 }
-
-// 탭 변경 시 입력값 초기화
-watch(activeTab, () => {
-  coinAmount.value = ''
-})
 
 onMounted(() => {
   loadUserData()
@@ -125,83 +151,113 @@ onMounted(() => {
     window.removeEventListener('userDataUpdated', handleUserDataUpdate)
   })
 })
+
+// 탭 버튼 클릭 핸들러
+const handleTabClick = (tab) => {
+  if (tab === 'exchange') {
+    // ExchangePage에 머물기 (현재 페이지)
+    activeTab.value = 'exchange'
+  } else if (tab === 'catcraft') {
+    router.push('/factory')
+  }
+}
 </script>
 
 <template>
   <div class="exchangePage">
     <!-- 헤더 -->
-    <Header :coinCount="coinCount" />
+    <Header :coinCount="coinCount" :hideRightIcons="true" />
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
       <div class="contentWrapper">
-        <!-- 탭 -->
-        <div class="tabs">
-        <button 
-          class="tab" 
-          :class="{ active: activeTab === 'buy' }"
-          @click="activeTab = 'buy'"
-        >
-          {{ texts.buy }} {{ texts.coin }}
-        </button>
-        <button 
-          class="tab" 
-          :class="{ active: activeTab === 'sell' }"
-          @click="activeTab = 'sell'"
-        >
-          {{ texts.sell }} {{ texts.coin }}
-        </button>
-      </div>
-      
-      <!-- 거래 정보 -->
-      <div class="infoCard">
-        <div class="infoRow">
-          <span>{{ texts.ownedPoints }}</span>
-          <span class="value">{{ coinCount.toLocaleString() }} P</span>
-        </div>
-        <div class="infoRow">
-          <span>{{ texts.ownedCoins }}</span>
-          <span class="value">{{ totalCoin.toLocaleString() }} C</span>
-        </div>
-        <div class="infoRow">
-          <span>{{ texts.exchangeRate }}</span>
-          <span class="value">1 {{ texts.coin }} = {{ fixedPrice.toLocaleString() }} {{ texts.point }}</span>
-        </div>
-      </div>
-      
-      <!-- 입력 섹션 -->
-      <div class="inputCard">
-        <label class="inputLabel">
-          {{ activeTab === 'buy' ? texts.buyCoinAmount : texts.sellCoinAmount }}
-        </label>
-        <div class="inputWrapper">
-          <input 
-            type="number" 
-            v-model="coinAmount"
-            :placeholder="texts.exampleAmount"
-            class="amountInput"
-            step="0.01"
-            min="0"
-          />
-          <span class="unit">{{ texts.coin }}</span>
+        <!-- 탭 버튼 -->
+        <div class="tabButtons">
+          <button class="tabButton" :class="{ active: activeTab === 'exchange' }" @click="handleTabClick('exchange')">
+            Exchange
+          </button>
+          <button class="tabButton" :class="{ active: activeTab === 'catcraft' }" @click="handleTabClick('catcraft')">
+            Cat craft
+          </button>
         </div>
         
-        <div v-if="coinAmount && parseFloat(coinAmount) > 0" class="resultInfo">
-          <div class="resultRow">
-            <span>{{ activeTab === 'buy' ? texts.requiredPoints : texts.pointsToReceive }}</span>
-            <span class="resultValue">{{ totalCost.toLocaleString() }} P</span>
+        <!-- 구매 섹션 -->
+        <div class="tradeSection">
+          <h3 class="sectionTitle">{{ texts.buy }} {{ texts.coin }}</h3>
+          
+          <!-- 포인트 ↔ 코인 교환 표시 -->
+          <div class="exchangeDisplay">
+            <!-- 포인트 입력 -->
+            <div class="exchangeItem">
+              <img src="@/assets/img/pointIcon.png" alt="Point" class="exchangeIcon">
+              <input 
+                type="number" 
+                v-model="buyPointAmount"
+                placeholder="0"
+                class="exchangeInput"
+                step="1"
+                min="0"
+              />
+            </div>
+            
+            <!-- 양방향 화살표 -->
+            <img src="@/assets/img/sellArrow.png" alt="Arrow" class="exchangeArrow">
+            
+            <!-- 코인 표시 (계산된 값) -->
+            <div class="exchangeItem">
+              <img src="@/assets/img/coinIcon.png" alt="Coin" class="exchangeIcon">
+              <div class="exchangeValue">{{ buyCoinAmount }}</div>
+            </div>
           </div>
+          
+          <!-- 구매 버튼 -->
+          <button 
+            class="submitBtn" 
+            @click="executeBuy"
+            :disabled="!buyPointAmount || parseFloat(buyPointAmount) <= 0 || buyCoinAmount <= 0"
+          >
+            {{ texts.buyButton }}
+          </button>
         </div>
-      </div>
-      
-      <!-- 거래 버튼 -->
-      <button 
-        class="submitBtn" 
-        @click="executeTrade"
-        :disabled="!coinAmount || parseFloat(coinAmount) <= 0"
-      >
-        {{ activeTab === 'buy' ? texts.buyButton : texts.sellButton }}
-      </button>
+        
+        <!-- 판매 섹션 -->
+        <div class="tradeSection">
+          <h3 class="sectionTitle">{{ texts.sell }} {{ texts.coin }}</h3>
+          
+          <!-- 코인 ↔ 포인트 교환 표시 -->
+          <div class="exchangeDisplay">
+            <!-- 코인 입력 -->
+            <div class="exchangeItem">
+              <img src="@/assets/img/coinIcon.png" alt="Coin" class="exchangeIcon">
+              <input 
+                type="number" 
+                v-model="sellCoinAmount"
+                placeholder="0"
+                class="exchangeInput"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            
+            <!-- 양방향 화살표 -->
+            <img src="@/assets/img/sellArrow.png" alt="Arrow" class="exchangeArrow">
+            
+            <!-- 포인트 표시 (계산된 값) -->
+            <div class="exchangeItem">
+              <img src="@/assets/img/pointIcon.png" alt="Point" class="exchangeIcon">
+              <div class="exchangeValue">{{ sellTotalCost }}</div>
+            </div>
+          </div>
+          
+          <!-- 판매 버튼 -->
+          <button 
+            class="submitBtn sellBtn" 
+            @click="executeSell"
+            :disabled="!sellCoinAmount || parseFloat(sellCoinAmount) <= 0 || sellTotalCost <= 0"
+          >
+            {{ texts.sellButton }}
+          </button>
+        </div>
       </div>
     </main>
     
@@ -222,16 +278,19 @@ onMounted(() => {
 }
 
 .mainContent {
-  padding: 2rem 1.6rem;
   max-width: 500px;
   margin: 0 auto;
   min-height: calc(100vh - 130px);
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .contentWrapper {
-  padding: 1.6rem;
+  padding: 2rem;
   background-image: url('@/assets/img/factoryAllbg.png');
-  background-size: cover;
+  background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
   display: flex;
@@ -239,55 +298,114 @@ onMounted(() => {
   gap: 1.5rem;
 }
 
-/* 탭 */
-.tabs {
+.tabButtons {
   display: flex;
-  gap: 0.5rem;
-  background: rgba(15, 23, 42, 0.7);
-  border-radius: 12px;
-  padding: 4px;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
 }
 
-.tab {
-  flex: 1;
-  padding: 1rem;
-  border-radius: 8px;
+.tabButton {
+  padding: 0;
   border: none;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.6);
-  background: transparent;
-  font-size: 1rem;
-  font-weight: 500;
   transition: all 0.3s;
+  width: 120px;
+  height: 50px;
+  background-image: url('@/assets/img/factoryBtn_off.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.tab.active {
-  background: rgba(125, 211, 252, 0.2);
-  color: #7DD3FC;
+.tabButton.active {
+  background-image: url('@/assets/img/factoryBtn_on.png');
 }
 
-/* 정보 카드 */
-.infoCard {
-  background: rgba(15, 23, 42, 0.7);
-  border-radius: 16px;
-  padding: 1.5rem;
+/* 거래 섹션 */
+.tradeSection {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.infoRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.sectionTitle {
   color: white;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0;
+  padding: 0.5rem 0;
 }
 
-.infoRow .value {
+/* 교환 표시 */
+.exchangeDisplay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 16px;
+}
+
+.exchangeItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exchangeIcon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.exchangeInput {
+  width: 80px;
+  padding: 0.8rem;
+  background-image: url('@/assets/img/numberBox.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1em;
   font-weight: 600;
-  color: #7DD3FC;
+  text-align: center;
+  background-color:transparent;
+}
+
+.exchangeInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.exchangeValue {
+  width: 80px;
+  padding: 0.8rem;
+  background-image: url('@/assets/img/numberBox.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.exchangeArrow {
+  width: auto;
+  height: 40px;
+  object-fit: contain;
 }
 
 /* 입력 카드 */
@@ -302,7 +420,7 @@ onMounted(() => {
 
 .inputLabel {
   color: white;
-  font-size: 0.9rem;
+  font-size: 1em;
   font-weight: 500;
   margin-bottom: 0.5rem;
 }
@@ -323,7 +441,7 @@ onMounted(() => {
   border: none;
   outline: none;
   color: white;
-  font-size: 1.1rem;
+  font-size: 1em;
   font-weight: 600;
 }
 
@@ -333,7 +451,7 @@ onMounted(() => {
 
 .unit {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  font-size: 1em;
   white-space: nowrap;
 }
 
@@ -348,12 +466,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   color: white;
-  font-size: 0.9rem;
+  font-size: 1em;
 }
 
 .resultValue {
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1em;
   color: #7DD3FC;
 }
 
@@ -361,21 +479,21 @@ onMounted(() => {
 .submitBtn {
   width: 100%;
   padding: 1.2rem;
-  background: linear-gradient(135deg, #7DD3FC 0%, #0EA5E9 100%);
+  background-image: url('@/assets/img/sellBtn.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(125, 211, 252, 0.3);
 }
 
 .submitBtn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.4);
-  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
 }
 
 .submitBtn:disabled {
@@ -386,46 +504,40 @@ onMounted(() => {
 /* 모바일 반응형 */
 @media (max-width: 480px) {
   .mainContent {
-    padding: 1.2rem;
+    padding: 0;
     gap: 1.2rem;
   }
   
-  .infoCard,
   .inputCard {
     padding: 1.2rem;
   }
   
-  .tab {
-    padding: 0.8rem;
-    font-size: 0.9rem;
-  }
-  
-  .infoRow {
-    font-size: 0.85rem;
+  .sectionTitle {
+    font-size: 1em;
   }
   
   .inputLabel {
-    font-size: 0.85rem;
+    font-size: 1em;
   }
   
   .amountInput {
-    font-size: 1rem;
+    font-size: 1em;
   }
   
   .unit {
-    font-size: 0.85rem;
+    font-size: 1em;
   }
   
   .resultRow {
-    font-size: 0.85rem;
+    font-size: 1em;
   }
   
   .resultValue {
-    font-size: 1rem;
+    font-size: 1em;
   }
   
   .submitBtn {
-    font-size: 0.95rem;
+    font-size: 1em;
     padding: 1rem;
   }
 }

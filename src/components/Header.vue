@@ -5,6 +5,14 @@ import { getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { checkAndResetEnergy } from '@/utils/energyUtils'
 
+// Props
+const props = defineProps({
+  hideRightIcons: {
+    type: Boolean,
+    default: false
+  }
+})
+
 const language = ref(localStorage.getItem('appLanguage') || 'English')
 const texts = computed(() => getI18nTexts())
 
@@ -128,7 +136,7 @@ const formatNumber = store.formatNumber
       </div>
       
       <!-- 오른쪽 세로 아이콘 버튼들 -->
-      <div class="rightIconButtons">
+      <div v-if="!hideRightIcons" class="rightIconButtons">
         <!-- NFT 아이콘 -->
         <button class="iconButton nftButton" @click="goToNFT" title="NFT">
           <img src="@/assets/img/shopIcon.png" alt="NFT" class="icon-img">
