@@ -100,8 +100,8 @@ const setActiveTab = (tabId) => {
       router.push('/main')
       break
     case 'exchange':
-      router.push('/exchange')
-      break
+      // Exchange 버튼 클릭 시 아무 페이지로도 이동하지 않음
+      return
     case 'inventory':
       router.push('/inventory')
       break

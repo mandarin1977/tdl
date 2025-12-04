@@ -134,8 +134,9 @@ onMounted(() => {
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
-      <!-- 탭 -->
-      <div class="tabs">
+      <div class="contentWrapper">
+        <!-- 탭 -->
+        <div class="tabs">
         <button 
           class="tab" 
           :class="{ active: activeTab === 'buy' }"
@@ -201,6 +202,7 @@ onMounted(() => {
       >
         {{ activeTab === 'buy' ? texts.buyButton : texts.sellButton }}
       </button>
+      </div>
     </main>
     
     <!-- 푸터 -->
@@ -212,7 +214,7 @@ onMounted(() => {
 .exchangePage {
   width: 100%;
   min-height: 100vh;
-  background-image: url('@/assets/img/backgroundImg.png');
+  background-image: url('@/assets/img/mainBackground01.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -220,10 +222,18 @@ onMounted(() => {
 }
 
 .mainContent {
-  padding: 1.6rem;
+  padding: 2rem 1.6rem;
   max-width: 500px;
   margin: 0 auto;
   min-height: calc(100vh - 130px);
+}
+
+.contentWrapper {
+  padding: 1.6rem;
+  background-image: url('@/assets/img/factoryAllbg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

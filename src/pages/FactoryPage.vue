@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
@@ -7,6 +8,11 @@ import { useAppStore } from '@/store/appStore'
 import { trackGameAction } from '@/utils/questUtils'
 import { addRarityToNFT, getRarityName, getRarityColors, getRarityStyle } from '@/utils/rarityUtils'
 import { calculateMaxExp } from '@/utils/nftLevelUtils'
+import factoryBtnOff from '@/assets/img/factoryBtn_off.png'
+import factoryBtnOn from '@/assets/img/factoryBtn_on.png'
+
+// 라우터 사용
+const router = useRouter()
 
 // 다국어 텍스트
 const texts = computed(() => getI18nTexts())
@@ -20,6 +26,9 @@ const catFragments = computed(() => store.state.catFragments) // 고양이 파�
 
 const requiredCoin = ref(100) // 필요 코인
 const requiredFragments = ref(3) // 필요 고양이 파편
+
+// 탭 상태
+const activeTab = ref('catcraft') // 기본값: Cat craft
 
 // 팝업 상태
 const showSuccessPopup = ref(false)
@@ -135,6 +144,16 @@ const closePopup = () => {
   newCatRarity.value = null
 }
 
+// 탭 버튼 클릭 핸들러
+const handleTabClick = (tab) => {
+  if (tab === 'exchange') {
+    router.push('/exchange')
+  } else if (tab === 'catcraft') {
+    // FactoryPage에 머물기 (현재 페이지)
+    activeTab.value = 'catcraft'
+  }
+}
+
 </script>
 
 <template>
@@ -144,38 +163,33 @@ const closePopup = () => {
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
-      <!-- 제목 -->
-      <h1 class="pageTitle">{{ texts.factory }}</h1>
+      <!-- 탭 버튼 -->
+      <div class="tabButtons">
+        <button class="tabButton" :class="{ active: activeTab === 'exchange' }" @click="handleTabClick('exchange')">
+          Exchange
+        </button>
+        <button class="tabButton" :class="{ active: activeTab === 'catcraft' }" @click="handleTabClick('catcraft')">
+          Cat craft
+        </button>
+      </div>
       
       <!-- 고양이 실루엣 -->
       <div class="catSilhouette">
-        <div class="catCircle">
-          <img src="@/assets/img/factory_cat.png" alt="Cat" class="catShape" />
-        </div>
-      </div>
-
-      <div class="factoryUnderLine">
-        <img src="@/assets/img/factory_under_line.png" alt="" class="factoryLine">
-      </div>
-      
-      <!-- 구분선 -->
-      <div class="divider">
-        <div class="dividerLine"><img src="@/assets/img/factory_under_guide.png" alt="" class="dividerLineImg"></div>
+        <img src="@/assets/img/factory_cat.png" alt="Cat" class="catShape" />
       </div>
       
       <!-- 재료 섹션 -->
       <div class="materialsSection">
         <div class="materialItem" :class="{ insufficient: !hasEnoughCoins }">
-          <img src="@/assets/img/mainCoin.png" :alt="texts.coin" class="materialIcon">
+          <img src="@/assets/img/coinIcon.png" :alt="texts.coin" class="materialIcon">
           <span class="materialText">
-            <span class="materialCount">{{ totalCoin }}</span> / {{ requiredCoin }} {{ texts.coin }}
+            <span class="materialCount">{{ totalCoin }}</span> / {{ requiredCoin }}
           </span>
         </div>
-        <div class="plusSign">+</div>
         <div class="materialItem" :class="{ insufficient: !hasEnoughFragments }">
-          <img src="@/assets/img/cat_ico.png" alt="Cat" class="materialIcon">
+          <img src="@/assets/img/catPoint.png" alt="Cat" class="materialIcon">
           <span class="materialText">
-            <span class="materialCount">{{ catFragments }}</span> / {{ requiredFragments }} {{ texts.catFragments }}
+            <span class="materialCount">{{ catFragments }}</span> / {{ requiredFragments }}
           </span>
         </div>
       </div>
@@ -215,22 +229,65 @@ const closePopup = () => {
 .factoryPage {
   width: 100%;
   min-height: 100vh;
-  background-image: url('@/assets/img/backgroundImg.png');
+  background-image: url('@/assets/img/mainBackground01.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .mainContent {
   padding: 2rem 1.6rem;
   max-width: 500px;
   margin: 0 auto;
-  min-height: calc(100vh - 130px);
+  width: 100%;
+  height: 100%;
+  /* flex: 1; */
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: space-evenly;
+  background-image: url('@/assets/img/factoryBg.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
 }
+
+.tabButtons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  align-items: center;
+  margin-right: auto;
+}
+
+.tabButton {
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 120px;
+  height: 50px;
+  background-image: url('@/assets/img/factoryBtn_off.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tabButton.active {
+  background-image: url('@/assets/img/factoryBtn_on.png');
+}
+
+
 
 .pageTitle {
   color: white;
@@ -245,72 +302,21 @@ const closePopup = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 2rem 0 -7rem;
   position: relative;
-  width: 80%;
+  width: 95%;
   height: auto;
   aspect-ratio: 1/1;
-}
-
-.catSilhouette::before {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url('@/assets/img/factory_line.png');
-  background-size: cover;
+  background-image: url('@/assets/img/createCatBox.png');
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.8;
-  z-index: 0;
 }
 
-.catCircle {
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-  z-index: 1;
-}
-
-.catCircle::before {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  z-index: -1;
-}
 
 .catShape {
   width: 200px;
   height: 200px;
   object-fit: contain;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  gap: 0.5rem;
-  margin: 1rem 0 5rem;
-}
-
-.dividerLine {
-  flex: 1;
-  height: 1px;
-  width: 100%;
-}
-.dividerLine img{
-  width: 100%;
 }
 
 .materialsSection {
@@ -323,9 +329,6 @@ const closePopup = () => {
 }
 
 .materialItem {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 5vw;
-  padding: 1rem 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -334,24 +337,24 @@ const closePopup = () => {
 }
 
 .materialIcon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 }
 
 .materialText {
-  color: white;
-  font-size: 0.9rem;
+  color: #000;
+  font-size: 1em;
   font-weight: 500;
   display: flex;
   align-items: center;
   gap: 0.3rem;
   white-space: nowrap;
+  font-weight: bold;
 }
 
 .materialCount {
   font-weight: bold;
-  font-size: 1rem;
 }
 
 .materialItem.insufficient .materialCount {
@@ -369,24 +372,24 @@ const closePopup = () => {
 }
 
 .createButton {
-  width: 100%;
-  padding: 1.5rem;
-  background: #FF6B6B;
+  width: 90%;
+  height: auto;
+aspect-ratio: 3/0.7;
+  background-image: url('@/assets/img/createBtn.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
   color: white;
   border: none;
   border-radius: 5px;
-  font-size: 1.3rem;
+  font-size: 2rem;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s;
-  margin-top: 5rem;
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
 }
 
 .createButton:hover:not(.disabled) {
-  background: #FF5252;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
 }
 
 .createButton.disabled {
