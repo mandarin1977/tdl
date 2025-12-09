@@ -77,13 +77,16 @@ const createCat = async () => {
     const catCount = currentInventory.length + 1
     
     // 인벤토리에 고양이 추가
+    const maxExp = calculateMaxExp(1) // 레벨 2로 가려면 필요한 경험치
+    const randomExp = Math.floor(Math.random() * maxExp) // 0부터 maxExp-1까지 랜덤 경험치
+    
     const baseCat = {
       id: Date.now(), // 고유 ID
       imageId: newCatImageId.value,
       name: `Cat ${newCatImageId.value}`,
       level: 1,
-      exp: 0, // 초기 경험치
-      maxExp: calculateMaxExp(1), // 레벨 2로 가려면 200 필요
+      exp: randomExp, // 랜덤 경험치
+      maxExp: maxExp,
       selected: false,
       isNew: true // 새 고양이 표시
     }

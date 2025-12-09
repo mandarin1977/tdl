@@ -10,6 +10,35 @@ const store = useAppStore()
 
 // 사용자 데이터 로드 및 지갑 연결 상태 확인
 onMounted(async () => {
+  // Google 로그인 리다이렉트 결과 처리 (최우선 처리)
+  try {
+    const { handleGoogleRedirect } = await import('@/utils/firebaseAuth')
+    const googleResult = await handleGoogleRedirect()
+    if (googleResult && googleResult.success && googleResult.user) {
+      console.log('App.vue: Google 로그인 성공:', googleResult.user.email)
+      // 사용자 데이터를 sessionStorage에 저장 (이미 handleGoogleRedirect에서 저장했지만 확실히)
+      const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null')
+      if (!currentUser || !currentUser.id) {
+        // 사용자가 저장되지 않았다면 다시 저장 시도
+        sessionStorage.setItem('currentUser', JSON.stringify(googleResult.user))
+        console.log('App.vue: 사용자 재저장 완료')
+      }
+      // 사용자 데이터 로드
+      store.loadCurrentUser()
+      // 현재 경로가 로그인 페이지면 홈으로 이동
+      if (router.currentRoute.value.path === '/login' || router.currentRoute.value.path === '/signup') {
+        console.log('App.vue: 로그인 페이지에서 홈으로 이동')
+        router.push('/home')
+      }
+      return
+    }
+  } catch (error) {
+    // Firebase가 설정되지 않았거나 Google 로그인이 아닌 경우 무시
+    if (import.meta.env.DEV) {
+      console.log('App.vue: Google 로그인 리다이렉트 없음 또는 Firebase 미설정', error)
+    }
+  }
+  
   // 기존 사용자 데이터 로드
   store.loadCurrentUser()
   

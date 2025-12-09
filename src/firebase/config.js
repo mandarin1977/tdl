@@ -1,7 +1,7 @@
 // Firebase 설정 파일
 import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth'
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
 import { getAnalytics } from 'firebase/analytics'
 
 // Firebase 설정
@@ -21,11 +21,28 @@ const validateFirebaseConfig = (config) => {
   const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId']
   const missingFields = requiredFields.filter(field => !config[field])
   
+  // 디버깅: 환경 변수 확인
+  if (import.meta.env.DEV) {
+    console.log('=== Firebase 환경 변수 확인 ===')
+    console.log('VITE_FIREBASE_API_KEY:', import.meta.env.VITE_FIREBASE_API_KEY ? '✓ 설정됨' : '✗ 없음')
+    console.log('VITE_FIREBASE_AUTH_DOMAIN:', import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ? '✓ 설정됨' : '✗ 없음')
+    console.log('VITE_FIREBASE_PROJECT_ID:', import.meta.env.VITE_FIREBASE_PROJECT_ID ? '✓ 설정됨' : '✗ 없음')
+    console.log('VITE_FIREBASE_STORAGE_BUCKET:', import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ? '✓ 설정됨' : '✗ 없음')
+    console.log('VITE_FIREBASE_MESSAGING_SENDER_ID:', import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ? '✓ 설정됨' : '✗ 없음')
+    console.log('VITE_FIREBASE_APP_ID:', import.meta.env.VITE_FIREBASE_APP_ID ? '✓ 설정됨' : '✗ 없음')
+    console.log('전체 firebaseConfig:', config)
+  }
+  
   if (missingFields.length > 0) {
-    console.error('Firebase 설정에 필수 필드가 누락되었습니다:', missingFields)
+    console.error('=== Firebase 설정 오류 ===')
+    console.error('누락된 필드:', missingFields)
     console.error('환경 변수가 설정되지 않았습니다. .env 파일을 확인해주세요.')
-    console.error('자세한 내용은 .env.example 파일을 참고하세요.')
+    console.error('⚠️ 중요: 개발 서버를 재시작했는지 확인하세요! (npm run dev)')
     return false
+  }
+  
+  if (import.meta.env.DEV) {
+    console.log('✓ Firebase 설정 유효성 검사 통과')
   }
   return true
 }
@@ -74,12 +91,42 @@ try {
 }
 
 // Auth 및 Firestore 인스턴스 (app이 null이 아닌 경우에만)
-if (!app) {
-  throw new Error('Firebase 앱이 초기화되지 않았습니다.')
+let auth = null
+let db = null
+
+if (app) {
+  try {
+    auth = getAuth(app)
+    db = getFirestore(app)
+    if (import.meta.env.DEV) {
+      console.log('✓ Firebase Auth 및 Firestore 초기화 완료')
+      console.log('Auth 인스턴스:', auth ? '생성됨' : 'null')
+      console.log('DB 인스턴스:', db ? '생성됨' : 'null')
+      console.log('ℹ️ 참고: __/firebase/init.json 404 에러는 로컬 개발 환경에서 정상입니다. 무시해도 됩니다.')
+    }
+  } catch (error) {
+    console.error('✗ Firebase Auth/Firestore 초기화 실패:', error)
+  }
+} else {
+  console.error('✗ Firebase 앱이 초기화되지 않았습니다. auth와 db를 사용할 수 없습니다.')
 }
 
-export const auth = getAuth(app)
-export const db = getFirestore(app)
+// 개발 환경에서 init.json 404 에러를 무시하도록 설정
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  // 네트워크 에러 필터링 (선택사항)
+  const originalError = console.error
+  console.error = function(...args) {
+    const message = args.join(' ')
+    // init.json 404 에러는 무시
+    if (message.includes('__/firebase/init.json') || message.includes('404')) {
+      // 개발 환경에서는 조용히 무시
+      return
+    }
+    originalError.apply(console, args)
+  }
+}
+
+export { auth, db }
 
 // Analytics 초기화 (브라우저 환경에서만, 중복 초기화 방지)
 let analytics = null
@@ -102,7 +149,7 @@ export { analytics }
 export const googleProvider = new GoogleAuthProvider()
 
 // 사용자 데이터를 Firestore에 저장하는 공통 함수
-const saveUserToFirestore = async (user) => {
+export const saveUserToFirestore = async (user, additionalData = {}) => {
   const userRef = doc(db, 'users', user.uid)
   const userSnap = await getDoc(userRef)
   
@@ -110,15 +157,21 @@ const saveUserToFirestore = async (user) => {
     // 새 사용자인 경우 기본 게임 데이터 생성
     await setDoc(userRef, {
       email: user.email,
-      displayName: user.displayName,
+      displayName: user.displayName || additionalData.name || user.email?.split('@')[0],
       photoURL: user.photoURL,
+      phone: additionalData.phone || '',
       createdAt: new Date().toISOString(),
+      ...additionalData,
       gameData: {
         level: 1,
         coins: 0,
         totalCoin: 0,
         catFragments: 50,
         nftCount: 0,
+        miningLevel: 1,
+        huntingLevel: 1,
+        explorationLevel: 1,
+        productionLevel: 1,
         miningCats: [null, null, null, null],
         huntingCats: [null, null, null, null],
         explorationCats: [null, null, null, null],
@@ -131,11 +184,24 @@ const saveUserToFirestore = async (user) => {
 
 // Google 로그인 함수 (리다이렉트 방식)
 export const signInWithGoogle = async () => {
+  if (!auth) {
+    console.error('signInWithGoogle: Firebase Auth가 초기화되지 않았습니다.')
+    return { success: false, error: 'Firebase가 설정되지 않았습니다.' }
+  }
+  
   try {
+    console.log('signInWithGoogle: signInWithRedirect 호출 중...')
+    console.log('signInWithGoogle: 현재 URL:', window.location.href)
+    console.log('signInWithGoogle: authDomain:', firebaseConfig.authDomain)
+    
     await signInWithRedirect(auth, googleProvider)
+    console.log('signInWithGoogle: signInWithRedirect 완료, 리다이렉트 발생 예정')
+    // signInWithRedirect는 페이지를 리다이렉트하므로 이 코드는 실행되지 않을 수 있음
     return { success: true, redirect: true }
   } catch (error) {
-    console.error('Google 로그인 오류:', error)
+    console.error('signInWithGoogle: Google 로그인 오류:', error)
+    console.error('signInWithGoogle: 에러 코드:', error.code)
+    console.error('signInWithGoogle: 에러 메시지:', error.message)
     return { success: false, error: error.message }
   }
 }
@@ -256,6 +322,85 @@ export const updateUserGameDataInFirestore = async (userId, gameData) => {
   } catch (error) {
     console.error('게임 데이터 업데이트 오류:', error)
     return { success: false, error: error.message }
+  }
+}
+
+// 이메일/비밀번호로 회원가입
+export const signUpWithEmail = async (email, password, userData = {}) => {
+  if (!auth) {
+    return { 
+      success: false, 
+      error: 'Firebase가 설정되지 않았습니다. Firebase 설정을 확인해주세요.' 
+    }
+  }
+  
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const user = userCredential.user
+    
+    // Firestore에 사용자 데이터 저장
+    if (db) {
+      await saveUserToFirestore(user, {
+        name: userData.name,
+        phone: userData.phone
+      })
+    }
+    
+    return { success: true, user }
+  } catch (error) {
+    console.error('회원가입 오류:', error)
+    let errorMessage = '회원가입 중 오류가 발생했습니다.'
+    
+    if (error.code === 'auth/email-already-in-use') {
+      errorMessage = '이미 사용 중인 이메일입니다.'
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = '올바른 이메일 형식이 아닙니다.'
+    } else if (error.code === 'auth/weak-password') {
+      errorMessage = '비밀번호가 너무 약합니다. (6자 이상)'
+    } else if (error.code === 'auth/operation-not-allowed') {
+      errorMessage = '이메일/비밀번호 인증이 활성화되지 않았습니다. Firebase Console에서 활성화해주세요.'
+    }
+    
+    return { success: false, error: errorMessage }
+  }
+}
+
+// 이메일/비밀번호로 로그인
+export const signInWithEmail = async (email, password) => {
+  if (!auth) {
+    return { 
+      success: false, 
+      error: 'Firebase가 설정되지 않았습니다. Firebase 설정을 확인해주세요.' 
+    }
+  }
+  
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    const user = userCredential.user
+    
+    // Firestore에 사용자 데이터가 없으면 생성
+    if (db) {
+      await saveUserToFirestore(user)
+    }
+    
+    return { success: true, user }
+  } catch (error) {
+    console.error('로그인 오류:', error)
+    let errorMessage = '로그인 중 오류가 발생했습니다.'
+    
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = '등록되지 않은 이메일입니다.'
+    } else if (error.code === 'auth/wrong-password') {
+      errorMessage = '비밀번호가 올바르지 않습니다.'
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = '올바른 이메일 형식이 아닙니다.'
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = '너무 많은 로그인 시도가 있었습니다. 나중에 다시 시도해주세요.'
+    } else if (error.code === 'auth/operation-not-allowed') {
+      errorMessage = '이메일/비밀번호 인증이 활성화되지 않았습니다. Firebase Console에서 활성화해주세요.'
+    }
+    
+    return { success: false, error: errorMessage }
   }
 }
 

@@ -5,6 +5,15 @@ import { useAppStore } from '@/store/appStore'
 import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { connectWallet, isMetaMaskInstalled } from '@/utils/wallet'
 import { verifyPassword, hashPassword } from '@/utils/passwordUtils'
+import { loginWithGoogle } from '@/utils/firebaseAuth'
+import { auth } from '@/firebase/config'
+import loginBtn from '@/assets/img/loginBtn.png'
+import urerTown from '@/assets/img/urerTown.png'
+
+// Firebase 사용 가능 여부 확인
+const isFirebaseAvailable = computed(() => {
+  return !!auth
+})
 
 const router = useRouter()
 const store = useAppStore()
@@ -47,6 +56,18 @@ const handleLogin = async (event) => {
   const users = JSON.parse(localStorage.getItem('users') || '[]')
   const user = users.find(u => u.email === loginId.value)
   
+  // 디버깅용 로그
+  if (import.meta.env.DEV) {
+    console.log('로그인 시도:', { email: loginId.value, userFound: !!user })
+    if (user) {
+      console.log('사용자 정보:', { 
+        email: user.email, 
+        passwordLength: user.password?.length || 0,
+        passwordType: user.password?.length < 64 ? '평문' : '해시'
+      })
+    }
+  }
+  
   // 실제로는 여기서 서버에 로그인 요청을 보내고 응답을 받음
   // 지금은 시뮬레이션으로 2초 후 로그인 완료
   setTimeout(async () => {
@@ -60,6 +81,9 @@ const handleLogin = async (event) => {
         if (user.password && user.password.length < 64) {
           // 해시가 아닌 평문 비밀번호인 경우 (기존 사용자)
           passwordMatch = user.password === loginPw.value
+          if (import.meta.env.DEV) {
+            console.log('평문 비밀번호 검증:', { match: passwordMatch })
+          }
           // 다음 로그인 시 해시화된 비밀번호로 업데이트
           if (passwordMatch) {
             const hashedPassword = await hashPassword(loginPw.value)
@@ -73,6 +97,13 @@ const handleLogin = async (event) => {
         } else {
           // 해시화된 비밀번호인 경우
           passwordMatch = await verifyPassword(loginPw.value, user.password)
+          if (import.meta.env.DEV) {
+            console.log('해시 비밀번호 검증:', { 
+              match: passwordMatch,
+              inputHash: await hashPassword(loginPw.value),
+              storedHash: user.password
+            })
+          }
         }
       } catch (error) {
         console.error('Password verification error:', error)
@@ -114,6 +145,11 @@ const handleLogin = async (event) => {
 // 비밀번호 표시 토글
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
+}
+
+// 비밀번호 찾기 페이지로 이동
+const goToForgotPassword = () => {
+  router.push('/forgot-password')
 }
 
 // 지갑 연결 처리
@@ -161,6 +197,42 @@ const handleWalletConnect = async () => {
   }
 }
 
+// Google 로그인 처리
+const handleGoogleLogin = async () => {
+  if (!auth) {
+    alert('Firebase가 설정되지 않았습니다. 개발 서버를 재시작해주세요.')
+    console.error('Firebase Auth가 초기화되지 않았습니다.')
+    return
+  }
+  
+  setLoading(true)
+  isConnecting.value = true
+  
+  try {
+    console.log('Google 로그인 시작...')
+    const result = await loginWithGoogle()
+    
+    if (result.success && result.redirect) {
+      // Google 로그인 리다이렉트가 발생했으므로, 페이지가 새로 로드될 것임
+      // App.vue에서 리다이렉트 결과를 처리할 것임
+      console.log('Google 로그인 리다이렉트 시작')
+    } else if (result.success) {
+      // 리다이렉트 없이 바로 로그인 성공 (거의 발생하지 않음)
+      console.log('Google 로그인 성공 (리다이렉트 없음):', result.user?.email)
+      router.push('/home')
+    } else {
+      console.error('Google 로그인 실패:', result.error)
+      alert(result.error || 'Google 로그인에 실패했습니다.')
+    }
+  } catch (error) {
+    console.error('Google 로그인 오류:', error)
+    alert('Google 로그인 중 오류가 발생했습니다: ' + error.message)
+  } finally {
+    setLoading(false)
+    isConnecting.value = false
+  }
+}
+
 onMounted(() => {
   // 초기 로딩 상태 설정
   setLoading(false)
@@ -194,17 +266,18 @@ onMounted(() => {
   <div class="login-screen">
     <!-- 타이틀 -->
     <h1 class="login-title">{{ texts.login }}</h1>
+    
+    <!-- urerTown 이미지 -->
+    <div class="urer-town-container">
+      <img :src="urerTown" alt="Urer Town" class="urer-town-image" />
+    </div>
 
     <!-- 로그인 폼 -->
     <form @submit="handleLogin" class="login-form">
       <!-- 아이디(이메일계정) -->
       <div class="input-group">
-        <label class="input-label">{{ texts.email }}</label>
         <div class="input-container">
-          <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
-          </svg>
+          <span class="input-text-label">email</span>
           <input 
             type="email" 
             v-model="loginId"
@@ -217,13 +290,8 @@ onMounted(() => {
 
       <!-- 비밀번호 -->
       <div class="input-group">
-        <label class="input-label">{{ texts.password }}</label>
         <div class="input-container">
-          <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <circle cx="12" cy="16" r="1"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
+          <span class="input-text-label">password</span>
           <input 
             :type="showPassword ? 'text' : 'password'"
             v-model="loginPw"
@@ -276,10 +344,33 @@ onMounted(() => {
       </button>
     </form>
 
-    <!-- 구분선 -->
+    <!-- 소셜 로그인 버튼 (일단 숨김 처리) -->
+    <!--
     <div class="divider">
       <span class="divider-text">or</span>
     </div>
+
+    <button 
+      @click="handleGoogleLogin"
+      :disabled="isConnecting || isWalletConnecting"
+      class="google-login-button"
+    >
+      <div class="btn-content">
+        <svg v-if="!isConnecting" class="google-icon" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        <div v-if="isConnecting" class="spinner-small"></div>
+        <span>{{ isConnecting ? texts.loading : 'Google로 로그인' }}</span>
+      </div>
+    </button>
+
+    <div class="divider">
+      <span class="divider-text">or</span>
+    </div>
+    -->
 
     <!-- 지갑 연결 버튼 -->
     <button 
@@ -307,6 +398,10 @@ onMounted(() => {
       <button @click="goToSignup" class="signup-btn">
         {{ texts.signupButton }}
       </button>
+      <span class="link-separator">|</span>
+      <button @click="goToForgotPassword" class="forgot-password-btn">
+        Forgot password?
+      </button>
     </div>
   </div>
 </template>
@@ -315,7 +410,7 @@ onMounted(() => {
 .login-screen {
   width: 100%;
   min-height: 100vh;
-  background-image: url('@/assets/img/backgroundImg.png');
+  background-image: url('@/assets/img/mainBackground01.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -354,9 +449,24 @@ onMounted(() => {
   font-weight: 700;
   letter-spacing: -0.02em;
   text-align: left;
-  margin: 2rem 0 2rem 0;
+  margin: 2rem 0 1rem 0;
   position: relative;
   z-index: 1;
+}
+
+.urer-town-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 2rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.urer-town-image {
+  max-width: 160px;
+  height: auto;
+  object-fit: contain;
 }
 
 .login-form {
@@ -389,6 +499,7 @@ onMounted(() => {
   align-items: center;
   border-radius: 12px;
   padding: 1rem;
+  background-color: #000000;
   backdrop-filter: blur(10px);
 }
 
@@ -398,12 +509,20 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.input-text-label {
+  color: white;
+  font-size: 1em;
+  font-weight: 400;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
 .input-field {
   flex: 1;
   background: transparent;
   border: none;
   color: white;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 400;
   letter-spacing: 0.01em;
   outline: none;
@@ -430,25 +549,28 @@ onMounted(() => {
 }
 
 .login-button {
-  background: #2BB5BD;
+  background-image: url('@/assets/img/loginBtn.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
   color: white;
   border: none;
   border-radius: 12px;
   height: 56px;
   padding: 1.2rem;
-  font-size: 1.1rem;
+  font-size: 1em;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;
-  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+  margin-bottom: 1.5rem;
   width: 100%;
 }
 
 .login-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
 }
 
 .login-button:disabled {
@@ -487,13 +609,17 @@ onMounted(() => {
   margin-top: 2rem;
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .signup-btn {
   background: none;
   border: none;
   color: white;
-  font-size: 1rem;
+  font-size: 0.8em;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.3s ease;
@@ -501,6 +627,26 @@ onMounted(() => {
 }
 
 .signup-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.link-separator {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8em;
+}
+
+.forgot-password-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 0.8em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  padding: 0.5rem;
+}
+
+.forgot-password-btn:hover {
   color: rgba(255, 255, 255, 0.8);
 }
 
@@ -527,6 +673,43 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
+/* Google 로그인 버튼 */
+.google-login-button {
+  background: white;
+  color: #333;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  height: 56px;
+  padding: 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.google-login-button:hover:not(:disabled) {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.google-login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.75rem;
+}
+
 /* 지갑 연결 버튼 */
 .wallet-connect-button {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -535,22 +718,22 @@ onMounted(() => {
   border-radius: 12px;
   height: 56px;
   padding: 1.2rem;
-  font-size: 1.1rem;
+  font-size: 1em;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 1.5rem;
   margin-bottom: 0.5rem;
+  border-radius: 50px;
 }
 
 .wallet-connect-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .wallet-connect-button:disabled {
@@ -584,7 +767,15 @@ onMounted(() => {
   
   .login-title {
     font-size: 1.6rem;
-    margin: 1.5rem 0 1.5rem 0;
+    margin: 1.5rem 0 1rem 0;
+  }
+  
+  .urer-town-container {
+    margin: 0 0 1.5rem 0;
+  }
+  
+  .urer-town-image {
+    max-width: 160px;
   }
   
   .login-form {
@@ -596,17 +787,29 @@ onMounted(() => {
   }
   
   .input-field {
-    font-size: 0.95rem;
+    font-size: 1em;
+  }
+  
+  .input-text-label {
+    font-size: 1em;
   }
   
   .login-button {
-    font-size: 1rem;
+    font-size: 1em;
     height: 52px;
     padding: 1rem;
   }
   
+  .wallet-connect-button {
+    font-size: 1em;
+  }
+  
   .signup-btn {
-    font-size: 0.9rem;
+    font-size: 0.8em;
+  }
+  
+  .forgot-password-btn {
+    font-size: 0.8em;
   }
   
   .back-button {

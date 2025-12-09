@@ -7,7 +7,6 @@ import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { connectWallet, isMetaMaskInstalled, formatAddress } from '@/utils/wallet'
 import { getOrCreateInviteCode, getReferralStats } from '@/utils/referralUtils'
-import { copyInviteLink, shareInviteLink, shareInviteLinkNative, initKakao } from '@/utils/kakaoUtils'
 
 const router = useRouter()
 const store = useAppStore()
@@ -82,13 +81,6 @@ onMounted(async () => {
   
   // 출석체크 상태 확인
   checkAttendanceStatus()
-  
-  // 카카오 SDK 초기화 (비동기)
-  try {
-    await initKakao()
-  } catch (error) {
-    console.error('카카오 SDK 초기화 오류:', error)
-  }
   
   // appStore 데이터 변경 감지하여 동기화
   const handleUserDataUpdate = () => {
@@ -258,53 +250,12 @@ const goToDeposit = (exchange) => {
 const handleCopyInviteCode = async () => {
   if (!inviteCode.value) return
   
-  const success = await copyInviteLink(inviteCode.value)
-  if (success) {
-    alert(texts.value.codeCopied)
-  } else {
+  try {
+    await navigator.clipboard.writeText(inviteCode.value)
+    alert(texts.value.codeCopied || '초대 코드가 복사되었습니다.')
+  } catch (error) {
+    console.error('복사 실패:', error)
     alert('복사에 실패했습니다.')
-  }
-}
-
-const handleShareKakao = async () => {
-  if (!inviteCode.value) {
-    alert('초대 코드가 없습니다.')
-    return
-  }
-  
-  const success = await shareInviteLink(inviteCode.value)
-  if (success) {
-    alert(texts.value.shareSuccess)
-  }
-}
-
-const handleShareNative = async () => {
-  if (!inviteCode.value) {
-    alert('초대 코드가 없습니다.')
-    return
-  }
-  
-  const result = await shareInviteLinkNative(inviteCode.value)
-  
-  if (result.success) {
-    if (result.method === 'native') {
-      // 네이티브 공유 성공 (알림 불필요)
-    } else if (result.method === 'clipboard' || result.method === 'fallback') {
-      alert(texts.value.linkCopied)
-    }
-  } else if (!result.cancelled) {
-    alert('공유에 실패했습니다.')
-  }
-}
-
-const handleCopyLink = async () => {
-  if (!inviteCode.value) return
-  
-  const success = await copyInviteLink(inviteCode.value)
-  if (success) {
-    alert(texts.value.linkCopied)
-  } else {
-    alert('링크 복사에 실패했습니다.')
   }
 }
 </script>
@@ -463,17 +414,9 @@ const handleCopyLink = async () => {
           
           <!-- 공유 버튼 -->
           <div class="shareButtons">
-            <button class="shareBtn kakaoBtn" @click="handleShareKakao">
-              <span class="kakaoIcon">💬</span>
-              <span>{{ texts.shareKakao }}</span>
-            </button>
-            <button class="shareBtn nativeBtn" @click="handleShareNative">
-              <span class="shareIcon">📤</span>
-              <span>{{ texts.shareNative }}</span>
-            </button>
-            <button class="shareBtn copyLinkBtn" @click="handleCopyLink">
+            <button class="shareBtn copyLinkBtn" @click="handleCopyInviteCode">
               <span class="copyIcon">🔗</span>
-              <span>{{ texts.copyLink }}</span>
+              <span>{{ texts.copyLink || '링크 복사' }}</span>
             </button>
           </div>
           

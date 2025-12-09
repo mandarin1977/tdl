@@ -14,6 +14,10 @@ const store = useAppStore()
 const texts = computed(() => getI18nTexts())
 import statStar1 from '@/assets/img/statStar1.png'
 import statStar2 from '@/assets/img/statStar2.png'
+import inventoryTabOff from '@/assets/img/inventoryTab_off.png'
+import inventoryTabOn from '@/assets/img/inventoryTab_on.png'
+import affline from '@/assets/img/affline.png'
+import exline from '@/assets/img/exline.png'
 
 // appStore에서 게임 데이터 가져오기 (반응형)
 const coinCount = computed(() => store.state.coins)
@@ -27,6 +31,9 @@ const sortBy = ref('newest') // 'newest', 'oldest', 'level', 'name', 'stars', 'r
 const showDetailModal = ref(false)
 const selectedNFT = ref(null)
 const showSearchModal = ref(false) // 검색 팝업 표시
+
+// 탭 상태
+const activeTab = ref('cat') // 'cat' 또는 'item'
 
 // 각 캐릭터의 기본 스탯 생성 함수
 const generateStats = (baseStats) => {
@@ -181,6 +188,41 @@ const selectedCharacterName = computed(() => {
   return selectedItem ? selectedItem.name : 'Inventory is empty'
 })
 
+// 선택된 캐릭터의 레벨
+const selectedCharacterLevel = computed(() => {
+  const selectedItem = inventoryItems.value.find(item => item.selected)
+  return selectedItem ? (selectedItem.level || 1) : 1
+})
+
+// 선택된 캐릭터의 경험치 (Experience)
+const selectedCharacterExp = computed(() => {
+  const selectedItem = inventoryItems.value.find(item => item.selected)
+  if (selectedItem) {
+    const cat = ensureStats(selectedItem)
+    const currentExp = cat.exp || 0
+    const maxExp = cat.maxExp || calculateMaxExp(cat.level || 1)
+    return {
+      current: currentExp,
+      max: maxExp,
+      percentage: maxExp > 0 ? Math.min((currentExp / maxExp) * 100, 100) : 0
+    }
+  }
+  return { current: 0, max: 100, percentage: 0 }
+})
+
+// 선택된 캐릭터의 능력치 (Ability) - 스탯 평균
+const selectedCharacterAbility = computed(() => {
+  const selectedItem = inventoryItems.value.find(item => item.selected)
+  if (selectedItem) {
+    const cat = ensureStats(selectedItem)
+    if (cat.stats && cat.stats.length > 0) {
+      const total = cat.stats.reduce((sum, stat) => sum + (stat.value || 0), 0)
+      return Math.round(total / cat.stats.length)
+    }
+  }
+  return 0
+})
+
 // 고양이 이미지 경로 가져오기 함수
 const getCatImage = (id) => {
   try {
@@ -319,7 +361,7 @@ const handleLevelUp = async () => {
 }
 
 // 사용자 데이터 업데이트 감지
-const loadInventory = () => {
+const loadInventory = async () => {
   const currentUser = getCurrentUser()
   if (currentUser) {
     // appStore에서 사용자 데이터 로드
@@ -330,10 +372,16 @@ const loadInventory = () => {
     
     if (userInventory.length > 0) {
       // 레어리티가 없는 기존 NFT에 레어리티 추가, 스탯이 없는 고양이는 스탯 생성, 경험치 초기화
-      inventoryItems.value = userInventory.map(cat => {
+      const updatedInventory = userInventory.map(cat => {
         const catWithRarity = cat.rarity ? cat : addRarityToNFT(cat)
         const catWithStats = ensureStats({ ...catWithRarity })
         const catWithExp = initializeNFTExp(catWithStats)
+        
+        // 경험치가 0이거나 없으면 랜덤으로 설정 (기존 NFT 호환성)
+        if (!catWithExp.exp || catWithExp.exp === 0) {
+          const maxExp = catWithExp.maxExp || calculateMaxExp(catWithExp.level || 1)
+          catWithExp.exp = Math.floor(Math.random() * maxExp)
+        }
         
         // 성격과 친밀도가 없으면 랜덤 생성 (기존 NFT 호환성)
         if (!catWithExp.personality) {
@@ -345,6 +393,24 @@ const loadInventory = () => {
         
         return catWithExp
       })
+      
+      // 업데이트된 인벤토리를 저장
+      inventoryItems.value = updatedInventory
+      
+      // 기존 데이터에 변경사항이 있으면 저장
+      const currentUser = getCurrentUser()
+      if (currentUser) {
+        const hasChanges = updatedInventory.some((cat, index) => {
+          const original = userInventory[index]
+          return !original.exp || original.exp === 0 || !original.personality || original.affinity === undefined
+        })
+        
+        if (hasChanges) {
+          await store.updateGameData({
+            inventory: updatedInventory
+          })
+        }
+      }
     } else {
       inventoryItems.value = []
     }
@@ -369,15 +435,47 @@ onUnmounted(() => {
 <template>
   <div class="inventoryPage">
     <!-- 헤더 -->
-    <Header :coinCount="coinCount" />
+    <Header :coinCount="coinCount" :hideRightIcons="true" />
     
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
-      <!-- 상단 섹션 -->
-      <div class="topSection">
+      <!-- 탭 버튼 (topSection 위) -->
+      <div class="tabButtons">
+        <button 
+          class="tabButton" 
+          :class="{ active: activeTab === 'cat' }"
+          @click="activeTab = 'cat'"
+        >
+          <img 
+            :src="activeTab === 'cat' ? inventoryTabOn : inventoryTabOff" 
+            alt="Cat" 
+            class="tabButtonImg"
+          />
+          <span class="tabButtonText">Cat</span>
+        </button>
+        <button 
+          class="tabButton" 
+          :class="{ active: activeTab === 'item' }"
+          @click="activeTab = 'item'"
+        >
+          <img 
+            :src="activeTab === 'item' ? inventoryTabOn : inventoryTabOff" 
+            alt="Item" 
+            class="tabButtonImg"
+          />
+          <span class="tabButtonText">Item</span>
+        </button>
+      </div>
+      
+      <!-- 상단 섹션 (Cat 탭일 때만 표시) -->
+      <div v-if="activeTab === 'cat'" class="topSection">
         <!-- Magic Panel -->
-        <div class="magicPanel">
-          <div class="panelTitle">{{ selectedCharacterName }}</div>
+        <div class="panelTitle">
+            <span>{{ selectedCharacterName }}</span>
+            <span class="levelBadge">Lv.{{ selectedCharacterLevel }}</span>
+          </div>
+          <div class="magicPanelContainer">
+            <div class="magicPanel">
           <div class="characterBox">
             <img :src="selectedCharacterImage" :alt="texts.selectedCharacter" class="selectedCharacter" />
           </div>
@@ -385,41 +483,45 @@ onUnmounted(() => {
         
         <!-- Profile Panel -->
         <div class="profilePanel">
-          <div class="panelTitle">
-            Profile
-            <span class="starIcon">⭐</span>
-          </div>
           <div class="progressBars">
             <!-- 성격 -->
-            <div class="progressBar">
-              <div class="statLabel">Personality</div>
-              <div class="barBg">
-                <div :style="{ width: '100%', backgroundColor: '#FF6B6B' }" class="barFill"></div>
-              </div>
+            <div class="progressBar noBar">
+              <div class="statLabel">Personality:</div>
               <span class="value">{{ selectedCharacterPersonality }}</span>
             </div>
             <!-- 친밀도 -->
             <div class="progressBar">
               <div class="statLabel">Affinity</div>
               <div class="barBg">
-                <div :style="{ width: selectedCharacterAffinity + '%', backgroundColor: '#FF8A80' }" class="barFill"></div>
+                <div :style="{ width: selectedCharacterAffinity + '%' }" class="barFill barFillAffinity">
+                  <img :src="affline" alt="Affinity Graph" class="barFillImage" />
+                </div>
               </div>
               <span class="value">{{ selectedCharacterAffinity }}%</span>
             </div>
-            <!-- 숨겨진 기존 스탯들 -->
-            <div v-for="(stat, index) in selectedCharacterStats" :key="index" class="progressBar hiddenStats">
-              <div class="statLabel">{{ stat.name }}</div>
+            <!-- 능력치 -->
+            <div class="progressBar noBar">
+              <div class="statLabel">Ability</div>
+              <span class="value">{{ selectedCharacterAbility }}</span>
+            </div>
+            <!-- 경험치 -->
+            <div class="progressBar">
+              <div class="statLabel">Experience</div>
               <div class="barBg">
-                <div :style="{ width: stat.progress + '%', backgroundColor: stat.color }" class="barFill"></div>
+                <div :style="{ width: selectedCharacterExp.percentage + '%' }" class="barFill barFillExperience">
+                  <img :src="exline" alt="Experience Graph" class="barFillImage" />
+                </div>
               </div>
-              <span class="value">{{ stat.value }}%</span>
+              <span class="value">{{ selectedCharacterExp.percentage.toFixed(0) }}%</span>
             </div>
           </div>
-        </div>
+        </div>          
+          </div>
+
       </div>
       
-      <!-- 검색 버튼 및 NFT 개수 -->
-      <div class="inventoryHeader">
+      <!-- 검색 버튼 및 NFT 개수 (Cat 탭일 때만 표시) -->
+      <div v-if="activeTab === 'cat'" class="inventoryHeader">
         <div class="inventoryCount">
           {{ texts.totalItems }} {{ filteredAndSortedItems.length }} / {{ inventoryItems.length }} {{ texts.items }}
         </div>
@@ -429,8 +531,8 @@ onUnmounted(() => {
         </button>
       </div>
       
-      <!-- 하단 인벤토리 그리드 -->
-      <div v-if="filteredAndSortedItems.length > 0" class="inventoryGrid">
+      <!-- Cat 탭: 하단 인벤토리 그리드 -->
+      <div v-if="activeTab === 'cat' && filteredAndSortedItems.length > 0" class="inventoryGrid">
         <div
           v-for="item in filteredAndSortedItems"
           :key="item.id"
@@ -443,9 +545,9 @@ onUnmounted(() => {
           <!-- NEW 배지 -->
           <div v-if="item.isNew" class="newBadge">NEW</div>
           
-          <!-- 레어리티 배지 (상단 왼쪽) -->
-          <div v-if="item.rarity" class="rarityBadge" :style="getRarityStyle(item.rarity)">
-            {{ getRarityName(item.rarity) }}
+          <!-- 고양이 이름 (상단 왼쪽) -->
+          <div class="catNameBadge">
+            {{ item.name }}
           </div>
           
           <!-- 별 등급 표시 (하단) -->
@@ -466,17 +568,25 @@ onUnmounted(() => {
           
           <!-- 캐릭터 이미지 -->
           <img :src="getCatImage(item.imageId || item.id)" :alt="texts.cat" class="itemIcon" />
-          
-          <!-- 더블클릭 안내 -->
-          <div class="detailHint">{{ texts.doubleClickDetail }}</div>
         </div>
       </div>
       
-      <!-- 인벤토리 비어있을 때 -->
-      <div v-else class="emptyInventory">
+      <!-- Cat 탭: 인벤토리 비어있을 때 -->
+      <div v-if="activeTab === 'cat' && filteredAndSortedItems.length === 0" class="emptyInventory">
         <div class="emptyIcon">📦</div>
         <div class="emptyText">{{ texts.noNFTs }}</div>
         <div class="emptySubtext">{{ texts.createCatInFactory }}</div>
+      </div>
+      
+      <!-- Item 탭: 3x3 그리드 -->
+      <div v-if="activeTab === 'item'" class="itemGrid">
+        <div 
+          v-for="i in 9" 
+          :key="i" 
+          class="itemBox"
+        >
+          <!-- 아이템이 있으면 표시, 없으면 빈 박스 -->
+        </div>
       </div>
     </main>
     
@@ -648,7 +758,7 @@ onUnmounted(() => {
 .inventoryPage {
   width: 100%;
   min-height: 100vh;
-  background-image: url('@/assets/img/backgroundImg.png');
+  background-image: url('@/assets/img/mainBackground01.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -666,39 +776,120 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
+/* 탭 버튼 (topSection 위, 완전히 독립적으로 배치) */
+.tabButtons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0;
+  width: 100%;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  z-index: 10;
+}
+
 /* 상단 섹션 */
 .topSection {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* display: grid; */
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
-  background:url('@/assets/img/profile_bg.png') no-repeat center center;
-  background-size: cover;
+  background:url('@/assets/img/inventoryProfileBg.png') no-repeat center center / 100% 100%;
+  border-radius: 12px;
+  padding: 1rem;
+  position: relative;
+  margin-top: 0;
+  padding: 4vw;
+}
+
+.magicPanelContainer {
+    display: grid;
+    grid-template-columns: 30% 70%;
+    width: 100%;
 }
 
 .magicPanel {
   border-radius: 12px;
-  padding-left: 5rem;
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-  background: url(/src/assets/img/leftArea.png) no-repeat -10% top / contain;
+  overflow: hidden;
+}
+
+.tabButton {
+  flex: 0 0 auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  position: relative;
+}
+
+.tabButton:hover {
+  transform: scale(1.05);
+}
+
+.tabButton.active {
+  transform: scale(1.05);
+}
+
+.tabButtonImg {
+  width: auto;
+  height: auto;
+  max-width: 180px;
+  max-height: 45px;
+  object-fit: contain;
+  display: block;
+}
+
+.tabButtonText {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: 600;
+  font-size: 1.2rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tabButton.active .tabButtonText {
+  color: #7DD3FC;
+  text-shadow: 0 2px 8px rgba(125, 211, 252, 0.8);
 }
 
 .profilePanel {
   border-radius: 12px;
-  padding-right: 5rem;
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-  background: url(/src/assets/img/rightArea.png) no-repeat 110% top / contain;
+  padding-top: 1.5rem;
+  backdrop-filter: blur(5px);
 }
 
 .panelTitle {
   color: white;
   font-weight: 600;
-  font-size: 1.1rem;
-  margin-bottom: 0.8rem;
+  font-size: 1em;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.panelTitle .levelBadge {
+  font-size: 0.9em;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  position: static;
 }
 
 .starIcon {
@@ -713,14 +904,15 @@ onUnmounted(() => {
 
 /* Magic Panel */
 .characterBox {
-  background: #F3F4F6;
+  background: rgba(255, 255, 255, 1);
   border-radius: 8px;
-  min-height: 200px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5/7;
   display: flex;
   align-items: center;
   justify-content: center;
   width: auto;
-  max-width: 150px;
 }
 
 .selectedCharacter {
@@ -733,27 +925,43 @@ onUnmounted(() => {
 .progressBars {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
+  padding-left: 3vw;
 }
 
 .progressBar {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.5rem;
+}
+
+.progressBar.noBar {
+  justify-content: space-between;
 }
 
 .statLabel {
-  color: white;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
-  font-size: 0.9rem;
-  min-width: 10px;
+  font-size: 0.95rem;
+  min-width: 50px;
   flex-shrink: 0;
+}
+
+.graphImage {
+  width: auto;
+  height: 20px;
+  max-width: 60px;
+  object-fit: contain;
+  flex-shrink: 0;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .barBg {
   flex: 1;
+  max-width: 200px;
   height: 20px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   overflow: hidden;
   position: relative;
@@ -761,34 +969,41 @@ onUnmounted(() => {
 
 .barFill {
   height: 100%;
-  border-radius: 10px;
+  border-radius: 12px;
   transition: width 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   position: relative;
+  overflow: hidden;
 }
 
-.barFill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  border-radius: 10px;
+.barFillAffinity {
+  background-color: transparent;
+}
+
+.barFillExperience {
+  background-color: transparent;
+}
+
+.barFillImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
 }
 
 .value {
-  color: white;
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 600;
-  min-width: 20px;
-  text-align: right;
+  min-width: 40px;
+  text-align: left;
   font-size: 0.9rem;
+  flex-shrink: 0;
+  margin-left: 0.3rem;
 }
 
 /* 인벤토리 헤더 */
 .inventoryHeader {
-  display: flex;
+  display: none;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
@@ -1020,6 +1235,44 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
+/* Item 탭: 3x3 그리드 */
+.itemGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: minmax(100px, auto);
+  gap: 0.8rem;
+  padding: 1rem;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.itemBox {
+  background-image: url('@/assets/img/itemBoxbg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 100px;
+  width: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.itemBox:hover {
+  transform: scale(1.05);
+}
+
+.itemBox:active {
+  transform: scale(0.95);
+}
+
 .inventoryItem {
   width: calc(25% - 20px);
   background: rgba(255, 255, 255, 0.2);
@@ -1032,36 +1285,32 @@ onUnmounted(() => {
   position: relative;
 }
 
+/* 선택되지 않은 항목 어둡게 처리 (배경만 어둡게, 글자와 별표는 밝게 유지) */
+.inventoryItem:not(.selected) {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* 선택되지 않은 항목의 캐릭터 이미지만 opacity 처리 */
+.inventoryItem:not(.selected) .itemIcon {
+  opacity: 0.4;
+}
+
 .inventoryItem:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* 선택된 항목은 밝게 */
 .inventoryItem.selected {
-  background: rgba(59, 130, 246, 0.3);
-  outline: 1px solid #fff;
+  background-image: url('@/assets/img/itembox_on.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 1;
+  filter: brightness(1);
 }
 
-/* 레어리티별 테두리 색상 */
-.inventoryItem.rarity-common {
-  border: 2px solid rgba(158, 158, 158, 0.3);
-}
 
-.inventoryItem.rarity-rare {
-  border: 2px solid rgba(33, 150, 243, 0.4);
-  box-shadow: 0 0 10px rgba(33, 150, 243, 0.2);
-}
-
-.inventoryItem.rarity-epic {
-  border: 2px solid rgba(156, 39, 176, 0.5);
-  box-shadow: 0 0 15px rgba(156, 39, 176, 0.3);
-}
-
-.inventoryItem.rarity-legendary {
-  border: 2px solid rgba(255, 152, 0, 0.6);
-  box-shadow: 0 0 20px rgba(255, 152, 0, 0.4);
-  animation: legendaryPulse 2s ease-in-out infinite;
-}
 
 @keyframes legendaryPulse {
   0%, 100% {
@@ -1088,6 +1337,25 @@ onUnmounted(() => {
   letter-spacing: 0.05em;
 }
 
+.catNameBadge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  max-width: calc(100% - 4rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
 .itemIcon {
   width: 100%;
   height: auto;
@@ -1112,7 +1380,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 0.15rem;
-  background: rgba(0, 0, 0, 0.5);
   border-radius: 0 0 10px 10px;
   padding: 0.3rem 0.5rem;
   z-index: 10;
@@ -1155,7 +1422,7 @@ onUnmounted(() => {
   animation: pulseNew 2s ease-in-out infinite;
 }
 
-@keyframes pulseNew {
+@keyframes pulseNew { 
   0%, 100% {
     transform: scale(1);
     box-shadow: 0 2px 8px rgba(255, 107, 107, 0.5);
@@ -1281,25 +1548,6 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
   text-align: center;
-}
-
-.detailHint {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  font-size: 0.65rem;
-  padding: 0.2rem;
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.3s;
-  border-radius: 0 0 12px 12px;
-}
-
-.inventoryItem:hover .detailHint {
-  opacity: 1;
 }
 
 /* 빈 인벤토리 */
@@ -1646,14 +1894,18 @@ onUnmounted(() => {
 
 @media (max-width: 500px) {
     .magicPanel{
-        padding-left: 7vw;
         padding-top: 0;
         padding-bottom: 0;
     }
-    .profilePanel{
-      padding-right: 7vw;
-      padding-top: 0;
-      padding-bottom: 0;
+
+    
+    .tabButton {
+      padding: 0;
+    }
+    
+    .tabButtonImg {
+      width: 100%;
+      height: auto;
     }
 
     .inventoryItem {
@@ -1679,11 +1931,10 @@ onUnmounted(() => {
 
 @media (max-width: 450px) {
   .magicPanel{
-        padding-left: 5vw;
         background: none;
     }
     .profilePanel{
-      padding-right: 5vw;
+
       background: none;
     }
     .inventoryItem {
@@ -1695,9 +1946,21 @@ onUnmounted(() => {
     padding-top: 3vw;
     padding-bottom: 3vw;
   }
-  .profilePanel{
-    padding-top: 3vw;
-    padding-bottom: 3vw;
+
+}
+
+/* Item 그리드 모바일 반응형 (330px 이하) */
+@media (max-width: 330px) {
+  .itemGrid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: minmax(100px, auto);
+    gap: 0.6rem;
+    padding: 0.8rem;
+  }
+  
+  .itemBox {
+    min-height: 80px;
+    aspect-ratio: unset;
   }
 }
 </style>
