@@ -145,7 +145,7 @@ const togglePasswordVisibility = () => {
       <!-- Name -->
       <div class="input-group">
         <div class="input-container">
-          <span class="input-text-label">name</span>
+          <span class="input-text-label">Name</span>
           <input 
             type="text" 
             v-model="formData.name"
@@ -159,7 +159,7 @@ const togglePasswordVisibility = () => {
       <!-- Password -->
       <div class="input-group">
         <div class="input-container">
-          <span class="input-text-label">password</span>
+          <span class="input-text-label">Password</span>
           <input 
             :type="showPassword ? 'text' : 'password'"
             v-model="formData.password"
@@ -187,7 +187,7 @@ const togglePasswordVisibility = () => {
       <!-- Email -->
       <div class="input-group">
         <div class="input-container">
-          <span class="input-text-label">email</span>
+          <span class="input-text-label">Email</span>
           <input 
             type="email" 
             v-model="formData.email"
@@ -227,7 +227,7 @@ const togglePasswordVisibility = () => {
   background: transparent;
   border: none;
   color: white;
-  font-size: 1em;
+  font-size: 2em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -353,7 +353,7 @@ const togglePasswordVisibility = () => {
   
   .signup-form {
     gap: 1.5rem;
-    margin-top: 5rem;
+    margin-top: 10rem;
   }
   
   .input-field {
@@ -370,10 +370,5 @@ const togglePasswordVisibility = () => {
     padding: 1rem;
   }
   
-  .back-button {
-    font-size: 1em;
-    top: 1rem;
-    left: 1rem;
-  }
 }
 </style>

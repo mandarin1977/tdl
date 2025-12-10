@@ -296,6 +296,9 @@ const handleTabClick = (tab) => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
 }
 
 .tabButtons {
@@ -508,6 +511,11 @@ const handleTabClick = (tab) => {
     gap: 1.2rem;
   }
   
+  .contentWrapper {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
   .inputCard {
     padding: 1.2rem;
   }
@@ -539,6 +547,54 @@ const handleTabClick = (tab) => {
   .submitBtn {
     font-size: 1em;
     padding: 1rem;
+  }
+}
+
+/* 320px 화면 대응 */
+@media (max-width: 320px) {
+  .contentWrapper {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .tabButtons {
+    gap: 0.5rem;
+  }
+  
+  .tabButton {
+    width: 100px;
+    height: 45px;
+    font-size: 0.9em;
+  }
+  
+  .exchangeDisplay {
+    gap: 0.5rem;
+    padding: 0.75rem;
+    flex-wrap: wrap;
+  }
+  
+  .exchangeIcon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .exchangeInput,
+  .exchangeValue {
+    width: 70px;
+    padding: 0.6rem;
+    font-size: 0.9em;
+  }
+  
+  .exchangeArrow {
+    height: 32px;
+  }
+  
+  .inputCard {
+    padding: 1rem;
+  }
+  
+  .inputWrapper {
+    padding: 0.75rem;
   }
 }
 </style>

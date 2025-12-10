@@ -12,6 +12,19 @@ import cat20 from '@/assets/img/cat20.png'
 import cat29 from '@/assets/img/cat29.png'
 import cat30 from '@/assets/img/cat30.png'
 
+// 선물 이미지 import
+import cusionBed from '@/assets/img/cusionBed.png'
+import ballYarn from '@/assets/img/ballYarn.png'
+import cannedFood from '@/assets/img/cannedFood.png'
+import fishToy from '@/assets/img/fishToy.png'
+
+// 하트 이미지 import
+import heart from '@/assets/img/heart.png'
+
+// 친밀도 바 이미지 import
+import affectionBar2 from '@/assets/img/affectionBar2.png'
+import affectionBar from '@/assets/img/affectionBar.png'
+
 // appStore 사용
 const store = useAppStore()
 
@@ -39,9 +52,30 @@ const foodEmojis = ref([])
 
 // 친밀도 (임시로 ref로 관리, 나중에 데이터베이스에 저장 가능)
 const intimacy = ref(1)
+const maxIntimacy = 100 // 최대 친밀도
 
-// 랜덤 대화 목록
-const randomTalks = [
+// 친밀도 퍼센티지 계산
+const intimacyPercentage = computed(() => {
+  return Math.min((intimacy.value / maxIntimacy) * 100, 100)
+})
+
+// 친밀도 바 배경 이미지 ref
+const affectionBarBgRef = ref(null)
+const barHeight = ref('auto')
+
+// 선물 버튼 표시 여부
+const showGiftButtons = ref(false)
+
+// 선물 이미지 배열
+const gifts = [
+  { id: 1, image: cusionBed, name: 'Cushion Bed' },
+  { id: 2, image: ballYarn, name: 'Ball Yarn' },
+  { id: 3, image: cannedFood, name: 'Canned Food' },
+  { id: 4, image: fishToy, name: 'Fish Toy' }
+]
+
+// 랜덤 대화 목록 (한글)
+const randomTalksKo = [
   '안녕하세요!',
   '오늘 날씨가 좋네요!',
   '뭘 하고 계세요?',
@@ -59,6 +93,31 @@ const randomTalks = [
   '좋은 하루 되세요!'
 ]
 
+// 랜덤 대화 목록 (영문)
+const randomTalksEn = [
+  'Hello!',
+  'Nice weather today!',
+  'What are you doing?',
+  'This is fun!',
+  'Do you like cats?',
+  'I want to play!',
+  'I\'m hungry!',
+  'I\'m sleepy...',
+  'Have a great day!',
+  'Thank you!',
+  'I\'m happy!',
+  'This is fun!',
+  'Hang in there!',
+  'Fighting!',
+  'Have a nice day!'
+]
+
+// 현재 언어에 따른 대화 목록 선택
+const getRandomTalks = () => {
+  const currentLang = localStorage.getItem('appLanguage') || 'English'
+  return currentLang === '한국어' ? randomTalksKo : randomTalksEn
+}
+
 // 방향 버튼 클릭 핸들러
 const goLeft = () => {
   currentCatIndex.value = (currentCatIndex.value - 1 + cats.length) % cats.length
@@ -75,8 +134,10 @@ const currentCatImage = computed(() => {
 
 // 대화하기 버튼 핸들러
 const handleTalk = () => {
+  // 현재 언어에 맞는 대화 목록 가져오기
+  const talks = getRandomTalks()
   // 랜덤 대화 선택
-  const randomTalk = randomTalks[Math.floor(Math.random() * randomTalks.length)]
+  const randomTalk = talks[Math.floor(Math.random() * talks.length)]
   
   // 말풍선 위치 계산 (화면 안에 들어오도록)
   const maxWidth = Math.min(window.innerWidth || 500, 500)
@@ -111,9 +172,15 @@ const getTulImage = (id) => {
   }
 }
 
-// 추르주기 버튼 핸들러
-const handlePet = async () => {
-  const petCost = 100
+// Give gifts 버튼 핸들러 - 선물 버튼 표시
+const handlePet = () => {
+  // 선물 버튼 토글
+  showGiftButtons.value = !showGiftButtons.value
+}
+
+// 선물 선택 핸들러
+const selectGift = async (gift) => {
+  const petCost = 1
   
   // 코인 체크
   if (totalCoin.value < petCost) {
@@ -131,19 +198,18 @@ const handlePet = async () => {
     return
   }
   
-  // 음식 이모지 애니메이션 추가
-  const randomTulId = Math.floor(Math.random() * 6) + 1 // 1~6
+  // 선물 버튼은 그대로 유지 (자동으로 돌아가지 않음)
+  
+  // 음식 이모지 애니메이션 추가 (선택한 선물)
   const maxWidth = Math.min(window.innerWidth || 500, 500)
   const maxHeight = window.innerHeight || 800
-  const imageSize = 60
-  const padding = 30
   
   // 고양이 위치 근처에 이모지 표시
   const foodEmoji = {
     id: Date.now(),
     x: maxWidth / 2 + (Math.random() - 0.5) * 100, // 고양이 근처
     y: maxHeight / 2 + (Math.random() - 0.5) * 100,
-    imageId: randomTulId
+    image: gift.image
   }
   foodEmojis.value.push(foodEmoji)
   
@@ -158,18 +224,18 @@ const handlePet = async () => {
   // 친밀도 증가 (임시)
   intimacy.value++
   
-  // 말풍선 표시
+  // 하트 +1 표시 (말풍선 없이)
   const maxWidthBubble = Math.min(window.innerWidth || 500, 500)
   const maxHeightBubble = window.innerHeight || 800
-  const bubbleWidth = 220
-  const bubbleHeight = 60
   const paddingBubble = 20
   
   const bubble = {
     id: Date.now() + 1,
-    text: `친밀도 ${intimacy.value} ❤️`,
-    x: Math.random() * (maxWidthBubble - bubbleWidth - paddingBubble * 2) + paddingBubble,
-    y: Math.random() * (maxHeightBubble - bubbleHeight - paddingBubble * 2 - 200) + 100
+    text: '+1', // +1 텍스트 추가
+    heartImage: heart,
+    isHeartOnly: true, // 하트만 표시 플래그
+    x: Math.random() * (maxWidthBubble - 100 - paddingBubble * 2) + paddingBubble,
+    y: Math.random() * (maxHeightBubble - 100 - paddingBubble * 2 - 200) + 100
   }
   speechBubbles.value.push(bubble)
   
@@ -182,10 +248,23 @@ const handlePet = async () => {
   }, 2000)
 }
 
+
+// 친밀도 바 높이 업데이트
+const updateBarHeight = () => {
+  if (affectionBarBgRef.value) {
+    barHeight.value = affectionBarBgRef.value.offsetHeight + 'px'
+  }
+}
+
 onMounted(() => {
   // 현재 사용자 로드
   currentUser.value = getCurrentUser()
   store.loadCurrentUser()
+  
+  // 친밀도 바 높이 업데이트 (이미지 로드 후)
+  setTimeout(() => {
+    updateBarHeight()
+  }, 100)
 })
 </script>
 
@@ -206,6 +285,28 @@ onMounted(() => {
           
           <!-- 고양이와 그림자 컨테이너 -->
           <div class="catWrapper">
+            <!-- 친밀도 바 (Give gifts 버튼 활성화 시 표시) -->
+            <div v-if="showGiftButtons" class="affectionBarContainer">
+              <span class="levelText">Lv.</span>
+              <div class="affectionBarWrapper">
+                <!-- 배경 바 -->
+                <img 
+                  ref="affectionBarBgRef"
+                  :src="affectionBar2" 
+                  alt="친밀도 바 배경" 
+                  class="affectionBarBg"
+                  @load="updateBarHeight"
+                />
+                <!-- 채워지는 바 (친밀도에 따라) -->
+                <div class="affectionBarFill" :style="{ width: intimacyPercentage + '%', height: barHeight }">
+                  <img 
+                    :src="affectionBar" 
+                    alt="친밀도 바" 
+                    class="affectionBarFillImg"
+                  />
+                </div>
+              </div>
+            </div>
             <transition name="slide" mode="out-in">
               <div :key="currentCatIndex" class="catSlide">
                 <!-- 그림자 -->
@@ -238,13 +339,31 @@ onMounted(() => {
       </div>
       
       <!-- 하단 고정 버튼들 -->
-      <div v-if="currentUser" class="actionButtons">
-        <button class="actionBtn talkBtn" @click="handleTalk">
-          대화하기
-        </button>
-        <button class="actionBtn petBtn" @click="handlePet">
-          추르주기
-        </button>
+      <div v-if="currentUser" class="actionButtons" :class="{ 'gift-buttons-container': showGiftButtons }">
+        <!-- 일반 버튼들 -->
+        <template v-if="!showGiftButtons">
+          <button class="actionBtn talkBtn" @click="handleTalk">
+            Talk
+          </button>
+          <button class="actionBtn petBtn" @click="handlePet">
+            Give gifts
+          </button>
+        </template>
+        <!-- 선물 선택 버튼들 -->
+        <template v-else>
+          <button 
+            v-for="gift in gifts" 
+            :key="gift.id"
+            class="actionBtn giftBtn"
+            @click="selectGift(gift)"
+          >
+            <img :src="gift.image" :alt="gift.name" class="gift-btn-image" />
+          </button>
+          <!-- 뒤로가기 버튼 -->
+          <button class="actionBtn backBtn" @click="showGiftButtons = false">
+            ←
+          </button>
+        </template>
       </div>
     </main>
     
@@ -256,10 +375,16 @@ onMounted(() => {
       <div 
         v-for="bubble in speechBubbles" 
         :key="bubble.id"
-        class="speechBubble"
+        :class="bubble.isHeartOnly ? 'heartOnly' : 'speechBubble'"
         :style="{ left: bubble.x + 'px', top: bubble.y + 'px', transform: 'translateX(-50%)' }"
       >
-        {{ bubble.text }}
+        <template v-if="!bubble.isHeartOnly">
+          {{ bubble.text }}
+        </template>
+        <template v-else>
+          <img v-if="bubble.heartImage" :src="bubble.heartImage" alt="하트" class="heart-image" />
+          <span v-if="bubble.text" class="heartPlusText">{{ bubble.text }}</span>
+        </template>
       </div>
     </div>
     
@@ -272,7 +397,7 @@ onMounted(() => {
         :style="{ left: emoji.x + 'px', top: emoji.y + 'px' }"
       >
         <img 
-          :src="getTulImage(emoji.imageId)" 
+          :src="emoji.image" 
           alt="" 
           class="tulImage"
         />
@@ -304,7 +429,7 @@ onMounted(() => {
 .homeContent {
   width: 100%;
   padding: 2rem 0;
-  color: white;
+  color: rgb(255, 255, 255, 1);
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -337,6 +462,71 @@ onMounted(() => {
   flex: 1;
   overflow: hidden;
   min-height: 400px;
+}
+
+/* 친밀도 바 컨테이너 */
+.affectionBarContainer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 레벨 텍스트 */
+.levelText {
+  color: white;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+/* 친밀도 바 래퍼 */
+.affectionBarWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  overflow: hidden;
+  display: inline-block;
+}
+
+/* 친밀도 바 배경 */
+.affectionBarBg {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+/* 친밀도 바 채우기 컨테이너 */
+.affectionBarFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  overflow: hidden;
+  transition: width 0.5s ease;
+  z-index: 2;
+}
+
+/* 친밀도 바 채우기 이미지 */
+.affectionBarFillImg {
+  width: 300px;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 /* 슬라이드 컨테이너 */
@@ -405,6 +595,7 @@ onMounted(() => {
   position: absolute;
   top: 0;
 }
+
 .arrowLeft{
   left: 0;
 } 
@@ -512,9 +703,18 @@ onMounted(() => {
     gap: 0.8rem;
   }
   
+  .actionButtons.gift-buttons-container {
+    gap: 0;
+  }
+  
   .actionBtn {
     font-size: 0.9rem;
     padding: 0.8rem 1.2rem;
+  }
+  
+  .gift-btn-image {
+    width: 40px;
+    height: 40px;
   }
 }
 
@@ -527,18 +727,25 @@ onMounted(() => {
   max-width: 500px;
   padding: 1rem;
   position: fixed;
-  bottom: 70px; /* Footer 높이만큼 위에 배치 */
+  bottom: 55px; /* Footer 높이만큼 위에 배치 */
   left: 50%;
   transform: translateX(-50%);
   z-index: 999;
 }
 
+/* 선물 버튼 컨테이너 - 버튼들이 붙어있도록 */
+.actionButtons.gift-buttons-container {
+  gap: 0;
+  padding: 0;
+  justify-content: center;
+}
+
 .actionBtn {
   flex: 1;
-  padding: 1rem 1.5rem;
+  padding: 2rem 1.5rem;
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   color: white;
   cursor: pointer;
@@ -547,11 +754,14 @@ onMounted(() => {
 }
 
 .talkBtn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-image: url('@/assets/img/button1.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
 }
 
 .talkBtn:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
@@ -561,17 +771,80 @@ onMounted(() => {
 }
 
 .petBtn {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background-image: url('@/assets/img/button2.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
 }
 
 .petBtn:hover {
-  background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
 }
 
 .petBtn:active {
   transform: translateY(0);
+}
+
+.giftBtn {
+  display: block;
+  padding: 0;
+  flex: none;
+  width: 70px;
+  border-radius: 0;
+  margin: 0;
+}
+
+/* 첫 번째 선물 버튼 - 왼쪽만 둥글게 */
+.gift-buttons-container .giftBtn:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+/* 뒤로가기 버튼 */
+.backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1.5rem;
+  flex: none;
+  width: auto;
+  color: white;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-left: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.backBtn:hover {
+  transform: translateY(-2px);
+  background: rgba(120, 120, 120, 0.9);
+  box-shadow: 0 4px 15px rgba(100, 100, 100, 0.4);
+}
+
+.backBtn:active {
+  transform: translateY(0);
+}
+
+/* 마지막 선물 버튼 - 뒤로가기 버튼이 있으므로 오른쪽 둥글게 하지 않음 */
+.gift-buttons-container .giftBtn:last-of-type {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.giftBtn:hover {
+  transform: translateY(-2px);
+}
+
+.giftBtn:active {
+  transform: translateY(0);
+}
+
+.gift-btn-image {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
 }
 
 /* 말풍선 스타일 */
@@ -602,6 +875,74 @@ onMounted(() => {
   transform-origin: center;
   text-align: center;
   line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.heart-image {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* 하트만 표시 (배경 없음) */
+.heartOnly {
+  position: absolute;
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  animation: heartAppear 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), heartFloat 2.5s ease-out 0.4s forwards;
+  transform-origin: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.heartOnly .heart-image {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(255, 0, 0, 0.5));
+}
+
+.heartPlusText {
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+}
+
+@keyframes heartAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(30px) rotate(-10deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2) translateY(-5px) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes heartFloat {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px) scale(1.2);
+  }
 }
 
 .speechBubble::before {
@@ -663,6 +1004,20 @@ onMounted(() => {
     padding: 0.8rem 1.2rem;
     max-width: 200px;
   }
+  
+  .heart-image {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .heartOnly .heart-image {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .heartPlusText {
+    font-size: 1.5rem;
+  }
 }
 
 /* 음식 이모지 애니메이션 */
@@ -716,5 +1071,6 @@ onMounted(() => {
     transform: scale(0.7) translateY(-150px) rotate(0deg);
   }
 }
+
 </style>
 

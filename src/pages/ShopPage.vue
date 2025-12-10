@@ -98,11 +98,13 @@ const purchaseItem = async (item) => {
   // 에너지 구매 처리
   // 에너지는 하루에 최대 4000개까지 사용 가능합니다.
   const maxEnergy = 4000
-  const currentEnergy = parseInt(localStorage.getItem('currentEnergy') || maxEnergy.toString())
+  const currentEnergy = parseInt(localStorage.getItem('currentEnergy') || maxEnergy.toString(), 10)
   const newEnergy = Math.min(currentEnergy + item.amount, maxEnergy)
   localStorage.setItem('currentEnergy', newEnergy.toString())
   localStorage.setItem('energyLastDate', new Date().toDateString())
-  alert(`${item.name} ${texts.value.purchaseComplete} ${item.amount} ${texts.value.energyRecovered}! (${texts.value.currentEnergy}: ${newEnergy}/${maxEnergy})`)
+  // Header 컴포넌트 업데이트를 위한 이벤트 발생
+  window.dispatchEvent(new CustomEvent('userDataUpdated'))
+  alert(`${item.name} ${texts.value.purchaseComplete} ${item.amount} ${texts.value.energyRecovered}! (${texts.value.currentEnergy}: ${store.formatNumber(newEnergy)}/${store.formatNumber(maxEnergy)})`)
 }
 
 onMounted(() => {

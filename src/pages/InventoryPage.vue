@@ -586,6 +586,7 @@ onUnmounted(() => {
           class="itemBox"
         >
           <!-- 아이템이 있으면 표시, 없으면 빈 박스 -->
+          <span class="noItemText">no item</span>
         </div>
       </div>
     </main>
@@ -1263,6 +1264,16 @@ onUnmounted(() => {
   padding: 0.5rem;
   box-sizing: border-box;
   overflow: hidden;
+  position: relative;
+}
+
+.noItemText {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
 }
 
 .itemBox:hover {

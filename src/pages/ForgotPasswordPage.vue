@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { generateResetToken, saveResetToken, generateResetLink } from '@/utils/resetTokenUtils'
+import cat9 from '@/assets/img/cat9.png'
 
 const router = useRouter()
 
@@ -109,12 +110,20 @@ const copyLink = async () => {
       &lt; Back
     </button>
 
+    <!-- 타이틀 -->
+    <h1 class="forgot-password-title">Reset password</h1>
+    
+    <!-- 고양이 캐릭터 이미지 -->
+    <div class="cat-character-container">
+      <img :src="cat9" alt="Cat Character" class="cat-character-image" />
+    </div>
+
     <!-- 비밀번호 재설정 폼 -->
     <form @submit="handleSendResetLink" class="forgot-password-form">
       <!-- 이메일 -->
       <div class="input-group">
         <div class="input-container">
-          <span class="input-text-label">email</span>
+          <span class="input-text-label">Email</span>
           <input 
             type="email" 
             v-model="forgotPasswordEmail"
@@ -179,13 +188,13 @@ const copyLink = async () => {
 }
 
 .back-button {
-  position: absolute;
+  position: static;
   top: 2rem;
   left: 2rem;
   background: transparent;
   border: none;
   color: white;
-  font-size: 1em;
+  font-size: 2em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -199,6 +208,33 @@ const copyLink = async () => {
 .back-button:hover {
   opacity: 0.8;
   transform: translateX(-2px);
+}
+
+.forgot-password-title {
+  color: white;
+  font-size: 2em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: left;
+  margin: 2rem 0 1rem 0;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.cat-character-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 2rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.cat-character-image {
+  max-width: 200px;
+  height: auto;
+  object-fit: contain;
 }
 
 .forgot-password-form {
@@ -269,7 +305,8 @@ const copyLink = async () => {
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;
-  width: 100%;
+  width: 70%;
+  margin:1.5rem auto;
 }
 
 .reset-button:hover:not(:disabled) {
@@ -391,6 +428,18 @@ const copyLink = async () => {
     padding: 1.2rem;
   }
   
+  .forgot-password-title {
+    margin: 1.5rem 0 1rem 0;
+  }
+  
+  .cat-character-container {
+    margin: 0 0 1.5rem 0;
+  }
+  
+  .cat-character-image {
+    max-width: 180px;
+  }
+  
   .forgot-password-form {
     gap: 1.5rem;
     margin-top: 5rem;
@@ -424,10 +473,6 @@ const copyLink = async () => {
     justify-content: center;
   }
   
-  .back-button {
-    font-size: 1em;
-    top: 1rem;
-    left: 1rem;
-  }
+
 }
 </style>

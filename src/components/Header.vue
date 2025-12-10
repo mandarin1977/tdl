@@ -27,19 +27,52 @@ const totalCoin = computed(() => store.state.totalCoin) // 코인 (C)
 const catFragments = computed(() => store.state.catFragments) // 고양이 파편
 
 // 에너지는 localStorage에 저장되므로 별도 관리
-const currentEnergy = ref(4000)
+// 초기값을 localStorage에서 읽어오거나 기본값 사용
+const getInitialEnergy = () => {
+  const savedEnergy = localStorage.getItem('currentEnergy')
+  if (savedEnergy) {
+    const energy = parseInt(savedEnergy, 10)
+    return isNaN(energy) ? 4000 : energy
+  }
+  return 4000
+}
+
+const currentEnergy = ref(getInitialEnergy())
 const maxEnergy = ref(4000)
 
 // 에너지 체크 및 리셋은 유틸리티 함수 사용
 
 // 에너지 업데이트 함수
 const updateEnergy = () => {
-  const savedEnergy = localStorage.getItem('currentEnergy')
-  if (savedEnergy) {
-    currentEnergy.value = parseInt(savedEnergy, 10)
-  }
+  // checkAndResetEnergy가 이미 에너지를 올바르게 설정하므로 중복 설정 제거
   checkAndResetEnergy(currentEnergy, maxEnergy)
+  // 숫자 타입 보장
+  if (typeof currentEnergy.value !== 'number') {
+    currentEnergy.value = parseInt(currentEnergy.value, 10) || 0
+  }
 }
+
+// 에너지를 숫자로 보장하는 computed (반응형)
+const formattedEnergy = computed(() => {
+  // currentEnergy.value가 변경될 때마다 재계산되도록 함
+  let energyValue = currentEnergy.value
+  
+  // 문자열이면 정수로 변환, 숫자면 그대로 사용
+  if (typeof energyValue === 'string') {
+    energyValue = parseInt(energyValue, 10)
+  } else if (typeof energyValue !== 'number') {
+    energyValue = Number(energyValue)
+  }
+  
+  // NaN 체크 및 정수 보장
+  if (isNaN(energyValue) || energyValue === null || energyValue === undefined) {
+    return '0'
+  }
+  
+  // 정수로 변환하여 포맷팅
+  const energyInt = Math.floor(energyValue)
+  return formatNumber(energyInt)
+})
 
 const isMenuOpen = ref(false)
 
@@ -113,7 +146,7 @@ const formatNumber = store.formatNumber
         <!-- 에너지 -->
         <button class="resourceItem energyItem" @click="goToShop">
           <img src="@/assets/img/energyIcon.png" alt="에너지" class="resourceIcon" />
-          <span class="resourceValue">{{ formatNumber(currentEnergy) }}</span>
+          <span class="resourceValue">{{ formattedEnergy }}</span>
         </button>
         
         <!-- 포인트 -->
@@ -131,7 +164,7 @@ const formatNumber = store.formatNumber
         <!-- 고양이 파편 -->
         <button class="resourceItem" @click="goToShop">
           <img src="@/assets/img/catPoint.png" alt="고양이" class="resourceIcon">
-          <span class="resourceValue">{{ catFragments }}</span>
+          <span class="resourceValue">{{ formatNumber(catFragments) }}</span>
         </button>
       </div>
       

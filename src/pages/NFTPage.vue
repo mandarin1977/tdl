@@ -916,7 +916,7 @@ const switchTab = (tab) => {
 .nftPage {
   width: 100%;
   min-height: 100vh;
-  background-image: url('@/assets/img/backgroundImg.png');
+  background-image: url('@/assets/img/mainBackground01.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

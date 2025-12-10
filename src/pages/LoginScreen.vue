@@ -9,6 +9,7 @@ import { loginWithGoogle } from '@/utils/firebaseAuth'
 import { auth } from '@/firebase/config'
 import loginBtn from '@/assets/img/loginBtn.png'
 import urerTown from '@/assets/img/urerTown.png'
+import cat3 from '@/assets/img/cat3.png'
 
 // Firebase 사용 가능 여부 확인
 const isFirebaseAvailable = computed(() => {
@@ -267,9 +268,12 @@ onMounted(() => {
     <!-- 타이틀 -->
     <h1 class="login-title">{{ texts.login }}</h1>
     
-    <!-- urerTown 이미지 -->
+    <!-- urerTown 이미지와 고양이 캐릭터 -->
     <div class="urer-town-container">
       <img :src="urerTown" alt="Urer Town" class="urer-town-image" />
+      <div class="cat-character-wrapper">
+        <img :src="cat3" alt="Cat Character" class="cat-character-image" />
+      </div>
     </div>
 
     <!-- 로그인 폼 -->
@@ -326,7 +330,7 @@ onMounted(() => {
           'connected': walletConnected 
         }"
       >
-        <div v-if="!isConnecting && !walletConnected" class="btn-content">
+        <div v-if="!isConnecting && !walletConnected" class="btn-content loginBt">
           {{ texts.loginButton }}
         </div>
         
@@ -456,17 +460,38 @@ onMounted(() => {
 
 .urer-town-container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   margin: 0 0 2rem 0;
   position: relative;
   z-index: 1;
+  gap: 1rem;
 }
 
 .urer-town-image {
   max-width: 160px;
   height: auto;
   object-fit: contain;
+  position: absolute;
+}
+
+.cat-character-wrapper {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cat-character-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .login-form {
@@ -564,9 +589,9 @@ onMounted(() => {
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 1rem;
-  margin-bottom: 1.5rem;
-  width: 100%;
+  margin:1.5rem auto;
+  width: 70%;
+  position: relative;
 }
 
 .login-button:hover:not(:disabled) {
@@ -576,6 +601,13 @@ onMounted(() => {
 .login-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.loginBt{
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .btn-content {
@@ -618,8 +650,8 @@ onMounted(() => {
 .signup-btn {
   background: none;
   border: none;
-  color: white;
-  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.2em;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.3s ease;
@@ -632,14 +664,14 @@ onMounted(() => {
 
 .link-separator {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8em;
+  font-size: 1.2em;
 }
 
 .forgot-password-btn {
   background: none;
   border: none;
-  color: white;
-  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.2em;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.3s ease;
@@ -723,13 +755,12 @@ onMounted(() => {
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.3s ease;
-  width: 100%;
+  width: 70%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
   border-radius: 50px;
+  margin: 1.5rem auto;
 }
 
 .wallet-connect-button:hover:not(:disabled) {
@@ -766,16 +797,24 @@ onMounted(() => {
   }
   
   .login-title {
-    font-size: 1.6rem;
-    margin: 1.5rem 0 1rem 0;
+    font-size: 2em;
+    margin: 1.5rem 0 10vw 0;
+    text-align: center;
   }
   
   .urer-town-container {
-    margin: 0 0 1.5rem 0;
+    margin: 0 0 3em 0;
+    gap: 0.75rem;
   }
   
   .urer-town-image {
     max-width: 160px;
+  }
+  
+  .cat-character-wrapper {
+    width: 130px;
+    height: 130px;
+    border-width: 6px;
   }
   
   .login-form {
@@ -795,9 +834,11 @@ onMounted(() => {
   }
   
   .login-button {
-    font-size: 1em;
+    font-size: 1.4em;
     height: 52px;
     padding: 1rem;
+    width: 70%;
+    margin: auto
   }
   
   .wallet-connect-button {
