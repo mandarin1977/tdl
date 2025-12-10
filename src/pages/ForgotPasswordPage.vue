@@ -216,7 +216,7 @@ const copyLink = async () => {
   font-weight: 700;
   letter-spacing: -0.02em;
   text-align: left;
-  margin: 2rem 0 1rem 0;
+  margin: 2rem 0 3rem 0;
   position: relative;
   z-index: 1;
   text-align: center;
@@ -242,7 +242,7 @@ const copyLink = async () => {
   flex-direction: column;
   gap: 1.5rem;
   margin: 0 auto;
-  margin-top: 6rem;
+  margin-top: 1rem;
   width: 100%;
   position: relative;
   z-index: 1;
@@ -257,10 +257,14 @@ const copyLink = async () => {
 .input-container {
   position: relative;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: normal;
   border-radius: 12px;
-  padding: 1rem;
-  background-color: #000000;
+  padding: 1.5rem 1rem 1rem;
+  background-image: url('@/assets/img/signupBg.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
   backdrop-filter: blur(10px);
 }
 
@@ -270,6 +274,9 @@ const copyLink = async () => {
   font-weight: 400;
   margin-right: 0.75rem;
   flex-shrink: 0;
+  position: absolute;
+  top: 3px;
+  left: 20px;
 }
 
 .input-field {
@@ -282,6 +289,7 @@ const copyLink = async () => {
   letter-spacing: 0.01em;
   outline: none;
   padding: 0.5rem 0;
+  margin-left: 10px
 }
 
 .input-field::placeholder {
@@ -297,9 +305,8 @@ const copyLink = async () => {
   color: white;
   border: none;
   border-radius: 12px;
-  height: 56px;
-  padding: 1.2rem;
-  font-size: 1em;
+  padding: 1.2rem 1.2rem 2.5rem;
+  font-size: 1.4em;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
@@ -428,9 +435,6 @@ const copyLink = async () => {
     padding: 1.2rem;
   }
   
-  .forgot-password-title {
-    margin: 1.5rem 0 1rem 0;
-  }
   
   .cat-character-container {
     margin: 0 0 1.5rem 0;
@@ -442,7 +446,6 @@ const copyLink = async () => {
   
   .forgot-password-form {
     gap: 1.5rem;
-    margin-top: 5rem;
   }
   
   .input-field {
@@ -453,11 +456,6 @@ const copyLink = async () => {
     font-size: 1em;
   }
   
-  .reset-button {
-    font-size: 1em;
-    height: 52px;
-    padding: 1rem;
-  }
   
   .reset-link-container {
     padding: 1rem;

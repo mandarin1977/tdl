@@ -182,8 +182,8 @@ const formatNumber = store.formatNumber
           </div>
         </button>
         
-        <!-- 알림 아이콘 -->
-        <button class="iconButton notificationButton" @click="goToNotification" title="알림">
+        <!-- 알림 아이콘 (일단 숨김) -->
+        <button v-if="false" class="iconButton notificationButton" @click="goToNotification" title="알림">
           <div class="iconCircle notificationIconCircle">
             <img src="@/assets/img/notice.png" alt="알림" class="icon-img">
           </div>

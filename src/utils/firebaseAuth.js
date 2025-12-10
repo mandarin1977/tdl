@@ -84,21 +84,44 @@ export const handleGoogleRedirect = async () => {
     return redirectProcessingPromise
   }
   
-  // 이미 처리했다면 sessionStorage 확인
+  // 이미 처리했다면 localStorage/sessionStorage 확인
   if (googleRedirectHandled) {
-    console.log('handleGoogleRedirect: 이미 처리됨, sessionStorage 확인 중...')
-    const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null')
+    console.log('handleGoogleRedirect: 이미 처리됨, 저장소 확인 중...')
+    // localStorage를 먼저 확인 (영구 저장)
+    let currentUser = null
+    try {
+      const localData = localStorage.getItem('currentUser')
+      if (localData) {
+        currentUser = JSON.parse(localData)
+      }
+    } catch (e) {
+      console.error('localStorage 파싱 오류:', e)
+    }
+    
+    // localStorage에 없으면 sessionStorage 확인
+    if (!currentUser) {
+      try {
+        const sessionData = sessionStorage.getItem('currentUser')
+        if (sessionData) {
+          currentUser = JSON.parse(sessionData)
+        }
+      } catch (e) {
+        console.error('sessionStorage 파싱 오류:', e)
+      }
+    }
+    
     if (currentUser && currentUser.id) {
-      console.log('handleGoogleRedirect: sessionStorage에서 사용자 발견:', currentUser.email)
+      console.log('handleGoogleRedirect: 저장소에서 사용자 발견:', currentUser.email)
       return { success: true, user: currentUser }
     }
-    // 세션 스토리지에 없으면 Firebase 인증 상태 확인
+    // 저장소에 없으면 Firebase 인증 상태 확인
     if (auth && auth.currentUser) {
       try {
-        console.log('handleGoogleRedirect: sessionStorage 없지만 Firebase 인증 상태 있음, 복구 시도...')
+        console.log('handleGoogleRedirect: 저장소 없지만 Firebase 인증 상태 있음, 복구 시도...')
         const firebaseUser = auth.currentUser
         const gameData = await getUserGameData(firebaseUser.uid)
         const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+        localStorage.setItem('currentUser', JSON.stringify(appUser))
         sessionStorage.setItem('currentUser', JSON.stringify(appUser))
         console.log('handleGoogleRedirect: 세션 복구 완료:', appUser.email)
         return { success: true, user: appUser }
@@ -122,6 +145,7 @@ export const handleGoogleRedirect = async () => {
         const firebaseUser = auth.currentUser
         const gameData = await getUserGameData(firebaseUser.uid)
         const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+        localStorage.setItem('currentUser', JSON.stringify(appUser))
         sessionStorage.setItem('currentUser', JSON.stringify(appUser))
         console.log('handleGoogleRedirect: Firebase 인증 상태 확인 - 사용자 저장됨:', appUser.email)
         return { success: true, user: appUser }
@@ -145,6 +169,7 @@ export const handleGoogleRedirect = async () => {
         if (!firebaseUser.uid && firebaseUser.id) {
           // 이미 변환된 사용자 객체인 경우
           const appUser = firebaseUser
+          localStorage.setItem('currentUser', JSON.stringify(appUser))
           sessionStorage.setItem('currentUser', JSON.stringify(appUser))
           console.log('handleGoogleRedirect: 이미 변환된 사용자 객체 저장:', appUser.email)
           return { success: true, user: appUser }
@@ -154,19 +179,20 @@ export const handleGoogleRedirect = async () => {
         const gameData = await getUserGameData(firebaseUser.uid)
         const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
         
-        // 세션 스토리지에 저장 (중요!) - 동기적으로 저장
+        // localStorage와 sessionStorage 모두에 저장 (영구 저장 + 임시 저장)
         try {
+          localStorage.setItem('currentUser', JSON.stringify(appUser))
           sessionStorage.setItem('currentUser', JSON.stringify(appUser))
           // 저장 확인
-          const saved = sessionStorage.getItem('currentUser')
+          const saved = localStorage.getItem('currentUser')
           if (!saved) {
-            console.error('handleGoogleRedirect: 세션 스토리지 저장 실패!')
+            console.error('handleGoogleRedirect: localStorage 저장 실패!')
           } else {
             const savedUser = JSON.parse(saved)
             console.log('handleGoogleRedirect: Google 로그인 성공 - 사용자 저장됨:', appUser.email, '저장 확인:', !!saved, '저장된 ID:', savedUser.id)
           }
         } catch (storageError) {
-          console.error('handleGoogleRedirect: 세션 스토리지 저장 오류:', storageError)
+          console.error('handleGoogleRedirect: 저장 오류:', storageError)
         }
         
         return { success: true, user: appUser }
@@ -184,6 +210,7 @@ export const handleGoogleRedirect = async () => {
           const firebaseUser = auth.currentUser
           const gameData = await getUserGameData(firebaseUser.uid)
           const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+          localStorage.setItem('currentUser', JSON.stringify(appUser))
           sessionStorage.setItem('currentUser', JSON.stringify(appUser))
           console.log('handleGoogleRedirect: 재시도 후 Firebase 인증 상태 확인 - 사용자 저장됨:', appUser.email)
           return { success: true, user: appUser }
@@ -216,6 +243,7 @@ export const handleGoogleRedirect = async () => {
               const firebaseUser = auth.currentUser
               const gameData = await getUserGameData(firebaseUser.uid)
               const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+              localStorage.setItem('currentUser', JSON.stringify(appUser))
               sessionStorage.setItem('currentUser', JSON.stringify(appUser))
               console.log('handleGoogleRedirect: Promise 내부에서 사용자 저장됨:', appUser.email)
               if (!resolved) {
@@ -240,6 +268,7 @@ export const handleGoogleRedirect = async () => {
                   const firebaseUser = auth.currentUser
                   const gameData = await getUserGameData(firebaseUser.uid)
                   const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+                  localStorage.setItem('currentUser', JSON.stringify(appUser))
                   sessionStorage.setItem('currentUser', JSON.stringify(appUser))
                   console.log('handleGoogleRedirect: 타임아웃 후 Firebase 인증 상태 확인 - 사용자 저장됨:', appUser.email)
                   resolve({ success: true, user: appUser })
@@ -281,6 +310,7 @@ export const handleGoogleRedirect = async () => {
               googleRedirectHandled = true
               const gameData = await getUserGameData(firebaseUser.uid)
               const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+              localStorage.setItem('currentUser', JSON.stringify(appUser))
               sessionStorage.setItem('currentUser', JSON.stringify(appUser))
               console.log('handleGoogleRedirect: onAuthStateChanged - 사용자 저장됨:', appUser.email)
               resolve({ success: true, user: appUser })
@@ -305,6 +335,7 @@ export const handleGoogleRedirect = async () => {
           const firebaseUser = auth.currentUser
           const gameData = await getUserGameData(firebaseUser.uid)
           const appUser = convertFirebaseUserToAppUser(firebaseUser, gameData?.gameData)
+          localStorage.setItem('currentUser', JSON.stringify(appUser))
           sessionStorage.setItem('currentUser', JSON.stringify(appUser))
           console.log('Fallback 처리 - 사용자 저장됨:', appUser.email)
           return { success: true, user: appUser }
@@ -328,6 +359,7 @@ export const handleGoogleRedirect = async () => {
 export const logout = async () => {
   try {
     await signOutUser()
+    localStorage.removeItem('currentUser')
     sessionStorage.removeItem('currentUser')
     return { success: true }
   } catch (error) {
@@ -360,10 +392,28 @@ export const updateGameData = async (userId, gameData) => {
     const result = await updateUserGameDataInFirestore(userId, gameData)
     
     if (result.success) {
-      // 세션 스토리지의 현재 사용자 데이터도 업데이트
-      const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}')
-      if (currentUser.id === userId) {
+      // localStorage와 sessionStorage의 현재 사용자 데이터도 업데이트
+      let currentUser = null
+      try {
+        const localData = localStorage.getItem('currentUser')
+        if (localData) {
+          currentUser = JSON.parse(localData)
+        }
+      } catch (e) {
+        // localStorage에 없으면 sessionStorage 확인
+        try {
+          const sessionData = sessionStorage.getItem('currentUser')
+          if (sessionData) {
+            currentUser = JSON.parse(sessionData)
+          }
+        } catch (e2) {
+          console.error('사용자 데이터 파싱 오류:', e2)
+        }
+      }
+      
+      if (currentUser && currentUser.id === userId) {
         currentUser.gameData = { ...currentUser.gameData, ...gameData }
+        localStorage.setItem('currentUser', JSON.stringify(currentUser))
         sessionStorage.setItem('currentUser', JSON.stringify(currentUser))
       }
     }

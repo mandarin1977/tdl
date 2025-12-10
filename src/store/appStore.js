@@ -103,6 +103,7 @@ export const useAppStore = () => {
         // currentUser도 업데이트
         if (state.currentUser) {
           state.currentUser.gameData = { ...state.currentUser.gameData, ...gameData }
+          localStorage.setItem('currentUser', JSON.stringify(state.currentUser))
           sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser))
         }
         
@@ -188,7 +189,8 @@ export const useAppStore = () => {
       user = createWalletUser(address)
     }
     
-    // 세션 스토리지에 저장
+    // localStorage와 sessionStorage에 저장
+    localStorage.setItem('currentUser', JSON.stringify(user))
     sessionStorage.setItem('currentUser', JSON.stringify(user))
     
     // 스토어 상태 업데이트
@@ -206,9 +208,10 @@ export const useAppStore = () => {
     state.walletProvider = null
     state.loginType = null
     
-    // 세션 스토리지에서도 제거 (자동 재연결 방지)
+    // localStorage와 sessionStorage에서도 제거 (자동 재연결 방지)
     const currentUser = getCurrentUser()
     if (currentUser && currentUser.loginType === 'wallet') {
+      localStorage.removeItem('currentUser')
       sessionStorage.removeItem('currentUser')
     }
     
@@ -309,6 +312,7 @@ export const useAppStore = () => {
     state.catFragments = 50
     state.level = 1
     state.nftCount = 0
+    localStorage.removeItem('currentUser')
     sessionStorage.removeItem('currentUser')
   }
 

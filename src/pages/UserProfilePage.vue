@@ -27,6 +27,7 @@ const texts = {
     copySuccess: 'User ID가 복사되었습니다!',
     logout: '로그아웃',
     logoutConfirm: '정말 로그아웃 하시겠습니까?',
+    login: '로그인',
     gameStats: '게임 통계',
     level: '레벨',
     points: '포인트',
@@ -40,6 +41,7 @@ const texts = {
     copySuccess: 'User ID copied!',
     logout: 'Logout',
     logoutConfirm: 'Are you sure you want to logout?',
+    login: 'Login',
     gameStats: 'Game Stats',
     level: 'Level',
     points: 'Points',
@@ -67,8 +69,23 @@ onMounted(() => {
     userPhoto.value = user.photoURL || ''
     userId.value = user.id || 'ID' + String(Math.random()).substring(2, 10)
   } else {
-    // 로그인하지 않은 경우 로그인 페이지로 이동
-    router.push('/login')
+    // 사용자가 없으면 게스트 사용자 생성
+    const guestUser = {
+      id: 'guest_' + Date.now(),
+      email: 'guest@tdl.com',
+      name: 'Guest',
+      loginType: 'guest',
+      gameData: {
+        level: 1,
+        coins: 0,
+        totalCoin: 0,
+        catFragments: 50
+      }
+    }
+    currentUser.value = guestUser
+    userEmail.value = guestUser.email
+    userName.value = guestUser.name
+    userId.value = guestUser.id
   }
   
   // localStorage에서 언어 설정 로드 (기본값: English)
@@ -107,6 +124,23 @@ const handleBack = () => {
 const copyUserId = () => {
   navigator.clipboard.writeText(userId.value)
   alert(currentTexts.value.copySuccess)
+}
+
+// 게스트 모드인지 확인
+const isGuestMode = computed(() => {
+  return currentUser.value?.loginType === 'guest' || currentUser.value?.email?.includes('@guest.com') || currentUser.value?.email === 'guest@tdl.com'
+})
+
+// 로그인
+const handleLogin = () => {
+  console.log('로그인 버튼 클릭됨 - 로그인 페이지로 이동')
+  router.push('/login').then(() => {
+    console.log('로그인 페이지로 이동 성공')
+  }).catch(err => {
+    console.error('라우터 이동 오류:', err)
+    // Fallback: 직접 URL 변경
+    window.location.hash = '#/login'
+  })
 }
 
 // 로그아웃
@@ -219,9 +253,22 @@ const gameStats = computed(() => {
         </div>
       </div>
       
-      <!-- 로그아웃 버튼 -->
+      <!-- 로그인/로그아웃 버튼 -->
       <div class="logoutSection">
-        <button class="logoutBtn" @click="handleLogout">
+        <button 
+          v-if="isGuestMode" 
+          class="loginBtn" 
+          @click.prevent="handleLogin"
+          type="button"
+        >
+          {{ currentTexts.login }}
+        </button>
+        <button 
+          v-else 
+          class="logoutBtn" 
+          @click.prevent="handleLogout"
+          type="button"
+        >
           {{ currentTexts.logout }}
         </button>
       </div>
@@ -474,6 +521,26 @@ const gameStats = computed(() => {
   background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.loginBtn {
+  width: 100%;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #7DD3FC 0%, #0EA5E9 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(125, 211, 252, 0.3);
+}
+
+.loginBtn:hover {
+  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.4);
 }
 
 /* 모바일 반응형 */

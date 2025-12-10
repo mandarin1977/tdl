@@ -194,9 +194,44 @@ const handleRouteChange = () => {
 
 
 onMounted(() => {
+  // 현재 사용자 로드
+  currentUser.value = getCurrentUser()
+  
+  // 사용자가 없으면 기본 게스트 사용자 생성
+  if (!currentUser.value) {
+    const guestUser = {
+      id: 'guest_' + Date.now(),
+      email: 'guest@tdl.com',
+      name: 'Guest',
+      loginType: 'guest',
+      gameData: {
+        level: 1,
+        coins: 0,
+        totalCoin: 0,
+        catFragments: 50,
+        nftCount: 0,
+        miningLevel: 1,
+        huntingLevel: 1,
+        explorationLevel: 1,
+        productionLevel: 1,
+        planetLevel: 1,
+        planetEnergy: 0,
+        miningCats: [null, null, null, null],
+        huntingCats: [null, null, null, null],
+        explorationCats: [null, null, null, null],
+        productionCats: [null, null, null, null],
+        inventory: []
+      }
+    }
+    
+    // localStorage와 sessionStorage에 저장
+    localStorage.setItem('currentUser', JSON.stringify(guestUser))
+    sessionStorage.setItem('currentUser', JSON.stringify(guestUser))
+    currentUser.value = guestUser
+  }
+  
   // appStore에서 사용자 데이터 로드
   store.loadCurrentUser()
-  currentUser.value = getCurrentUser()
   
   if (currentUser.value) {
     // 각 모드별 레벨 및 총 클릭 수 로드

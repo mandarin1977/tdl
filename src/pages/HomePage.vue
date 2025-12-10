@@ -259,7 +259,38 @@ const updateBarHeight = () => {
 onMounted(() => {
   // 현재 사용자 로드
   currentUser.value = getCurrentUser()
-  store.loadCurrentUser()
+  
+  // 사용자가 없으면 기본 게스트 사용자 생성
+  if (!currentUser.value) {
+    const guestUser = {
+      id: 'guest_' + Date.now(),
+      email: 'guest@tdl.com',
+      name: 'Guest',
+      loginType: 'guest',
+      gameData: {
+        level: 1,
+        coins: 0,
+        totalCoin: 0,
+        catFragments: 50,
+        nftCount: 0,
+        miningCats: [null, null, null, null],
+        huntingCats: [null, null, null, null],
+        explorationCats: [null, null, null, null],
+        productionCats: [null, null, null, null],
+        inventory: []
+      }
+    }
+    
+    // localStorage와 sessionStorage에 저장
+    localStorage.setItem('currentUser', JSON.stringify(guestUser))
+    sessionStorage.setItem('currentUser', JSON.stringify(guestUser))
+    currentUser.value = guestUser
+    
+    // appStore에도 로드
+    store.loadCurrentUser()
+  } else {
+    store.loadCurrentUser()
+  }
   
   // 친밀도 바 높이 업데이트 (이미지 로드 후)
   setTimeout(() => {

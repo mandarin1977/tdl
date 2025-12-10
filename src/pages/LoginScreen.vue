@@ -9,7 +9,6 @@ import { loginWithGoogle } from '@/utils/firebaseAuth'
 import { auth } from '@/firebase/config'
 import loginBtn from '@/assets/img/loginBtn.png'
 import urerTown from '@/assets/img/urerTown.png'
-import cat3 from '@/assets/img/cat3.png'
 
 // Firebase 사용 가능 여부 확인
 const isFirebaseAvailable = computed(() => {
@@ -24,8 +23,8 @@ const walletConnected = ref(false)
 const isWalletConnecting = ref(false)
 const walletError = ref('')
 
-// 비밀번호 표시/숨김 상태
-const showPassword = ref(false)
+// 랜덤 고양이 이미지 선택
+const randomCatImage = ref('')
 
 // 다국어 텍스트
 const texts = computed(() => getI18nTexts())
@@ -117,9 +116,10 @@ const handleLogin = async (event) => {
         // 로그인 성공
         walletConnected.value = true
         
-        // 현재 로그인한 사용자 정보를 세션 스토리지에 저장
-        // 비밀번호는 세션에 저장하지 않음 (보안)
+        // 현재 로그인한 사용자 정보를 localStorage와 sessionStorage에 저장
+        // 비밀번호는 저장하지 않음 (보안)
         const { password, ...userWithoutPassword } = user
+        localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword))
         sessionStorage.setItem('currentUser', JSON.stringify(userWithoutPassword))
         
         // 상태 저장 (실제로는 서버에서 받은 사용자 정보를 저장)
@@ -143,10 +143,6 @@ const handleLogin = async (event) => {
   }, 2000)
 }
 
-// 비밀번호 표시 토글
-const togglePasswordVisibility = () => {
-  showPassword.value = !showPassword.value
-}
 
 // 비밀번호 찾기 페이지로 이동
 const goToForgotPassword = () => {
@@ -238,9 +234,27 @@ onMounted(() => {
   // 초기 로딩 상태 설정
   setLoading(false)
   
-  // 이미 로그인된 상태인지 확인
+  // 랜덤 고양이 이미지 선택 (cat1.png ~ cat30.png)
+  const randomCatNumber = Math.floor(Math.random() * 30) + 1
+  try {
+    randomCatImage.value = new URL(`../assets/img/cat${randomCatNumber}.png`, import.meta.url).href
+  } catch (error) {
+    console.error('고양이 이미지 로드 실패:', error)
+    // fallback: 기본 이미지
+    try {
+      randomCatImage.value = new URL(`../assets/img/cat1.png`, import.meta.url).href
+    } catch (fallbackError) {
+      console.error('기본 이미지도 로드 실패:', fallbackError)
+    }
+  }
+  
+  // 이미 로그인된 상태인지 확인 (게스트 사용자는 제외)
   const currentUser = getCurrentUser()
-  if (currentUser && currentUser.id) {
+  const isGuest = currentUser?.loginType === 'guest' || 
+                  currentUser?.email?.includes('@guest.com') || 
+                  currentUser?.email === 'guest@tdl.com'
+  
+  if (currentUser && currentUser.id && !isGuest) {
     if (import.meta.env.DEV) {
       console.log('LoginScreen: 이미 로그인된 사용자:', currentUser.email)
     }
@@ -272,7 +286,7 @@ onMounted(() => {
     <div class="urer-town-container">
       <img :src="urerTown" alt="Urer Town" class="urer-town-image" />
       <div class="cat-character-wrapper">
-        <img :src="cat3" alt="Cat Character" class="cat-character-image" />
+        <img :src="randomCatImage" alt="Cat Character" class="cat-character-image" />
       </div>
     </div>
 
@@ -281,7 +295,7 @@ onMounted(() => {
       <!-- 아이디(이메일계정) -->
       <div class="input-group">
         <div class="input-container">
-          <span class="input-text-label">email</span>
+          <span class="input-text-label">Email</span>
           <input 
             type="email" 
             v-model="loginId"
@@ -295,28 +309,14 @@ onMounted(() => {
       <!-- 비밀번호 -->
       <div class="input-group">
         <div class="input-container">
-          <span class="input-text-label">password</span>
+          <span class="input-text-label">Password</span>
           <input 
-            :type="showPassword ? 'text' : 'password'"
+            type="password"
             v-model="loginPw"
             class="input-field"
             :placeholder="texts.enterPassword"
             required
           >
-          <button 
-            type="button" 
-            class="password-toggle"
-            @click="togglePasswordVisibility"
-          >
-            <svg v-if="!showPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-              <line x1="1" y1="1" x2="23" y2="23"/>
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -376,8 +376,9 @@ onMounted(() => {
     </div>
     -->
 
-    <!-- 지갑 연결 버튼 -->
+    <!-- 지갑 연결 버튼 (일단 숨김) -->
     <button 
+      v-if="false"
       @click="handleWalletConnect"
       :disabled="isWalletConnecting || isConnecting"
       class="wallet-connect-button"
@@ -392,8 +393,8 @@ onMounted(() => {
       </div>
     </button>
 
-    <!-- 지갑 연결 오류 메시지 -->
-    <div v-if="walletError" class="wallet-error">
+    <!-- 지갑 연결 오류 메시지 (일단 숨김) -->
+    <div v-if="false && walletError" class="wallet-error">
       {{ walletError }}
     </div>
 
@@ -488,10 +489,10 @@ onMounted(() => {
 }
 
 .cat-character-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+  width: 150%;
+  height: 150%;
+  margin-top: 50px;
+  object-fit: contain;
 }
 
 .login-form {
@@ -505,8 +506,6 @@ onMounted(() => {
 }
 
 .input-group {
-  display: flex;
-  flex-direction: column;
   gap: 0.5rem;
 }
 
@@ -521,10 +520,13 @@ onMounted(() => {
 .input-container {
   position: relative;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   border-radius: 12px;
   padding: 1rem;
-  background-color: #000000;
+  background-image: url('@/assets/img/logininputBG.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
   backdrop-filter: blur(10px);
 }
 
@@ -535,7 +537,7 @@ onMounted(() => {
 }
 
 .input-text-label {
-  color: white;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 1em;
   font-weight: 400;
   margin-right: 0.75rem;
@@ -558,20 +560,23 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.5);
 }
 
-.password-toggle {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  padding: 0.25rem;
-  margin-left: 0.5rem;
-  transition: color 0.3s ease;
-  flex-shrink: 0;
+/* 브라우저 자동완성(autofill) 스타일 오버라이드 */
+.input-field:-webkit-autofill,
+.input-field:-webkit-autofill:hover,
+.input-field:-webkit-autofill:focus,
+.input-field:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #000000 inset !important;
+  -webkit-text-fill-color: white !important;
+  background-color: transparent !important;
+  background-clip: content-box !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
-.password-toggle:hover {
-  color: rgba(255, 255, 255, 0.8);
+.input-field:-webkit-autofill::first-line {
+  -webkit-text-fill-color: white !important;
+  font-size: 1em !important;
 }
+
 
 .login-button {
   background-image: url('@/assets/img/loginBtn.png');

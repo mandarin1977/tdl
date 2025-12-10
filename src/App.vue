@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/appStore'
+import { getCurrentUser } from '@/utils/userUtils'
+import { auth } from '@/firebase/config'
 import '@/styles/common.css'
 import '@/styles/layout.css'
 
@@ -16,10 +18,28 @@ onMounted(async () => {
     const googleResult = await handleGoogleRedirect()
     if (googleResult && googleResult.success && googleResult.user) {
       console.log('App.vue: Google 로그인 성공:', googleResult.user.email)
-      // 사용자 데이터를 sessionStorage에 저장 (이미 handleGoogleRedirect에서 저장했지만 확실히)
-      const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null')
+      // 사용자 데이터를 localStorage와 sessionStorage에 저장 (이미 handleGoogleRedirect에서 저장했지만 확실히)
+      let currentUser = null
+      try {
+        const localData = localStorage.getItem('currentUser')
+        if (localData) {
+          currentUser = JSON.parse(localData)
+        }
+      } catch (e) {
+        // localStorage에 없으면 sessionStorage 확인
+        try {
+          const sessionData = sessionStorage.getItem('currentUser')
+          if (sessionData) {
+            currentUser = JSON.parse(sessionData)
+          }
+        } catch (e2) {
+          console.error('사용자 데이터 파싱 오류:', e2)
+        }
+      }
+      
       if (!currentUser || !currentUser.id) {
         // 사용자가 저장되지 않았다면 다시 저장 시도
+        localStorage.setItem('currentUser', JSON.stringify(googleResult.user))
         sessionStorage.setItem('currentUser', JSON.stringify(googleResult.user))
         console.log('App.vue: 사용자 재저장 완료')
       }
@@ -42,8 +62,24 @@ onMounted(async () => {
   // 기존 사용자 데이터 로드
   store.loadCurrentUser()
   
-  // 세션에 지갑 사용자가 있으면 지갑 상태 확인 (명시적으로 연결한 경우만)
-  const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null')
+  // Firebase Auth 상태 확인 (브라우저 재시작 후 자동 로그인)
+  if (auth && auth.currentUser && !getCurrentUser()) {
+    try {
+      const { getUserGameData } = await import('@/firebase/config')
+      const { convertFirebaseUserToAppUser } = await import('@/utils/firebaseAuth')
+      const gameData = await getUserGameData(auth.currentUser.uid)
+      const appUser = convertFirebaseUserToAppUser(auth.currentUser, gameData?.gameData)
+      localStorage.setItem('currentUser', JSON.stringify(appUser))
+      sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+      store.loadCurrentUser()
+      console.log('App.vue: Firebase Auth 상태로부터 자동 로그인 완료:', appUser.email)
+    } catch (error) {
+      console.error('App.vue: 자동 로그인 오류:', error)
+    }
+  }
+  
+  // 저장소에 지갑 사용자가 있으면 지갑 상태 확인 (명시적으로 연결한 경우만)
+  const currentUser = getCurrentUser()
   if (currentUser && currentUser.loginType === 'wallet' && currentUser.walletAddress) {
     // 이미 지갑으로 로그인한 상태면 지갑 상태 확인
     try {

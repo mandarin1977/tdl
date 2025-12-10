@@ -1,19 +1,19 @@
 // Firebase 설정 파일
 import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
 import { getAnalytics } from 'firebase/analytics'
 
 // Firebase 설정
-// 환경 변수에서 가져오기 (기본값 제거 - 보안)
+// 환경 변수가 있으면 사용하고, 없으면 기본 설정 사용
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCwvJ8cUWLZPZ26i1deIAXnoLuzToIcB70",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "tuldung.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "tuldung",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "tuldung.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1086524417813",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1086524417813:web:8199da4b7cebcaffc86b1c",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-EGV6XDKG9R"
 }
 
 // Firebase 설정 유효성 검사
@@ -57,14 +57,25 @@ if (!validateFirebaseConfig(firebaseConfig)) {
 
 // Firebase 앱 초기화 (가장 안전한 방식)
 try {
-  // 이미 초기화된 앱이 있는지 확인
-  const existingApps = getApps()
-  if (existingApps.length > 0) {
-    // 기존 앱 사용
-    app = getApp()
+  // 환경 변수 확인 (필수 필드가 모두 있는지)
+  const hasRequiredConfig = firebaseConfig.apiKey && 
+                            firebaseConfig.authDomain && 
+                            firebaseConfig.projectId
+  
+  if (!hasRequiredConfig) {
+    console.warn('⚠️ Firebase 환경 변수가 설정되지 않았습니다. Firebase 기능을 사용할 수 없습니다.')
+    console.warn('⚠️ .env 파일에 Firebase 설정을 추가하고 개발 서버를 재시작하세요.')
+    app = null
   } else {
-    // 새로 초기화
-    app = initializeApp(firebaseConfig)
+    // 이미 초기화된 앱이 있는지 확인
+    const existingApps = getApps()
+    if (existingApps.length > 0) {
+      // 기존 앱 사용
+      app = getApp()
+    } else {
+      // 새로 초기화
+      app = initializeApp(firebaseConfig)
+    }
   }
 } catch (error) {
   // 에러 처리
@@ -81,12 +92,14 @@ try {
       if (apps.length > 0) {
         app = apps[0]
       } else {
-        throw new Error('Firebase 앱을 초기화할 수 없습니다.')
+        console.error('Firebase 앱을 초기화할 수 없습니다.')
+        app = null
       }
     }
   } else {
-    // 다른 에러인 경우
-    throw error
+    // 다른 에러인 경우 (앱 크래시 방지)
+    console.error('Firebase 초기화 실패:', error.message)
+    app = null
   }
 }
 
@@ -98,6 +111,18 @@ if (app) {
   try {
     auth = getAuth(app)
     db = getFirestore(app)
+    
+    // Firebase Auth 영속성 설정: localStorage에 저장하여 브라우저를 닫아도 로그인 상태 유지
+    if (auth) {
+      setPersistence(auth, browserLocalPersistence).then(() => {
+        if (import.meta.env.DEV) {
+          console.log('✓ Firebase Auth 영속성 설정 완료 (localStorage)')
+        }
+      }).catch((error) => {
+        console.error('Firebase Auth 영속성 설정 오류:', error)
+      })
+    }
+    
     if (import.meta.env.DEV) {
       console.log('✓ Firebase Auth 및 Firestore 초기화 완료')
       console.log('Auth 인스턴스:', auth ? '생성됨' : 'null')
@@ -154,6 +179,21 @@ export const saveUserToFirestore = async (user, additionalData = {}) => {
   const userSnap = await getDoc(userRef)
   
   if (!userSnap.exists()) {
+    // 초대 코드 생성 함수 (userId 기반)
+    const generateInviteCode = (userId) => {
+      const hash = userId.toString().split('').reduce((acc, char) => {
+        return ((acc << 5) - acc) + char.charCodeAt(0)
+      }, 0)
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+      let code = ''
+      let num = Math.abs(hash)
+      for (let i = 0; i < 6; i++) {
+        code += chars[num % chars.length]
+        num = Math.floor(num / chars.length)
+      }
+      return code
+    }
+    
     // 새 사용자인 경우 기본 게임 데이터 생성
     await setDoc(userRef, {
       email: user.email,
@@ -161,6 +201,14 @@ export const saveUserToFirestore = async (user, additionalData = {}) => {
       photoURL: user.photoURL,
       phone: additionalData.phone || '',
       createdAt: new Date().toISOString(),
+      inviteCode: additionalData.inviteCode || generateInviteCode(user.uid), // 초대 코드 추가
+      referrals: additionalData.referrals || [], // 초대한 사용자 목록
+      referredBy: additionalData.referredBy || null, // 초대받은 사용자 ID
+      referredAt: additionalData.referredAt || null, // 초대받은 날짜
+      referralStats: additionalData.referralStats || { // 초대 통계
+        totalReferrals: 0,
+        rewardsReceived: 0
+      },
       ...additionalData,
       gameData: {
         level: 1,
@@ -328,9 +376,15 @@ export const updateUserGameDataInFirestore = async (userId, gameData) => {
 // 이메일/비밀번호로 회원가입
 export const signUpWithEmail = async (email, password, userData = {}) => {
   if (!auth) {
+    console.error('Firebase Auth가 초기화되지 않았습니다.')
+    console.error('환경 변수 확인:', {
+      apiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: !!import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: !!import.meta.env.VITE_FIREBASE_PROJECT_ID
+    })
     return { 
       success: false, 
-      error: 'Firebase가 설정되지 않았습니다. Firebase 설정을 확인해주세요.' 
+      error: 'Firebase가 설정되지 않았습니다.\n.env 파일에 Firebase 설정을 추가하고 개발 서버를 재시작해주세요.' 
     }
   }
   
@@ -358,7 +412,11 @@ export const signUpWithEmail = async (email, password, userData = {}) => {
     } else if (error.code === 'auth/weak-password') {
       errorMessage = '비밀번호가 너무 약합니다. (6자 이상)'
     } else if (error.code === 'auth/operation-not-allowed') {
-      errorMessage = '이메일/비밀번호 인증이 활성화되지 않았습니다. Firebase Console에서 활성화해주세요.'
+      errorMessage = '이메일/비밀번호 인증이 활성화되지 않았습니다.\n\nFirebase Console에서 활성화 방법:\n1. https://console.firebase.google.com 접속\n2. 프로젝트 선택 (tuldung)\n3. Authentication > Sign-in method\n4. "이메일/비밀번호" 클릭\n5. "사용 설정" 토글 활성화\n6. 저장'
+    } else if (error.code === 'auth/network-request-failed') {
+      errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.'
+    } else if (error.message) {
+      errorMessage = error.message
     }
     
     return { success: false, error: errorMessage }
@@ -368,9 +426,15 @@ export const signUpWithEmail = async (email, password, userData = {}) => {
 // 이메일/비밀번호로 로그인
 export const signInWithEmail = async (email, password) => {
   if (!auth) {
+    console.error('Firebase Auth가 초기화되지 않았습니다.')
+    console.error('환경 변수 확인:', {
+      apiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: !!import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: !!import.meta.env.VITE_FIREBASE_PROJECT_ID
+    })
     return { 
       success: false, 
-      error: 'Firebase가 설정되지 않았습니다. Firebase 설정을 확인해주세요.' 
+      error: 'Firebase가 설정되지 않았습니다.\n.env 파일에 Firebase 설정을 추가하고 개발 서버를 재시작해주세요.' 
     }
   }
   
@@ -397,7 +461,13 @@ export const signInWithEmail = async (email, password) => {
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = '너무 많은 로그인 시도가 있었습니다. 나중에 다시 시도해주세요.'
     } else if (error.code === 'auth/operation-not-allowed') {
-      errorMessage = '이메일/비밀번호 인증이 활성화되지 않았습니다. Firebase Console에서 활성화해주세요.'
+      errorMessage = '이메일/비밀번호 인증이 활성화되지 않았습니다.\n\nFirebase Console에서 활성화 방법:\n1. https://console.firebase.google.com 접속\n2. 프로젝트 선택 (tuldung)\n3. Authentication > Sign-in method\n4. "이메일/비밀번호" 클릭\n5. "사용 설정" 토글 활성화\n6. 저장'
+    } else if (error.code === 'auth/network-request-failed') {
+      errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.'
+    } else if (error.code === 'auth/invalid-credential') {
+      errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.'
+    } else if (error.message) {
+      errorMessage = error.message
     }
     
     return { success: false, error: errorMessage }

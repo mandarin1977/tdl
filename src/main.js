@@ -35,8 +35,8 @@ import NotificationPage from './pages/NotificationPage.vue'
 import ShopPage from './pages/ShopPage.vue'
 import HomePage from './pages/HomePage.vue'
 
-// 공개 ?�이지 (로그???�이 ?�근 가??
-const publicRoutes = ['/loading', '/login', '/signup', '/forgot-password', '/reset-password']
+// 공개 페이지 (로그인 없이 접근 가능)
+const publicRoutes = ['/loading', '/login', '/signup', '/forgot-password', '/reset-password', '/home', '/main']
 
 // ?�우???�정
 const routes = [
@@ -94,20 +94,28 @@ const convertFirebaseUserToAppUser = (firebaseUser, gameData) => {
 
 // 라우터 가드: 인증 상태 확인
 router.beforeEach(async (to, from, next) => {
-  // sessionStorage에서 현재 사용자 확인
+  // localStorage/sessionStorage에서 현재 사용자 확인
   let currentUser = getCurrentUser()
-  let isAuthenticated = !!currentUser
   
-  // sessionStorage에 사용자가 없지만 Firebase 인증 상태가 있는 경우 직접 처리
-  // (Google 로그인 리다이렉트 직후 발생할 수 있는 상황)
+  // 게스트 사용자인지 확인
+  const isGuest = currentUser?.loginType === 'guest' || 
+                  currentUser?.email?.includes('@guest.com') || 
+                  currentUser?.email === 'guest@tdl.com'
+  
+  // 게스트 사용자는 로그인된 것으로 간주하지 않음
+  let isAuthenticated = !!currentUser && !isGuest
+  
+  // 저장소에 사용자가 없지만 Firebase 인증 상태가 있는 경우 직접 처리
+  // (Google 로그인 리다이렉트 직후 또는 브라우저 재시작 후 발생할 수 있는 상황)
   if (!isAuthenticated && auth && auth.currentUser) {
-    console.log('Router guard: sessionStorage에 사용자 없지만 Firebase 인증 상태 있음, 직접 처리...')
+    console.log('Router guard: 저장소에 사용자 없지만 Firebase 인증 상태 있음, 직접 처리...')
     try {
       // Firebase에서 게임 데이터 가져오기
       const gameData = await getUserGameData(auth.currentUser.uid)
       const appUser = convertFirebaseUserToAppUser(auth.currentUser, gameData?.gameData)
       
-      // sessionStorage에 저장
+      // localStorage와 sessionStorage 모두에 저장 (영구 저장 + 임시 저장)
+      localStorage.setItem('currentUser', JSON.stringify(appUser))
       sessionStorage.setItem('currentUser', JSON.stringify(appUser))
       currentUser = appUser
       isAuthenticated = true
@@ -131,12 +139,13 @@ router.beforeEach(async (to, from, next) => {
     // 여전히 없지만 Firebase 인증 상태가 있으면 처리
     if (!isAuthenticated && auth && auth.currentUser) {
       try {
-        const gameData = await getUserGameData(auth.currentUser.uid)
-        const appUser = convertFirebaseUserToAppUser(auth.currentUser, gameData?.gameData)
-        sessionStorage.setItem('currentUser', JSON.stringify(appUser))
-        currentUser = appUser
-        isAuthenticated = true
-        console.log('Router guard: 대기 후 Firebase 인증 상태 확인 완료:', appUser.email)
+      const gameData = await getUserGameData(auth.currentUser.uid)
+      const appUser = convertFirebaseUserToAppUser(auth.currentUser, gameData?.gameData)
+      localStorage.setItem('currentUser', JSON.stringify(appUser))
+      sessionStorage.setItem('currentUser', JSON.stringify(appUser))
+      currentUser = appUser
+      isAuthenticated = true
+      console.log('Router guard: 대기 후 Firebase 인증 상태 확인 완료:', appUser.email)
       } catch (error) {
         console.error('Router guard: 대기 후 Firebase 사용자 처리 오류:', error)
       }
@@ -145,10 +154,17 @@ router.beforeEach(async (to, from, next) => {
   
   const isPublicRoute = publicRoutes.includes(to.path)
 
-  // 로그인된 상태에서 로그인/회원가입 페이지 접근 시 홈으로 리다이렉트
+  // 로그인된 상태에서 로그인/회원가입 페이지 접근 시 홈으로 리다이렉트 (게스트 제외)
   if (isAuthenticated && (to.path === '/login' || to.path === '/signup')) {
     console.log('Router guard: authenticated user hitting login/signup, redirecting to /home')
     next('/home')
+    return
+  }
+  
+  // 게스트 사용자는 로그인/회원가입 페이지에 접근 가능
+  if (isGuest && (to.path === '/login' || to.path === '/signup')) {
+    console.log('Router guard: guest user accessing login/signup, allowing access')
+    next()
     return
   }
 
@@ -156,6 +172,7 @@ router.beforeEach(async (to, from, next) => {
   if (!isAuthenticated && !isPublicRoute) {
     console.log('Router guard: unauthenticated access to protected route, redirecting to /login', {
       to: to.path,
+      hasLocalStorage: !!localStorage.getItem('currentUser'),
       hasSessionStorage: !!sessionStorage.getItem('currentUser'),
       hasFirebaseAuth: auth && !!auth.currentUser
     })

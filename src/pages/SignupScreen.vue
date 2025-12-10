@@ -168,6 +168,7 @@ const togglePasswordVisibility = () => {
             required
           >
           <button 
+            v-if="false"
             type="button" 
             class="password-toggle"
             @click="togglePasswordVisibility"
@@ -271,14 +272,20 @@ const togglePasswordVisibility = () => {
 .input-container {
   position: relative;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   border-radius: 12px;
   padding: 1rem;
-  background-color: #000000;
+  background-image: url('@/assets/img/signupBg.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
   backdrop-filter: blur(10px);
 }
 
 .input-text-label {
+  position: absolute;
+  top: 1px;
+  left: 1em;
   color: white;
   font-size: 1em;
   font-weight: 400;
@@ -292,6 +299,8 @@ const togglePasswordVisibility = () => {
   border: none;
   color: white;
   font-size: 1em;
+  margin-left: 5px;
+        margin-top: 5px;
   font-weight: 400;
   letter-spacing: 0.01em;
   outline: none;
@@ -300,6 +309,23 @@ const togglePasswordVisibility = () => {
 
 .input-field::placeholder {
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* 브라우저 자동완성(autofill) 스타일 오버라이드 */
+.input-field:-webkit-autofill,
+.input-field:-webkit-autofill:hover,
+.input-field:-webkit-autofill:focus,
+.input-field:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #000000 inset !important;
+  -webkit-text-fill-color: white !important;
+  background-color: transparent !important;
+  background-clip: content-box !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.input-field:-webkit-autofill::first-line {
+  -webkit-text-fill-color: white !important;
+  font-size: 1em !important;
 }
 
 .password-toggle {
@@ -324,16 +350,14 @@ const togglePasswordVisibility = () => {
   background-color: transparent;
   color: white;
   border: none;
-  border-radius: 12px;
-  height: 56px;
-  padding: 1.2rem;
-  font-size: 1em;
+  border-radius: 12px;        padding: .5em 0 1em;
+  width: 80%;
+  font-size: 1.4em;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 1rem;
-  width: 100%;
+  margin: 1rem auto;
 }
 
 .signup-button:hover:not(:disabled) {
@@ -364,11 +388,6 @@ const togglePasswordVisibility = () => {
     font-size: 1em;
   }
   
-  .signup-button {
-    font-size: 1em;
-    height: 52px;
-    padding: 1rem;
-  }
   
 }
 </style>

@@ -188,7 +188,7 @@ const handleWalletConnect = async () => {
 const handleWalletDisconnect = () => {
   if (confirm(texts.value.disconnectWalletConfirm)) {
     store.disconnectWalletFromApp()
-    router.push('/login')
+    router.push('/main')
   }
 }
 

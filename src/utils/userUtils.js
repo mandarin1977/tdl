@@ -6,9 +6,29 @@ export const getAllUsers = () => {
 }
 
 // 현재 로그인한 사용자 가져오기
+// localStorage를 우선 확인하고, 없으면 sessionStorage 확인 (기기 간 로그인 상태 유지를 위해)
 export const getCurrentUser = () => {
-  const userData = sessionStorage.getItem('currentUser')
-  return userData ? JSON.parse(userData) : null
+  // localStorage에서 먼저 확인 (영구 저장)
+  const localUserData = localStorage.getItem('currentUser')
+  if (localUserData) {
+    try {
+      return JSON.parse(localUserData)
+    } catch (e) {
+      console.error('localStorage 사용자 데이터 파싱 오류:', e)
+    }
+  }
+  
+  // localStorage에 없으면 sessionStorage 확인 (임시 저장)
+  const sessionUserData = sessionStorage.getItem('currentUser')
+  if (sessionUserData) {
+    try {
+      return JSON.parse(sessionUserData)
+    } catch (e) {
+      console.error('sessionStorage 사용자 데이터 파싱 오류:', e)
+    }
+  }
+  
+  return null
 }
 
 // 지갑 주소로 사용자 찾기
@@ -537,11 +557,11 @@ export const getI18nTexts = () => {
       back: '← Back',
       settings: 'Settings',
       notification: 'Notification',
-      login: 'Login',
+      login: 'Log in',
       signup: 'Sign Up',
       email: 'Email',
       password: 'Password',
-      loginButton: 'Login',
+      loginButton: 'Log in',
       signupButton: 'Sign Up',
       walletConnect: 'Connect Wallet',
       createCat: 'Create Cat',

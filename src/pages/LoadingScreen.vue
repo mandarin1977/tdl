@@ -19,16 +19,9 @@ onMounted(() => {
     if (progress.value >= 100) {
       progress.value = 100
       clearInterval(timer)
-      // 로딩 완료 후 인증 상태에 따라 이동
+      // 로딩 완료 후 바로 게임 화면으로 이동
       setTimeout(() => {
-        const currentUser = getCurrentUser()
-        if (currentUser) {
-          // 로그인된 상태면 홈 화면으로
-          router.push('/home')
-        } else {
-          // 로그인하지 않은 상태면 로그인 화면으로
-          router.push('/login')
-        }
+        router.push('/main')
       }, 200)
     }
   }, interval)
