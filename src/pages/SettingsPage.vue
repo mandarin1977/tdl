@@ -7,6 +7,7 @@ import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { connectWallet, isMetaMaskInstalled, formatAddress } from '@/utils/wallet'
 import { getOrCreateInviteCode, getReferralStats } from '@/utils/referralUtils'
+import cat1 from '@/assets/img/cat1.png'
 
 const router = useRouter()
 const store = useAppStore()
@@ -31,6 +32,14 @@ const walletAddress = computed(() => store.state.walletAddress)
 const walletBalance = computed(() => store.state.userBalance)
 const isWalletConnected = computed(() => store.state.isWalletConnected)
 const showDepositPopup = ref(false)
+const showFriendsPopup = ref(false)
+
+// 더미 친구 데이터
+const friends = ref([
+  { id: 'Id_12345', name: 'Alice', profileImage: cat1 },
+  { id: 'Id_12346', name: 'Bob', profileImage: cat1 },
+  { id: 'Id_12347', name: 'Charlie', profileImage: cat1 }
+])
 
 // 친구 초대 관련 상태
 const inviteCode = ref('')
@@ -341,6 +350,16 @@ const handleCopyInviteLink = async () => {
 const goToSignup = () => {
   router.push('/signup')
 }
+
+// 친구 리스트 팝업 열기
+const openFriendsPopup = () => {
+  showFriendsPopup.value = true
+}
+
+// 친구 리스트 팝업 닫기
+const closeFriendsPopup = () => {
+  showFriendsPopup.value = false
+}
 </script>
 
 <template>
@@ -542,6 +561,10 @@ const goToSignup = () => {
               <span class="statsNumber">{{ referralStats.totalReferrals }}</span>
               <span class="statsLabel">{{ texts.invites }}</span>
             </div>
+            <button class="viewFriendsBtn" @click="openFriendsPopup">
+              <span class="friendsIcon">👥</span>
+              <span>View Friends</span>
+            </button>
           </div>
         </div>
       </div>
@@ -571,6 +594,36 @@ const goToSignup = () => {
     
     <!-- 푸터 -->
     <Footer />
+    
+    <!-- 친구 리스트 팝업 -->
+    <div v-if="showFriendsPopup" class="depositPopupOverlay" @click="closeFriendsPopup">
+      <div class="depositPopup friendsPopup" @click.stop>
+        <div class="depositPopupHeader">
+          <h3 class="depositPopupTitle">My Friends</h3>
+          <button class="depositPopupClose" @click="closeFriendsPopup">×</button>
+        </div>
+        
+        <div class="depositPopupContent">
+          <div v-if="friends.length === 0" class="emptyFriendsList">
+            <p class="emptyFriendsText">No friends yet. Invite friends to get started!</p>
+          </div>
+          <div v-else class="friendsListContainer">
+            <div 
+              v-for="friend in friends" 
+              :key="friend.id"
+              class="friendListItem"
+            >
+              <img :src="friend.profileImage" :alt="friend.name" class="friendListProfile" />
+              <div class="friendListInfo">
+                <p class="friendListName">{{ friend.name }}</p>
+                <p class="friendListId">{{ friend.id }}</p>
+              </div>
+              <div class="giftIconSmall">🎁</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     
     <!-- 지갑 충전 팝업 -->
     <div v-if="showDepositPopup" class="depositPopupOverlay" @click="closeDepositPopup">
@@ -1133,6 +1186,128 @@ const goToSignup = () => {
 .statsLabel {
   color: rgba(255, 255, 255, 0.7);
   font-size: 1em;
+}
+
+.viewFriendsBtn {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  background: rgba(125, 211, 252, 0.2);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 10px;
+  color: #7DD3FC;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.viewFriendsBtn:hover {
+  background: rgba(125, 211, 252, 0.3);
+  border-color: rgba(125, 211, 252, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+}
+
+.friendsIcon {
+  font-size: 1.2em;
+}
+
+/* 친구 리스트 팝업 스타일 */
+.friendsPopup {
+  max-height: 70vh;
+}
+
+.emptyFriendsList {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.emptyFriendsText {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95em;
+  margin: 0;
+}
+
+.friendsListContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.friendsListContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.friendsListContainer::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.friendsListContainer::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}
+
+.friendsListContainer::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.friendListItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(125, 211, 252, 0.1);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.friendListItem:hover {
+  background: rgba(125, 211, 252, 0.15);
+  border-color: rgba(125, 211, 252, 0.3);
+  transform: translateX(4px);
+}
+
+.friendListProfile {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.friendListInfo {
+  flex: 1;
+  text-align: left;
+}
+
+.friendListName {
+  color: white;
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0;
+  margin-bottom: 0.2rem;
+}
+
+.friendListId {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85em;
+  margin: 0;
+}
+
+.giftIconSmall {
+  font-size: 1.5em;
+  flex-shrink: 0;
 }
 
 /* NFT 버튼 */

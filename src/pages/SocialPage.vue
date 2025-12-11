@@ -6,6 +6,11 @@ import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { getOrCreateInviteCode } from '@/utils/referralUtils'
 import cat1 from '@/assets/img/cat1.png'
+import friendBoxOff from '@/assets/img/friendBox_off.png'
+import friendBoxOn from '@/assets/img/friendBox_on.png'
+import requestBoxOff from '@/assets/img/requestBox_off.png'
+import requestBoxOn from '@/assets/img/requestBox_on.png'
+import inviteCodeIcon from '@/assets/img/inviteCode.png'
 
 // appStore 사용
 const store = useAppStore()
@@ -49,23 +54,41 @@ const copyInviteCode = async () => {
 
 // 더미 친구 데이터
 const friends = ref([
-  { id: 'Id_12345', name: 'Name', profileImage: cat1 },
-  { id: 'Id_12346', name: 'Name', profileImage: cat1 },
-  { id: 'Id_12347', name: 'Name', profileImage: cat1 }
+  { id: 'TDL_8923', name: 'Luna', profileImage: cat1 },
+  { id: 'TDL_4567', name: 'Max', profileImage: cat1 },
+  { id: 'TDL_7891', name: 'Zoe', profileImage: cat1 }
 ])
 
-// 더미 추천 친구 데이터
-const suggestedFriends = ref([
-  { id: 'Id_12345', name: 'Name', profileImage: cat1 },
-  { id: 'Id_123', name: 'Name', profileImage: cat1 },
-  { id: 'Id_123', name: 'Name', profileImage: cat1 }
+// 더미 추천 친구 데이터 (검색용 전체 데이터)
+const allSuggestedFriends = ref([
+  { id: 'TDL_2345', name: 'Alice', profileImage: cat1 },
+  { id: 'TDL_6789', name: 'Bob', profileImage: cat1 },
+  { id: 'TDL_3456', name: 'Charlie', profileImage: cat1 },
+  { id: 'TDL_7890', name: 'Diana', profileImage: cat1 },
+  { id: 'TDL_1234', name: 'Eve', profileImage: cat1 },
+  { id: 'TDL_5678', name: 'Frank', profileImage: cat1 },
+  { id: 'TDL_9012', name: 'Grace', profileImage: cat1 },
+  { id: 'TDL_2468', name: 'Henry', profileImage: cat1 }
 ])
+
+// 검색어에 따라 필터링된 추천 친구 목록
+const suggestedFriends = computed(() => {
+  if (!searchQuery.value || searchQuery.value.trim() === '') {
+    return allSuggestedFriends.value
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return allSuggestedFriends.value.filter(friend => 
+    friend.name.toLowerCase().includes(query) || 
+    friend.id.toLowerCase().includes(query)
+  )
+})
 
 // 더미 친구 요청 데이터
 const friendRequests = ref([
-  { id: 'Player_1234', name: 'Name', profileImage: cat1 },
-  { id: 'Player_1234', name: 'Name', profileImage: cat1 },
-  { id: 'Player_1234', name: 'Name', profileImage: cat1 }
+  { id: 'TDL_1357', name: 'Oliver', profileImage: cat1 },
+  { id: 'TDL_8024', name: 'Sophia', profileImage: cat1 },
+  { id: 'TDL_3691', name: 'Mason', profileImage: cat1 }
 ])
 
 // 친구 초대
@@ -118,14 +141,14 @@ onMounted(async () => {
         <!-- 탭 버튼 -->
         <div class="tabButtons">
           <button 
-            class="tabButton" 
+            class="tabButton tabButtonFriends" 
             :class="{ active: activeTab === 'friends' }"
             @click="setActiveTab('friends')"
           >
             Friends
           </button>
           <button 
-            class="tabButton" 
+            class="tabButton tabButtonRequests" 
             :class="{ active: activeTab === 'requests' }"
             @click="setActiveTab('requests')"
           >
@@ -148,10 +171,7 @@ onMounted(async () => {
                   readonly
                 />
                 <button class="copyCodeBtn" @click="copyInviteCode" title="Copy">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                  </svg>
+                  <img :src="inviteCodeIcon" alt="Copy" class="copyCodeIcon" />
                 </button>
               </div>
             </div>
@@ -192,7 +212,7 @@ onMounted(async () => {
               <h3 class="sectionTitle">
                 Suggested Friends ✨
               </h3>
-              <div class="suggestedGrid">
+              <div v-if="suggestedFriends.length > 0" class="suggestedGrid">
                 <div 
                   v-for="suggested in suggestedFriends" 
                   :key="suggested.id"
@@ -272,6 +292,10 @@ onMounted(async () => {
   background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .socialContent {
@@ -301,27 +325,43 @@ onMounted(async () => {
 }
 
 .tabButton {
-  flex: 1;
-  padding: 0.8rem 1.5rem;
-  background: transparent;
+  width: max-content;
+  height: auto;
+  padding: 0.8rem 1.5rem; 
   border: none;
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Friends 버튼 스타일 */
+.tabButtonFriends {
+  background-image: url('@/assets/img/friendBox_off.png');
+}
+
+.tabButtonFriends.active {
+  background-image: url('@/assets/img/friendBox_on.png');
+  color: white;
+}
+
+/* Requests 버튼 스타일 */
+.tabButtonRequests {
+  background-image: url('@/assets/img/requestBox_off.png');
+}
+
+.tabButtonRequests.active {
+  background-image: url('@/assets/img/requestBox_on.png');
+  color: white;
 }
 
 .tabButton:hover {
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.tabButton.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  opacity: 0.9;
 }
 
 /* 탭 콘텐츠 */
@@ -356,7 +396,7 @@ onMounted(async () => {
 }
 
 .sectionTitle {
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   color: white;
   margin-bottom: 0.5rem;
@@ -384,10 +424,10 @@ onMounted(async () => {
 }
 
 .copyCodeBtn {
-  background: rgba(255, 255, 255, 0.1);
+
   border: none;
   border-radius: 6px;
-  padding: 0.5rem;
+
   cursor: pointer;
   color: white;
   display: flex;
@@ -398,6 +438,12 @@ onMounted(async () => {
 
 .copyCodeBtn:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.copyCodeIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 /* Friends List 섹션 */
@@ -453,7 +499,7 @@ onMounted(async () => {
 }
 
 .friendName {
-  font-size: 0.85rem;
+  font-size: 0.9em;
   font-weight: 600;
   color: white;
   margin: 0;
@@ -461,7 +507,7 @@ onMounted(async () => {
 }
 
 .friendId {
-  font-size: 0.75rem;
+  font-size: 0.9em;
   color: rgba(255, 255, 255, 0.7);
   margin: 0;
 }
@@ -487,6 +533,13 @@ onMounted(async () => {
   color: rgba(255, 255, 255, 0.5);
 }
 
+.noResults {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+}
+
 /* Suggested Friends 섹션 */
 .suggestedSection {
   text-align: left;
@@ -494,19 +547,46 @@ onMounted(async () => {
 
 .suggestedGrid {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.2);
+}
+
+/* 스크롤바 스타일링 */
+.suggestedGrid::-webkit-scrollbar {
+  height: 6px;
+}
+
+.suggestedGrid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.suggestedGrid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}
+
+.suggestedGrid::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .suggestedCard {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   background: rgba(33, 36, 54, 0.6);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: calc((100% - 2rem) / 3); /* 3개가 보이도록 */
+  flex-shrink: 0;
 }
 
 .suggestedProfile {
@@ -519,8 +599,8 @@ onMounted(async () => {
 }
 
 .suggestedInfo {
-  flex: 1;
-  text-align: left;
+  width: 100%;
+  text-align: center;
 }
 
 .suggestedName {
