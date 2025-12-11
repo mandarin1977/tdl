@@ -517,7 +517,7 @@
 /* 모바일 반응형 */
 @media (max-width: 480px) {
   .catSelectPopupHeader h3 {
-    font-size: 1.6rem;
+    font-size: 1.3em;
   }
 }
 
@@ -568,7 +568,7 @@
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1.4rem;
+  font-size: 1em;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s;
@@ -577,7 +577,7 @@
 /* 모바일 반응형 */
 @media (max-width: 480px) {
   .removeCatBtn {
-    font-size: 1.2rem;
+    font-size: 1em;
     padding: 0.8rem;
   }
 }
@@ -643,7 +643,7 @@
 /* 모바일 반응형 */
 @media (max-width: 480px) {
   .availableCatName {
-    font-size: 1rem;
+    font-size: 1em;
   }
 }
 
@@ -655,7 +655,7 @@
 /* 모바일 반응형 */
 @media (max-width: 480px) {
   .availableCatLevel {
-    font-size: 0.9rem;
+    font-size: 0.9em;
   }
 }
 
@@ -1074,3 +1074,6 @@
     height: 36px;
   }
 }
+
+
+.rightIconButtons{display: none!important;}

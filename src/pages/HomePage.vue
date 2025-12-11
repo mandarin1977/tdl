@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { useAppStore } from '@/store/appStore'
@@ -38,8 +38,30 @@ const texts = computed(() => getI18nTexts())
 // 현재 사용자
 const currentUser = ref(null)
 
-// 고양이 이미지 배열 (5마리)
-const cats = [cat1, cat10, cat20, cat29, cat30]
+// 고양이 이미지 동적 로드 함수
+const getCatImage = (imageId) => {
+  try {
+    return new URL(`../assets/img/cat${imageId}.png`, import.meta.url).href
+  } catch (error) {
+    console.error(`고양이 이미지 로드 실패: cat${imageId}.png`, error)
+    return cat1 // 기본 이미지
+  }
+}
+
+// 임시 고양이 (게스트용)
+const tempCats = [cat1]
+
+// 선택된 고양이들 (인벤토리에서 가져온 고양이)
+const selectedCats = ref([])
+
+// 현재 표시할 고양이 배열 (선택된 고양이가 있으면 그것, 없으면 임시 고양이)
+const cats = computed(() => {
+  if (selectedCats.value.length > 0) {
+    return selectedCats.value.map(cat => getCatImage(cat.imageId))
+  }
+  // 게스트이거나 선택된 고양이가 없으면 임시 고양이 1마리만
+  return tempCats
+})
 
 // 현재 고양이 인덱스
 const currentCatIndex = ref(0)
@@ -54,9 +76,25 @@ const foodEmojis = ref([])
 const intimacy = ref(1)
 const maxIntimacy = 100 // 최대 친밀도
 
-// 친밀도 퍼센티지 계산
+// 현재 고양이의 affinity 가져오기
+const currentCatAffinity = computed(() => {
+  if (selectedCats.value.length === 0) {
+    // 게스트이거나 선택된 고양이가 없으면 기본값
+    return intimacy.value
+  }
+  
+  const currentCat = selectedCats.value[currentCatIndex.value]
+  if (currentCat && currentCat.affinity !== undefined) {
+    return currentCat.affinity
+  }
+  
+  // affinity가 없으면 기본값 30
+  return 30
+})
+
+// 친밀도 퍼센티지 계산 (현재 고양이의 affinity 사용)
 const intimacyPercentage = computed(() => {
-  return Math.min((intimacy.value / maxIntimacy) * 100, 100)
+  return Math.min((currentCatAffinity.value / maxIntimacy) * 100, 100)
 })
 
 // 친밀도 바 배경 이미지 ref
@@ -65,6 +103,15 @@ const barHeight = ref('auto')
 
 // 선물 버튼 표시 여부
 const showGiftButtons = ref(false)
+
+// 고양이 선택 팝업 표시 여부
+const showCatSelectModal = ref(false)
+
+// 인벤토리에서 가져온 고양이 목록
+const inventoryCats = ref([])
+
+// 선택 중인 고양이들 (팝업에서)
+const selectingCats = ref([])
 
 // 선물 이미지 배열
 const gifts = [
@@ -120,16 +167,109 @@ const getRandomTalks = () => {
 
 // 방향 버튼 클릭 핸들러
 const goLeft = () => {
-  currentCatIndex.value = (currentCatIndex.value - 1 + cats.length) % cats.length
+  if (cats.value.length === 0) return
+  currentCatIndex.value = (currentCatIndex.value - 1 + cats.value.length) % cats.value.length
 }
 
 const goRight = () => {
-  currentCatIndex.value = (currentCatIndex.value + 1) % cats.length
+  if (cats.value.length === 0) return
+  currentCatIndex.value = (currentCatIndex.value + 1) % cats.value.length
+}
+
+// 고양이 선택 버튼 핸들러
+const handleSelectCats = () => {
+  // 인벤토리에서 고양이 가져오기
+  const user = getCurrentUser()
+  if (!user || !user.gameData || !user.gameData.inventory) {
+    alert('No cats in inventory.')
+    return
+  }
+  
+  // 인벤토리의 고양이만 필터링 (imageId가 있는 것만)
+  inventoryCats.value = user.gameData.inventory.filter(cat => cat && cat.imageId)
+  
+  if (inventoryCats.value.length === 0) {
+    alert('No cats in inventory.')
+    return
+  }
+  
+  // 현재 선택된 고양이들을 팝업에 표시
+  selectingCats.value = [...selectedCats.value]
+  showCatSelectModal.value = true
+}
+
+// 고양이 선택 (팝업에서)
+const toggleCatSelection = (cat) => {
+  const index = selectingCats.value.findIndex(c => c.id === cat.id)
+  if (index > -1) {
+    // 이미 선택된 경우 제거
+    selectingCats.value.splice(index, 1)
+  } else {
+    // 선택되지 않은 경우 추가 (최대 4마리)
+    if (selectingCats.value.length < 4) {
+      selectingCats.value.push(cat)
+    } else {
+      alert('You can select up to 4 cats.')
+    }
+  }
+}
+
+// 고양이 선택 완료
+const confirmCatSelection = () => {
+  if (selectingCats.value.length === 0) {
+    alert('Please select at least 1 cat.')
+    return
+  }
+  
+  // affinity가 없으면 기본값 설정
+  selectingCats.value.forEach(cat => {
+    if (cat.affinity === undefined) {
+      cat.affinity = 30
+    }
+  })
+  
+  selectedCats.value = [...selectingCats.value]
+  
+  // localStorage에 저장
+  const user = getCurrentUser()
+  if (user) {
+    user.selectedHomeCats = selectedCats.value.map(cat => cat.id)
+    
+    // 인벤토리의 고양이들도 업데이트
+    if (user.gameData && user.gameData.inventory) {
+      selectedCats.value.forEach(selectedCat => {
+        const inventoryIndex = user.gameData.inventory.findIndex(cat => cat && cat.id === selectedCat.id)
+        if (inventoryIndex > -1) {
+          user.gameData.inventory[inventoryIndex].affinity = selectedCat.affinity
+        }
+      })
+    }
+    
+    localStorage.setItem('currentUser', JSON.stringify(user))
+    sessionStorage.setItem('currentUser', JSON.stringify(user))
+  }
+  
+  // 현재 인덱스 리셋
+  currentCatIndex.value = 0
+  
+  showCatSelectModal.value = false
+}
+
+// 고양이 선택 취소
+const cancelCatSelection = () => {
+  selectingCats.value = [...selectedCats.value]
+  showCatSelectModal.value = false
+}
+
+// 고양이가 선택되어 있는지 확인
+const isCatSelected = (cat) => {
+  return selectingCats.value.some(c => c.id === cat.id)
 }
 
 // 현재 고양이 이미지 경로
 const currentCatImage = computed(() => {
-  return cats[currentCatIndex.value]
+  if (cats.value.length === 0) return cat1
+  return cats.value[currentCatIndex.value]
 })
 
 // 대화하기 버튼 핸들러
@@ -224,6 +364,35 @@ const selectGift = async (gift) => {
   // 친밀도 증가 (임시)
   intimacy.value++
   
+  // 선택된 모든 고양이의 affinity 증가
+  if (selectedCats.value.length > 0) {
+    const user = getCurrentUser()
+    if (user && user.gameData && user.gameData.inventory) {
+      // 각 선택된 고양이의 affinity 증가 (최대 100)
+      selectedCats.value.forEach(selectedCat => {
+        if (!selectedCat.affinity) {
+          selectedCat.affinity = 30 // 기본값
+        }
+        selectedCat.affinity = Math.min(selectedCat.affinity + 1, 100)
+        
+        // 인벤토리에서 해당 고양이 찾아서 업데이트
+        const inventoryIndex = user.gameData.inventory.findIndex(cat => cat && cat.id === selectedCat.id)
+        if (inventoryIndex > -1) {
+          user.gameData.inventory[inventoryIndex].affinity = selectedCat.affinity
+        }
+      })
+      
+      // 사용자 데이터 저장
+      localStorage.setItem('currentUser', JSON.stringify(user))
+      sessionStorage.setItem('currentUser', JSON.stringify(user))
+      
+      // appStore에도 업데이트
+      store.updateGameData({ inventory: user.gameData.inventory }).catch(err => {
+        console.error('인벤토리 업데이트 실패:', err)
+      })
+    }
+  }
+  
   // 하트 +1 표시 (말풍선 없이)
   const maxWidthBubble = Math.min(window.innerWidth || 500, 500)
   const maxHeightBubble = window.innerHeight || 800
@@ -290,12 +459,56 @@ onMounted(() => {
     store.loadCurrentUser()
   } else {
     store.loadCurrentUser()
+    
+    // 저장된 선택된 고양이 불러오기
+    if (currentUser.value.selectedHomeCats && currentUser.value.gameData && currentUser.value.gameData.inventory) {
+      const savedCatIds = currentUser.value.selectedHomeCats
+      const inventory = currentUser.value.gameData.inventory
+      selectedCats.value = inventory
+        .filter(cat => cat && savedCatIds.includes(cat.id))
+        .slice(0, 4)
+        .map(cat => {
+          // affinity가 없으면 기본값 설정
+          if (cat.affinity === undefined) {
+            cat.affinity = 30
+          }
+          return cat
+        })
+    }
   }
   
   // 친밀도 바 높이 업데이트 (이미지 로드 후)
   setTimeout(() => {
     updateBarHeight()
   }, 100)
+  
+  // 홈 화면 진입 시 자동으로 고양이가 말풍선 표시
+  setTimeout(() => {
+    if (currentUser.value) {
+      handleTalk()
+    }
+  }, 500) // 화면이 로드된 후 약간의 딜레이를 주어 자연스럽게 표시
+  
+  // 사용자 데이터 업데이트 이벤트 리스너 (인벤토리 변경 시 선택된 고양이 동기화)
+  const handleUserDataUpdate = () => {
+    const user = getCurrentUser()
+    if (user && user.gameData && user.gameData.inventory && selectedCats.value.length > 0) {
+      // 선택된 고양이들의 affinity를 인벤토리에서 최신 값으로 동기화
+      selectedCats.value.forEach((selectedCat, index) => {
+        const inventoryCat = user.gameData.inventory.find(cat => cat && cat.id === selectedCat.id)
+        if (inventoryCat && inventoryCat.affinity !== undefined) {
+          selectedCats.value[index].affinity = inventoryCat.affinity
+        }
+      })
+    }
+  }
+  
+  window.addEventListener('userDataUpdated', handleUserDataUpdate)
+  
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  onUnmounted(() => {
+    window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+  })
 })
 </script>
 
@@ -309,8 +522,8 @@ onMounted(() => {
       <!-- 홈 콘텐츠 -->
       <div v-if="currentUser" class="homeContent">
         <div class="catContainer">
-          <!-- 좌측 화살표 -->
-          <button class="arrowButton arrowLeft" @click="goLeft">
+          <!-- 좌측 화살표 (고양이가 2마리 이상일 때만 표시) -->
+          <button v-if="cats.length > 1" class="arrowButton arrowLeft" @click="goLeft">
             <img src="@/assets/img/arrow.png" alt="왼쪽" class="arrowIcon" />
           </button>
           
@@ -354,8 +567,8 @@ onMounted(() => {
             </transition>
           </div>
           
-          <!-- 우측 화살표 -->
-          <button class="arrowButton arrowRight" @click="goRight">
+          <!-- 우측 화살표 (고양이가 2마리 이상일 때만 표시) -->
+          <button v-if="cats.length > 1" class="arrowButton arrowRight" @click="goRight">
             <img src="@/assets/img/arrow.png" alt="오른쪽" class="arrowIcon" />
           </button>
         </div>
@@ -370,15 +583,20 @@ onMounted(() => {
       </div>
       
       <!-- 하단 고정 버튼들 -->
-      <div v-if="currentUser" class="actionButtons" :class="{ 'gift-buttons-container': showGiftButtons }">
+      <div v-if="currentUser" class="actionButtons" :class="{ 'gift-buttons-container': showGiftButtons, 'has-select-btn': currentUser.loginType !== 'guest' && !showGiftButtons }">
         <!-- 일반 버튼들 -->
         <template v-if="!showGiftButtons">
-          <button class="actionBtn talkBtn" @click="handleTalk">
-            Talk
+          <button class="actionBtn selectCatsBtn" @click="handleSelectCats" v-if="currentUser.loginType !== 'guest'">
+            Select Cats
           </button>
-          <button class="actionBtn petBtn" @click="handlePet">
-            Give gifts
-          </button>
+          <div class="bottomButtonsRow">
+            <button class="actionBtn talkBtn" @click="handleTalk">
+              Talk
+            </button>
+            <button class="actionBtn petBtn" @click="handlePet">
+              Give gifts
+            </button>
+          </div>
         </template>
         <!-- 선물 선택 버튼들 -->
         <template v-else>
@@ -400,6 +618,41 @@ onMounted(() => {
     
     <!-- 푸터 -->
     <Footer />
+    
+    <!-- 고양이 선택 팝업 -->
+    <div v-if="showCatSelectModal" class="modalOverlay" @click.self="cancelCatSelection">
+      <div class="catSelectModal">
+        <div class="modalHeader">
+          <h2>Select Cats (Max 4)</h2>
+          <button class="closeBtn" @click="cancelCatSelection">×</button>
+        </div>
+        <div class="modalContent">
+          <div class="catGrid">
+            <div 
+              v-for="cat in inventoryCats" 
+              :key="cat.id"
+              class="catSelectItem"
+              :class="{ selected: isCatSelected(cat) }"
+              @click="toggleCatSelection(cat)"
+            >
+              <img :src="getCatImage(cat.imageId)" :alt="cat.name" class="catSelectImage" />
+              <div class="catSelectInfo">
+                <p class="catSelectName">{{ cat.name }}</p>
+                <p class="catSelectLevel">Lv.{{ cat.level || 1 }}</p>
+              </div>
+              <div v-if="isCatSelected(cat)" class="selectedBadge">✓</div>
+            </div>
+          </div>
+          <div class="selectedCount">
+            Selected Cats: {{ selectingCats.length }}/4
+          </div>
+        </div>
+        <div class="modalFooter">
+          <button class="modalBtn cancelBtn" @click="cancelCatSelection">Cancel</button>
+          <button class="modalBtn confirmBtn" @click="confirmCatSelection" :disabled="selectingCats.length === 0">Confirm</button>
+        </div>
+      </div>
+    </div>
     
     <!-- 말풍선들 -->
     <div class="speechBubbles">
@@ -752,8 +1005,8 @@ onMounted(() => {
 /* 하단 고정 액션 버튼들 */
 .actionButtons {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.8rem;
   width: 100%;
   max-width: 500px;
   padding: 1rem;
@@ -762,6 +1015,43 @@ onMounted(() => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 999;
+}
+
+/* Select Cats 버튼이 있을 때 레이아웃 조정 */
+.actionButtons.has-select-btn {
+  gap: 0.8rem;
+}
+
+.actionButtons.has-select-btn .selectCatsBtn {
+  width: 100%;
+}
+
+.actionButtons.has-select-btn .bottomButtonsRow {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.actionButtons.has-select-btn .talkBtn,
+.actionButtons.has-select-btn .petBtn {
+  flex: 1;
+}
+
+/* Select Cats 버튼이 없을 때 (게스트) 가로 배치 */
+.actionButtons:not(.has-select-btn) {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.actionButtons:not(.has-select-btn) .bottomButtonsRow {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.actionButtons:not(.has-select-btn) .talkBtn,
+.actionButtons:not(.has-select-btn) .petBtn {
+  flex: 1;
 }
 
 /* 선물 버튼 컨테이너 - 버튼들이 붙어있도록 */
@@ -815,6 +1105,22 @@ onMounted(() => {
 }
 
 .petBtn:active {
+  transform: translateY(0);
+}
+
+.selectCatsBtn {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.selectCatsBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+}
+
+.selectCatsBtn:active {
   transform: translateY(0);
 }
 
@@ -1100,6 +1406,226 @@ onMounted(() => {
   100% {
     opacity: 0;
     transform: scale(0.7) translateY(-150px) rotate(0deg);
+  }
+}
+
+/* 고양이 선택 팝업 */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+}
+
+.catSelectModal {
+  background: rgba(33, 36, 54, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalHeader h2 {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(90deg);
+}
+
+.modalContent {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.catGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.catSelectItem {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.catSelectItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.catSelectItem.selected {
+  background: rgba(102, 126, 234, 0.3);
+  border-color: #667eea;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.catSelectImage {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.catSelectInfo {
+  text-align: center;
+}
+
+.catSelectName {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.catSelectLevel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  margin: 0.25rem 0 0 0;
+}
+
+.selectedBadge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 24px;
+  height: 24px;
+  background: #667eea;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.selectedCount {
+  text-align: center;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalBtn {
+  flex: 1;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cancelBtn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.confirmBtn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.confirmBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .catSelectModal {
+    width: 95%;
+    max-height: 85vh;
+  }
+  
+  .catGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+  
+  .catSelectImage {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .catSelectName {
+    font-size: 0.8rem;
+  }
+  
+  .catSelectLevel {
+    font-size: 0.7rem;
   }
 }
 

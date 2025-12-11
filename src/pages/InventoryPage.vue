@@ -854,7 +854,7 @@ onUnmounted(() => {
   transform: translate(-50%, -50%);
   color: white;
   font-weight: 600;
-  font-size: 1.2rem;
+  font-size: 1.2em;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
   white-space: nowrap;
   pointer-events: none;
@@ -886,7 +886,7 @@ onUnmounted(() => {
 }
 
 .panelTitle .levelBadge {
-  font-size: 0.9em;
+  font-size: 1em;
   color: #fff;
   font-weight: 700;
   flex-shrink: 0;
@@ -943,7 +943,7 @@ onUnmounted(() => {
 .statLabel {
   color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.9em;
   min-width: 50px;
   flex-shrink: 0;
 }
@@ -997,7 +997,7 @@ onUnmounted(() => {
   font-weight: 600;
   min-width: 40px;
   text-align: left;
-  font-size: 0.9rem;
+  font-size: 0.9em;
   flex-shrink: 0;
   margin-left: 0.3rem;
 }
@@ -1269,7 +1269,7 @@ onUnmounted(() => {
 
 .noItemText {
   color: rgba(255, 255, 255, 0.3);
-  font-size: 0.85rem;
+  font-size: 0.8em;
   font-weight: 400;
   text-align: center;
   pointer-events: none;
@@ -1356,7 +1356,7 @@ onUnmounted(() => {
   background: rgba(0, 0, 0, 0.7);
   color: white;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.9em;
   font-weight: 600;
   z-index: 2;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -1412,7 +1412,7 @@ onUnmounted(() => {
   border-radius: 12px;
   padding: 0.25rem 0.5rem;
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.9em;
   font-weight: 700;
   z-index: 10;
 }

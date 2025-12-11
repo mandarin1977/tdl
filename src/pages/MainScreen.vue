@@ -2370,7 +2370,7 @@ const canProduce = (recipe) => {
   color: white;
   padding: 0.8rem 1.2rem;
   border-radius: 25px;
-  font-size: 1.2rem;
+  font-size: 1em;
   font-weight: bold;
   box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
   animation: bubbleAppear 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), bubbleFloat 2.5s ease-out 0.4s forwards;
@@ -2386,7 +2386,6 @@ const canProduce = (recipe) => {
 /* 모바일 반응형 */
 @media (max-width: 480px) {
   .speechBubble {
-    font-size: 1rem;
     padding: 0.6rem 1rem;
     max-width: 180px;
   }

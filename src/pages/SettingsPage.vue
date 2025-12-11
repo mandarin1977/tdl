@@ -62,11 +62,28 @@ onMounted(async () => {
     currentUser.value = user
     coinCount.value = user.gameData?.coins || 0
     
-    // 초대 코드 가져오기 또는 생성
-    inviteCode.value = getOrCreateInviteCode(user.id)
-    
-    // 초대 통계 가져오기
-    referralStats.value = getReferralStats(user.id)
+    // 게스트가 아닐 때만 초대 코드 가져오기
+    if (user.loginType !== 'guest') {
+      // 초대 코드 가져오기 또는 생성 (async 함수이므로 await 필요)
+      try {
+        inviteCode.value = await getOrCreateInviteCode(user.id)
+      } catch (error) {
+        console.error('초대 코드 가져오기 실패:', error)
+        inviteCode.value = ''
+      }
+      
+      // 초대 통계 가져오기
+      try {
+        referralStats.value = await getReferralStats(user.id)
+      } catch (error) {
+        console.error('초대 통계 가져오기 실패:', error)
+        referralStats.value = {
+          inviteCode: '',
+          totalReferrals: 0,
+          referrals: []
+        }
+      }
+    }
   }
   
   // localStorage에서 언어 설정 로드 (기본값: English)
@@ -83,11 +100,17 @@ onMounted(async () => {
   checkAttendanceStatus()
   
   // appStore 데이터 변경 감지하여 동기화
-  const handleUserDataUpdate = () => {
+  const handleUserDataUpdate = async () => {
     store.loadCurrentUser()
     currentUser.value = getCurrentUser()
-    if (currentUser.value) {
-      referralStats.value = getReferralStats(currentUser.value.id)
+    if (currentUser.value && currentUser.value.loginType !== 'guest') {
+      try {
+        referralStats.value = await getReferralStats(currentUser.value.id)
+        // 초대 코드도 다시 가져오기
+        inviteCode.value = await getOrCreateInviteCode(currentUser.value.id)
+      } catch (error) {
+        console.error('초대 통계 업데이트 실패:', error)
+      }
     }
   }
   window.addEventListener('userDataUpdated', handleUserDataUpdate)
@@ -248,15 +271,75 @@ const goToDeposit = (exchange) => {
 
 // 친구 초대 관련 함수
 const handleCopyInviteCode = async () => {
-  if (!inviteCode.value) return
+  if (!inviteCode.value) {
+    // 초대 코드가 없으면 다시 가져오기 시도
+    if (currentUser.value && currentUser.value.loginType !== 'guest') {
+      try {
+        inviteCode.value = await getOrCreateInviteCode(currentUser.value.id)
+      } catch (error) {
+        console.error('초대 코드 가져오기 실패:', error)
+        alert('초대 코드를 가져올 수 없습니다.')
+        return
+      }
+    } else {
+      return
+    }
+  }
   
   try {
     await navigator.clipboard.writeText(inviteCode.value)
-    alert(texts.value.codeCopied || '초대 코드가 복사되었습니다.')
+    alert(texts.value.codeCopied || 'Invite code copied!')
   } catch (error) {
     console.error('복사 실패:', error)
-    alert('복사에 실패했습니다.')
+    alert('Failed to copy.')
   }
+}
+
+// 초대 링크 복사 함수
+const handleCopyInviteLink = async () => {
+  if (!inviteCode.value) {
+    // 초대 코드가 없으면 다시 가져오기 시도
+    if (currentUser.value && currentUser.value.loginType !== 'guest') {
+      try {
+        inviteCode.value = await getOrCreateInviteCode(currentUser.value.id)
+      } catch (error) {
+        console.error('초대 코드 가져오기 실패:', error)
+        alert('Failed to get invite code.')
+        return
+      }
+    } else {
+      return
+    }
+  }
+  
+  // 현재 페이지 URL 가져오기
+  const currentUrl = window.location.origin + window.location.pathname
+  // 초대 링크 생성 (초대 코드를 쿼리 파라미터로 추가)
+  const inviteLink = `${currentUrl}#/signup?invite=${inviteCode.value}`
+  
+  try {
+    await navigator.clipboard.writeText(inviteLink)
+    alert(texts.value.linkCopied || 'Invite link copied!')
+  } catch (error) {
+    console.error('링크 복사 실패:', error)
+    // 폴백: 텍스트 영역에 복사
+    const textArea = document.createElement('textarea')
+    textArea.value = inviteLink
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      alert(texts.value.linkCopied || 'Invite link copied!')
+    } catch (err) {
+      alert('Failed to copy link.')
+    }
+    document.body.removeChild(textArea)
+  }
+}
+
+// 회원가입 페이지로 이동
+const goToSignup = () => {
+  router.push('/signup')
 }
 </script>
 
@@ -302,7 +385,7 @@ const handleCopyInviteCode = async () => {
       </div>
       
       <!-- 지역 설정 -->
-      <div class="settingGroup">
+      <div class="settingGroup CurrentLanguage">
         <label class="settingLabel">{{ currentTexts.region }}</label>
         <div class="settingInputWrapper">
           <div class="settingInput" @click="showRegionDropdown = !showRegionDropdown">
@@ -397,7 +480,22 @@ const handleCopyInviteCode = async () => {
       
       <!-- 친구 초대 섹션 -->
       <div v-if="currentUser" class="inviteSection">
-        <div class="inviteCard">
+        <!-- 게스트 모드일 때 회원가입 버튼 표시 -->
+        <div v-if="currentUser && currentUser.loginType === 'guest'" class="inviteCard">
+          <h2 class="inviteTitle">{{ texts.inviteFriends }}</h2>
+          <p class="inviteDescription">{{ texts.inviteDescription }}</p>
+          
+          <div class="guestSignupPrompt">
+            <p class="guestPromptText">Sign up to invite friends and get rewards!</p>
+            <button class="signupBtn" @click="goToSignup">
+              <span class="signupIcon">📝</span>
+              <span>Sign Up</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- 로그인한 사용자일 때 초대 기능 표시 -->
+        <div v-else-if="currentUser && currentUser.loginType !== 'guest'" class="inviteCard">
           <h2 class="inviteTitle">{{ texts.inviteFriends }}</h2>
           <p class="inviteDescription">{{ texts.inviteDescription }}</p>
           
@@ -405,7 +503,7 @@ const handleCopyInviteCode = async () => {
           <div class="inviteCodeSection">
             <label class="inviteCodeLabel">{{ texts.inviteCode }}</label>
             <div class="inviteCodeBox">
-              <span class="inviteCode">{{ inviteCode }}</span>
+              <span class="inviteCode">{{ inviteCode || 'Loading...' }}</span>
               <button class="copyBtn" @click="handleCopyInviteCode" :title="texts.copyInviteCode">
                 📋
               </button>
@@ -414,9 +512,9 @@ const handleCopyInviteCode = async () => {
           
           <!-- 공유 버튼 -->
           <div class="shareButtons">
-            <button class="shareBtn copyLinkBtn" @click="handleCopyInviteCode">
+            <button class="shareBtn copyLinkBtn" @click="handleCopyInviteLink">
               <span class="copyIcon">🔗</span>
-              <span>{{ texts.copyLink || '링크 복사' }}</span>
+              <span>{{ texts.copyLink || 'Copy Link' }}</span>
             </button>
           </div>
           
@@ -449,7 +547,7 @@ const handleCopyInviteCode = async () => {
       </div>
       
       <!-- 출석체크 -->
-      <div class="settingGroup">
+      <!-- <div class="settingGroup">
         <label class="settingLabel">{{ texts.attendance }}</label>
         <button 
           class="checkInBtn" 
@@ -457,17 +555,18 @@ const handleCopyInviteCode = async () => {
         >
           {{ texts.doAttendanceCheck }}
         </button>
-      </div>
+      </div> -->
       
       <!-- NFT 버튼 -->
-      <div class="settingGroup">
+       <div style="height: 30px;"></div>
+      <!-- <div class="settingGroup">
         <button 
           class="nftBtn" 
           @click="router.push('/nft')"
         >
           NFT
         </button>
-      </div>
+      </div> -->
     </main>
     
     <!-- 푸터 -->
@@ -569,6 +668,9 @@ const handleCopyInviteCode = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+}
+.settingGroup.CurrentLanguage {
+  display: none!important;
 }
 
 .settingLabel {
@@ -899,6 +1001,57 @@ const handleCopyInviteCode = async () => {
 .copyLinkBtn {
   background: linear-gradient(135deg, #7DD3FC 0%, #0EA5E9 100%);
   color: white;
+}
+
+.copyLinkBtn:hover {
+  background: linear-gradient(135deg, #0EA5E9 0%, #7DD3FC 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+}
+
+/* 게스트 회원가입 프롬프트 */
+.guestSignupPrompt {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.guestPromptText {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.signupBtn {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.signupBtn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.signupBtn:active {
+  transform: translateY(0);
+}
+
+.signupIcon {
+  font-size: 1.2em;
 }
 
 .copyLinkBtn:hover {

@@ -1,11 +1,11 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { getCurrentUser, updateUserGameData, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 
-// appStore 사용
+// appStore ?�용
 const store = useAppStore()
 import { getRarityName, getRarityColors, getRarityStyle, RARITY_TIERS, addRarityToNFT } from '@/utils/rarityUtils'
 import { 
@@ -23,7 +23,7 @@ import btcLineImage from '@/assets/img/BTC_line.png'
 import ethLineImage from '@/assets/img/eth_line.png'
 import ethIco from '@/assets/img/eth_ico.png'
 
-// appStore에서 게임 데이터 가져오기 (반응형)
+// appStore?�서 게임 ?�이*가?�오�?(반응*
 const coinCount = computed(() => store.state.coins)
 const totalCoin = computed(() => store.state.totalCoin)
 const activeTab = ref('wallet') // 'wallet' | 'marketplace' | 'myNFTs' | 'myListings'
@@ -35,7 +35,7 @@ const showBuyPopup = ref(false)
 const showSendPopup = ref(false)
 const showReceivePopup = ref(false)
 
-// 마켓플레이스 상태
+// 마켓?�레?�스 ?�태
 const marketplaceListings = ref([])
 const myNFTs = ref([])
 const myListings = ref([])
@@ -51,13 +51,13 @@ const searchQuery = ref('')
 const showSearchModal = ref(false)
 const activeSubTab = ref('tokens') // 'tokens' | 'nfts'
 
-// 현재 사용자 정보 로드
+// ?�재 ?�용*?�보 로드
 const currentUser = ref(null)
 
-// 다국어 텍스트
+// ?�국*?�스*
 const texts = computed(() => getI18nTexts())
 
-// 고양이 이미지 경로 가져오기 함수
+// 고양*?��?지 경로 가?�오�*�수
 const getCatImage = (id) => {
   try {
     return new URL(`../assets/img/cat${id}.png`, import.meta.url).href
@@ -66,7 +66,7 @@ const getCatImage = (id) => {
   }
 }
 
-// 마켓플레이스 데이터 로드
+// 마켓?�레?�스 ?�이*로드
 const loadMarketplace = () => {
   marketplaceListings.value = getActiveListings()
   if (currentUser.value) {
@@ -75,11 +75,11 @@ const loadMarketplace = () => {
   }
 }
 
-// 필터링 및 정렬된 마켓플레이스 목록
+// ?�터�?�*�렬*마켓?�레?�스 목록
 const filteredMarketplace = computed(() => {
   let items = [...marketplaceListings.value]
   
-  // 검색 필터
+  // 검*?�터
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
     items = items.filter(item => 
@@ -88,7 +88,7 @@ const filteredMarketplace = computed(() => {
     )
   }
   
-  // 레어리티 필터
+  // ?�어리티 ?�터
   if (filterRarity.value !== 'all') {
     items = items.filter(item => {
       const rarity = item.nftData.rarity || RARITY_TIERS.COMMON
@@ -96,7 +96,7 @@ const filteredMarketplace = computed(() => {
     })
   }
   
-  // 가격 필터
+  // 가�*�터
   if (filterPrice.value !== 'all') {
     if (filterPrice.value === 'low') {
       items = items.filter(item => item.price < 1000)
@@ -107,7 +107,7 @@ const filteredMarketplace = computed(() => {
     }
   }
   
-  // 정렬
+  // ?�렬
   items = [...items].sort((a, b) => {
     switch (sortBy.value) {
       case 'newest':
@@ -130,7 +130,7 @@ const filteredMarketplace = computed(() => {
   return items
 })
 
-// NFT 판매하기
+// NFT ?�매?�기
 const openSellModal = (nft) => {
   selectedNFT.value = nft
   sellPrice.value = ''
@@ -159,26 +159,26 @@ const confirmSell = async () => {
   
   const sellerAddress = currentUser.value.walletAddress || currentUser.value.id
   
-  // 마켓플레이스에 등록
+  // 마켓?�레?�스*?�록
   listNFT(selectedNFT.value, price, sellerAddress)
   
-  // 인벤토리에서 제거 (또는 isListed 플래그 추가)
+  // ?�벤?�리?�서 ?�거 (?�는 isListed ?�래�?추�?)
   const inventory = currentUser.value.gameData?.inventory || []
   const updatedInventory = inventory.filter(nft => nft.id !== selectedNFT.value.id)
   
-  // appStore를 통해 업데이트 (데이터 일관성 보장)
+  // appStore�*�해 ?�데?�트 (?�이*?��*?보장)
   await store.updateGameData({
     inventory: updatedInventory
   })
   
-  // 마켓플레이스 새로고침
+  // 마켓?�레?�스 ?�로고침
   loadMarketplace()
   
   alert(`${texts.value.nftListedOnMarketplace} (${texts.value.price}: ${price.toLocaleString()} ${texts.value.coin})`)
   closeSellModal()
 }
 
-// NFT 구매하기
+// NFT 구매?�기
 const openBuyModal = (listing) => {
   selectedNFT.value = listing
   showBuyModal.value = true
@@ -195,7 +195,7 @@ const confirmBuy = async () => {
   const listing = selectedNFT.value
   const buyerAddress = currentUser.value.walletAddress || currentUser.value.id
   
-  // 코인 확인
+  // 코인 ?�인
   const userCoins = currentUser.value.gameData?.totalCoin || 0
   if (userCoins < listing.price) {
     alert(`${texts.value.insufficientCoinsForPurchase} (${texts.value.required}: ${listing.price.toLocaleString()}, ${texts.value.ownedCoins}: ${userCoins.toLocaleString()})`)
@@ -210,39 +210,39 @@ const confirmBuy = async () => {
     return
   }
   
-  // 구매자 인벤토리에 추가
+  // 구매*?�벤?�리*추�?
   const inventory = currentUser.value.gameData?.inventory || []
   inventory.unshift(result.nftData)
   
-  // 구매자 코인 차감 (appStore를 통해 - 데이터 일관성 보장)
+  // 구매*코인 차감 (appStore�*�해 - ?�이*?��*?보장)
   await store.updateGameData({
     inventory: inventory,
     totalCoin: userCoins - listing.price
   })
   
-  // 판매자 코인 증가 (판매자 데이터 찾기)
+  // ?�매*코인 증�? (?�매*?�이*찾기)
   const { getAllUsers } = await import('@/utils/userUtils')
   const users = getAllUsers()
   const seller = users.find(u => (u.walletAddress || u.id) === listing.sellerAddress)
   
   if (seller) {
     const sellerCoins = seller.gameData?.totalCoin || 0
-    // 판매자는 다른 사용자이므로 직접 updateUserGameData 사용 (appStore는 현재 사용자만 관리)
+    // ?�매?�는 ?�른 ?�용?�이므�?직접 updateUserGameData ?�용 (appStore*?�재 ?�용?�만 관�?
     await updateUserGameData(seller.id, {
       totalCoin: sellerCoins + listing.price
     })
-    // 판매자에게도 이벤트 발생 (다른 탭에서 열려있을 수 있음)
+    // ?�매?�에게도 ?�벤*발생 (?�른 *��*?�려?�을 *?�음)
     window.dispatchEvent(new CustomEvent('userDataUpdated'))
   }
   
-  // 마켓플레이스 새로고침
+  // 마켓?�레?�스 ?�로고침
   loadMarketplace()
   
   alert(`${texts.value.nftPurchased} (${listing.price.toLocaleString()} ${texts.value.coinsPaid})`)
   closeBuyModal()
 }
 
-// 판매 취소
+// ?�매 취소
 const cancelSale = async (listing) => {
   if (!confirm(texts.value.confirmCancelSale)) return
   
@@ -256,22 +256,22 @@ const cancelSale = async (listing) => {
     return
   }
   
-  // 인벤토리에 다시 추가
+  // ?�벤?�리*?�시 추�?
   const inventory = currentUser.value.gameData?.inventory || []
   inventory.unshift(listing.nftData)
   
-  // appStore를 통해 업데이트 (데이터 일관성 보장)
+  // appStore�*�해 ?�데?�트 (?�이*?��*?보장)
   await store.updateGameData({
     inventory: inventory
   })
   
-  // 마켓플레이스 새로고침
+  // 마켓?�레?�스 ?�로고침
   loadMarketplace()
   
   alert(texts.value.saleCancelled)
 }
 
-// NFT 상세 정보 보기
+// NFT ?�세 ?�보 보기
 const showNFTDetail = (nft) => {
   selectedNFT.value = nft
   showDetailModal.value = true
@@ -282,7 +282,7 @@ const closeDetailModal = () => {
   selectedNFT.value = null
 }
 
-// 필터 초기화
+// ?�터 초기*
 const resetFilters = () => {
   searchQuery.value = ''
   filterRarity.value = 'all'
@@ -290,50 +290,50 @@ const resetFilters = () => {
   sortBy.value = 'newest'
 }
 
-// 마켓플레이스 통계
+// 마켓?�레?�스 ?�계
 const marketplaceStats = computed(() => {
   return getMarketplaceStats()
 })
 
-// 토큰 목록 (더미 데이터 - 나중에 실제 API 연동)
+// ?�큰 목록 (?��? ?�이*- ?�중*?�제 API ?�동)
 const tokenItems = ref([
   { id: 1, name: 'Bitcoin', symbol: 'BTC', price: '36,590.00', change: '+6.21%', isPositive: true, image: btcImage, lineImage: btcLineImage },
   { id: 2, name: 'Ethereum', symbol: 'ETH', price: '2,590.00', change: '+5.21%', isPositive: true, image: ethImage, lineImage: ethLineImage }
 ])
 
-// 지갑 NFT 목록 (실제 인벤토리에서 가져오기)
+// 지�?NFT 목록 (?�제 ?�벤?�리?�서 가?�오�?
 const walletNFTs = computed(() => {
   if (!currentUser.value) return []
   return (currentUser.value.gameData?.inventory || []).slice(0, 10) // 최근 10개만
 })
 
-// 지갑 잔액 계산 (게임 코인 기반)
+// 지�*�액 계산 (게임 코인 기반)
 const calculateWalletBalance = () => {
   if (!currentUser.value) return '$ 0.00'
   const coins = currentUser.value.gameData?.totalCoin || 0
-  // 간단한 환율 계산 (예시: 1 코인 = $0.01)
+  // 간단*?�율 계산 (?�시: 1 코인 = $0.01)
   const usdValue = coins * 0.01
   return `$ ${usdValue.toFixed(2)}`
 }
 
-// Send/Buy/Receive 핸들러
+// Send/Buy/Receive ?�들*
 const handleSendClick = () => {
   if (import.meta.env.DEV) {
-    console.log('Send 버튼 클릭')
+    console.log('Send 버튼 ?�릭')
   }
   showSendPopup.value = true
 }
 
 const handleBuyClick = () => {
   if (import.meta.env.DEV) {
-    console.log('Buy 버튼 클릭')
+    console.log('Buy 버튼 ?�릭')
   }
   showBuyPopup.value = true
 }
 
 const handleReceiveClick = () => {
   if (import.meta.env.DEV) {
-    console.log('Receive 버튼 클릭')
+    console.log('Receive 버튼 ?�릭')
   }
   showReceivePopup.value = true
 }
@@ -353,13 +353,13 @@ const closeReceivePopup = () => {
 onMounted(() => {
   currentUser.value = getCurrentUser()
   
-  // appStore에서 사용자 데이터 로드
+  // appStore?�서 ?�용*?�이*로드
   store.loadCurrentUser()
   
   if (currentUser.value) {
     walletBalance.value = calculateWalletBalance()
     
-    // 지갑 연결 상태 확인
+    // 지�*�결 ?�태 ?�인
     if (store.isWalletConnected && store.walletAddress) {
       walletBalanceETH.value = store.userBalance
     }
@@ -367,7 +367,7 @@ onMounted(() => {
   
   loadMarketplace()
   
-  // 사용자 데이터 업데이트 이벤트 리스너
+  // ?�용*?�이*?�데?�트 ?�벤*리스*
   const handleUserDataUpdate = () => {
     currentUser.value = getCurrentUser()
     store.loadCurrentUser()
@@ -378,13 +378,13 @@ onMounted(() => {
   }
   window.addEventListener('userDataUpdated', handleUserDataUpdate)
   
-  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  // 컴포?�트 ?�마?�트 *?�벤*리스*?�거
   onUnmounted(() => {
     window.removeEventListener('userDataUpdated', handleUserDataUpdate)
   })
 })
 
-// 탭 전환
+// *?�환
 const switchTab = (tab) => {
   activeTab.value = tab
   loadMarketplace()
@@ -393,12 +393,12 @@ const switchTab = (tab) => {
 
 <template>
   <div class="nftPage">
-    <!-- 헤더 -->
+    <!-- ?�더 -->
     <Header :coinCount="coinCount" />
     
-    <!-- 메인 콘텐츠 -->
+    <!-- 메인 콘텐�?-->
     <main class="mainContent nftWrap">
-      <!-- 탭 메뉴 -->
+      <!-- *메뉴 -->
       <div class="tabMenu">
         <button 
           class="tab" 
@@ -430,9 +430,9 @@ const switchTab = (tab) => {
         </button>
       </div>
       
-      <!-- 지갑 탭 -->
+      <!-- 지�*?-->
       <div v-if="activeTab === 'wallet'" class="walletContent">
-      <!-- 지갑 잔액 섹션 -->
+      <!-- 지�*�액 ?�션 -->
       <div class="walletSection">
         <div class="walletLabel">Current Wallet Balance</div>
         <div class="walletBalance">{{ walletBalance }}</div>
@@ -445,7 +445,7 @@ const switchTab = (tab) => {
           </div>
       </div>
       
-      <!-- 액션 버튼 섹션 -->
+      <!-- ?�션 버튼 ?�션 -->
       <div class="actionButtons">
         <button class="actionBtn sendBtn" @click="handleSendClick">
           <div class="btnIcon"></div>
@@ -461,7 +461,7 @@ const switchTab = (tab) => {
         </button>
       </div>
       
-        <!-- 서브 탭 메뉴 -->
+        <!-- ?�브 *메뉴 -->
         <div class="subTabMenu">
         <button 
             class="subTab" 
@@ -479,7 +479,7 @@ const switchTab = (tab) => {
         </button>
       </div>
       
-      <!-- Tokens 탭 내용 -->
+      <!-- Tokens *?�용 -->
         <div v-if="activeSubTab === 'tokens'" class="itemList">
         <div 
           v-for="item in tokenItems" 
@@ -505,7 +505,7 @@ const switchTab = (tab) => {
         </div>
       </div>
       
-      <!-- NFTs 탭 내용 -->
+      <!-- NFTs *?�용 -->
         <div v-if="activeSubTab === 'nfts'" class="nftList">
         <div 
             v-for="nft in walletNFTs" 
@@ -523,7 +523,7 @@ const switchTab = (tab) => {
           <div class="nftValue">
               <div class="nftStars">
                 <span v-for="n in 5" :key="n" class="star">
-                  {{ n <= (nft.stars || 0) ? '★' : '☆' }}
+                  {{ n <= (nft.stars || 0) ? "*" : "*" }}
                 </span>
             </div>
               <div class="nftLevel">Lv {{ nft.level || 1 }}</div>
@@ -531,27 +531,27 @@ const switchTab = (tab) => {
           </div>
           
           <div v-if="walletNFTs.length === 0" class="emptyNFTs">
-            <div class="emptyIcon">📦</div>
+            <div class="emptyIcon">?��</div>
             <div class="emptyText">{{ texts.noNFTsInWallet }}</div>
           </div>
         </div>
       </div>
       
-      <!-- 마켓플레이스 탭 -->
+      <!-- 마켓?�레?�스 *-->
       <div v-if="activeTab === 'marketplace'" class="marketplaceContent">
-        <!-- 검색 및 필터 -->
+        <!-- 검*�*�터 -->
         <div class="marketplaceHeader">
           <div class="marketplaceStats">
             <span>{{ texts.onSale }}: {{ marketplaceStats.activeListings }}{{ texts.itemsCount }}</span>
             <span>{{ texts.totalVolume }}: {{ marketplaceStats.totalVolume.toLocaleString() }} {{ texts.coin }}</span>
           </div>
           <button class="searchBtn" @click="showSearchModal = true">
-            <span>🔍</span>
+            <span>?��</span>
             <span>{{ texts.searchNFT }}</span>
           </button>
         </div>
         
-        <!-- 필터 바 -->
+        <!-- ?�터 �?-->
         <div class="filterBar">
           <select v-model="filterRarity" class="filterSelect">
             <option value="all">{{ texts.allRarity }}</option>
@@ -591,7 +591,7 @@ const switchTab = (tab) => {
               <div class="nftCardBadges">
                 <div class="starBadge">
                   <span v-for="n in 5" :key="n" class="star">
-                    {{ n <= (listing.nftData.stars || 0) ? '★' : '☆' }}
+                    {{ n <= (listing.nftData.stars || 0) ? "*" : "*" }}
                   </span>
                 </div>
                 <div class="levelBadge">Lv {{ listing.nftData.level || 1 }}</div>
@@ -610,14 +610,14 @@ const switchTab = (tab) => {
           </div>
         </div>
         
-        <!-- 빈 마켓플레이스 -->
+        <!-- �?마켓?�레?�스 -->
         <div v-else class="emptyMarketplace">
-          <div class="emptyIcon">🏪</div>
+          <div class="emptyIcon">?��</div>
           <div class="emptyText">{{ texts.noNFTsOnSale }}</div>
         </div>
       </div>
       
-      <!-- 내 NFT 탭 -->
+      <!-- *NFT *-->
       <div v-if="activeTab === 'myNFTs'" class="myNFTsContent">
         <div class="sectionHeader">
           <h3>{{ texts.myNFTsCount }} ({{ myNFTs.length }}{{ texts.itemsCount }})</h3>
@@ -639,7 +639,7 @@ const switchTab = (tab) => {
                 </div>
                 <div class="starBadge">
                   <span v-for="n in 5" :key="n" class="star">
-                    {{ n <= (nft.stars || 0) ? '★' : '☆' }}
+                    {{ n <= (nft.stars || 0) ? "*" : "*" }}
                   </span>
                 </div>
                 <div class="levelBadge">Lv {{ nft.level || 1 }}</div>
@@ -655,12 +655,12 @@ const switchTab = (tab) => {
         </div>
         
         <div v-else class="emptyMarketplace">
-          <div class="emptyIcon">📦</div>
+          <div class="emptyIcon">?��</div>
           <div class="emptyText">{{ texts.noNFTsAvailableForSale }}</div>
         </div>
       </div>
       
-      <!-- 내 판매 탭 -->
+      <!-- *?�매 *-->
       <div v-if="activeTab === 'myListings'" class="myListingsContent">
         <div class="sectionHeader">
           <h3>{{ texts.mySalesList }} ({{ myListings.length }}{{ texts.itemsCount }})</h3>
@@ -677,7 +677,7 @@ const switchTab = (tab) => {
               <div class="nftCardBadges">
                 <div class="starBadge">
                   <span v-for="n in 5" :key="n" class="star">
-                    {{ n <= (listing.nftData.stars || 0) ? '★' : '☆' }}
+                    {{ n <= (listing.nftData.stars || 0) ? "*" : "*" }}
                   </span>
                 </div>
                 <div class="levelBadge">Lv {{ listing.nftData.level || 1 }}</div>
@@ -697,16 +697,16 @@ const switchTab = (tab) => {
         </div>
         
         <div v-else class="emptyMarketplace">
-          <div class="emptyIcon">📋</div>
+          <div class="emptyIcon">?��</div>
           <div class="emptyText">{{ texts.noNFTsOnSaleList }}</div>
         </div>
       </div>
     </main>
     
-    <!-- 푸터 -->
+    <!-- ?�터 -->
     <Footer />
     
-    <!-- 판매 팝업 -->
+    <!-- ?�매 ?�업 -->
     <div v-if="showSellModal && selectedNFT" class="modalOverlay" @click="closeSellModal">
       <div class="modalContent" @click.stop>
         <div class="modalHeader">
@@ -720,7 +720,7 @@ const switchTab = (tab) => {
             <div class="sellNFTInfo">
               <div class="sellNFTName">{{ selectedNFT.name }}</div>
               <div class="sellNFTDetails">
-                <span>⭐ {{ selectedNFT.stars || 0 }}{{ texts.starsRating }}</span>
+                {{ n <= (nft.stars || 0) ? "*" : "*" }}
                 <span>Lv {{ selectedNFT.level || 1 }}</span>
               </div>
             </div>
@@ -746,7 +746,7 @@ const switchTab = (tab) => {
       </div>
     </div>
     
-    <!-- 구매 팝업 -->
+    <!-- 구매 ?�업 -->
     <div v-if="showBuyModal && selectedNFT" class="modalOverlay" @click="closeBuyModal">
       <div class="modalContent" @click.stop>
         <div class="modalHeader">
@@ -760,7 +760,7 @@ const switchTab = (tab) => {
             <div class="buyNFTInfo">
               <div class="buyNFTName">{{ selectedNFT.nftData.name }}</div>
               <div class="buyNFTDetails">
-                <span>⭐ {{ selectedNFT.nftData.stars || 0 }}{{ texts.starsRating }}</span>
+                <span>�?{{ selectedNFT.nftData.stars || 0 }}{{ texts.starsRating }}</span>
                 <span>Lv {{ selectedNFT.nftData.level || 1 }}</span>
               </div>
             </div>
@@ -797,7 +797,7 @@ const switchTab = (tab) => {
       </div>
     </div>
     
-    <!-- NFT 상세 정보 모달 -->
+    <!-- NFT ?�세 ?�보 모달 -->
     <div v-if="showDetailModal && selectedNFT" class="modalOverlay" @click="closeDetailModal">
       <div class="modalContent detailModal" @click.stop>
         <div class="modalHeader">
@@ -811,7 +811,7 @@ const switchTab = (tab) => {
             <div class="detailBadges">
               <div class="detailStarBadge">
                 <span v-for="n in 5" :key="n" class="star">
-                  {{ n <= (selectedNFT.stars || 0) ? '★' : '☆' }}
+                  {{ n <= (nft.stars || 0) ? "*" : "*" }}
                 </span>
               </div>
               <div class="detailLevelBadge">Lv {{ selectedNFT.level || 1 }}</div>
@@ -832,7 +832,7 @@ const switchTab = (tab) => {
       </div>
     </div>
     
-    <!-- Send 팝업 -->
+    <!-- Send ?�업 -->
     <div v-if="showSendPopup" class="popupOverlay" @click="closeSendPopup">
       <div class="popupContent" @click.stop>
         <div class="popupHeader">
@@ -848,7 +848,7 @@ const switchTab = (tab) => {
       </div>
     </div>
     
-    <!-- Buy 팝업 -->
+    <!-- Buy ?�업 -->
     <div v-if="showBuyPopup" class="popupOverlay" @click="closeBuyPopup">
       <div class="popupContent" @click.stop>
         <div class="popupHeader">
@@ -864,7 +864,7 @@ const switchTab = (tab) => {
       </div>
     </div>
     
-    <!-- Receive 팝업 -->
+    <!-- Receive ?�업 -->
     <div v-if="showReceivePopup" class="popupOverlay" @click="closeReceivePopup">
       <div class="popupContent" @click.stop>
         <div class="popupHeader">
@@ -880,7 +880,7 @@ const switchTab = (tab) => {
       </div>
     </div>
     
-    <!-- 검색 팝업 -->
+    <!-- 검*?�업 -->
     <div v-if="showSearchModal" class="modalOverlay" @click="showSearchModal = false">
       <div class="searchModal" @click.stop>
         <div class="searchModalHeader">
@@ -931,7 +931,7 @@ const switchTab = (tab) => {
   overflow-y: auto;
 }
 
-/* 탭 메뉴 */
+/* *메뉴 */
 .tabMenu {
   display: flex;
   gap: 0.5rem;
@@ -986,7 +986,7 @@ const switchTab = (tab) => {
   opacity: 1;
 }
 
-/* 마켓플레이스 콘텐츠 */
+/* 마켓?�레?�스 콘텐�?*/
 .marketplaceContent,
 .myNFTsContent,
 .myListingsContent {
@@ -1089,7 +1089,7 @@ const switchTab = (tab) => {
   color: #7DD3FC;
 }
 
-/* NFT 그리드 */
+/* NFT 그리**/
 .nftGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1370,7 +1370,7 @@ const switchTab = (tab) => {
   font-size: 1rem;
 }
 
-/* 모달 스타일 */
+/* 모달 ?��*?*/
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -1498,7 +1498,7 @@ const switchTab = (tab) => {
   cursor: not-allowed;
 }
 
-/* 판매 모달 */
+/* ?�매 모달 */
 .sellNFTPreview {
   display: flex;
   gap: 1rem;
@@ -1652,7 +1652,7 @@ const switchTab = (tab) => {
   border-radius: 6px;
 }
 
-/* 상세 정보 모달 */
+/* ?�세 ?�보 모달 */
 .detailModal {
   max-width: 400px;
 }
@@ -1729,7 +1729,7 @@ const switchTab = (tab) => {
   font-size: 0.9rem;
 }
 
-/* 검색 모달 */
+/* 검*모달 */
 .searchModal {
   background: rgba(15, 23, 42, 0.98);
   backdrop-filter: blur(20px);
@@ -1845,7 +1845,7 @@ const switchTab = (tab) => {
   }
 }
 
-/* 지갑 섹션 */
+/* 지�*�션 */
 .walletSection {
   text-align: center;
   margin-bottom: 2rem;
@@ -1867,7 +1867,7 @@ const switchTab = (tab) => {
 }
 
 .walletBalance {
-  font-size: 4em;
+  font-size: 4rem;
   color: #fff;
   font-weight: 900;
   margin-bottom: 1rem;
@@ -1902,7 +1902,7 @@ const switchTab = (tab) => {
   color: #10b981;
 }
 
-/* 액션 버튼 */
+/* ?�션 버튼 */
 .actionButtons {
   display: flex;
   justify-content: space-around;
@@ -1999,7 +1999,7 @@ const switchTab = (tab) => {
   color: #7DD3FC;
 }
 
-/* 서브 탭 메뉴 */
+/* ?�브 *메뉴 */
 .subTabMenu {
   display: flex;
   gap: 0.75rem;
@@ -2037,7 +2037,7 @@ const switchTab = (tab) => {
   border: 1px solid rgba(125, 211, 252, 0.3);
 }
 
-/* 아이템 목록 */
+/* ?�이*목록 */
 .itemList {
   display: flex;
   flex-direction: column;
@@ -2134,7 +2134,7 @@ const switchTab = (tab) => {
   color: #ef4444;
 }
 
-/* NFT 목록 (지갑 탭) */
+/* NFT 목록 (지�*? */
 .nftList {
   display: flex;
   flex-direction: column;
@@ -2241,7 +2241,7 @@ const switchTab = (tab) => {
   font-size: 0.95rem;
 }
 
-/* 팝업 스타일 */
+/* ?�업 ?��*?*/
 .popupOverlay {
   position: fixed;
   top: 0;
@@ -2322,7 +2322,7 @@ const switchTab = (tab) => {
   transform: translateY(-2px);
 }
 
-/* 모바일 반응형 */
+/* 모바*반응**/
 @media (max-width: 480px) {
   .nftGrid {
     grid-template-columns: 1fr;
@@ -2356,7 +2356,7 @@ const switchTab = (tab) => {
   }
   
   .walletBalance {
-    font-size: 2em;
+    font-size: 2rem;
   }
   
   .actionButtons {
@@ -2368,7 +2368,7 @@ const switchTab = (tab) => {
   }
 }
 
-/* 지갑 섹션 */
+/* 지�*�션 */
 .walletSection {
   text-align: center;
   margin-bottom: 2rem;
@@ -2380,7 +2380,7 @@ const switchTab = (tab) => {
 }
 
 .walletBalance {
-  font-size: 2.5em;
+  font-size: 2.5rem;
   color: #fff;
   font-weight: bold;
   margin-bottom: 0.8rem;
@@ -2403,7 +2403,7 @@ const switchTab = (tab) => {
   color: green;
 }
 
-/* 액션 버튼 */
+/* ?�션 버튼 */
 .actionButtons {
   display: flex;
   justify-content: space-around;
@@ -2451,7 +2451,7 @@ const switchTab = (tab) => {
   background-repeat: no-repeat;
 }
 
-/* 탭 메뉴 */
+/* *메뉴 */
 .tabMenu {
   display: flex;
   gap: 1rem;
@@ -2482,7 +2482,7 @@ span.btnLabel {
   font-weight: 500;
 }
 
-/* 아이템 목록 */
+/* ?�이*목록 */
 .itemList {
   display: flex;
   flex-direction: column;
@@ -2555,7 +2555,7 @@ span.btnLabel {
   color: red;
 }
 
-/* NFT 목록 (NFTs 탭) */
+/* NFT 목록 (NFTs * */
 .nftList {
   display: flex;
   flex-direction: column;
@@ -2635,7 +2635,7 @@ span.btnLabel {
   font-size: 0.9rem;
 }
 
-/* 팝업 스타일 */
+/* ?�업 ?��*?*/
 .popupOverlay {
   position: fixed;
   top: 0;
@@ -2768,4 +2768,13 @@ span.btnLabel {
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 </style>
+
+
+
+
+
+
+
+
+
 
