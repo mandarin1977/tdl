@@ -545,7 +545,7 @@ const handleCopyInviteCode = async () => {
   }
   
   .settingLabel {
-    font-size: 0.85rem;
+    font-size: 0.9em;
   }
   
   .userProfileBtn,
@@ -560,7 +560,7 @@ const handleCopyInviteCode = async () => {
   }
   
   .toggleLabel {
-    font-size: 0.85rem;
+    font-size: 0.875rem;
   }
 }
 
@@ -573,7 +573,7 @@ const handleCopyInviteCode = async () => {
 
 .settingLabel {
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.9em;
   font-weight: 500;
   margin-bottom: 0.5rem;
 }
@@ -595,7 +595,7 @@ const handleCopyInviteCode = async () => {
 
 .dropdownIcon {
   color: #64748B;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .dropdownMenu {
@@ -633,7 +633,7 @@ const handleCopyInviteCode = async () => {
   border: 2px solid rgba(125, 211, 252, 0.3);
   border-radius: 12px;
   color: white;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -673,7 +673,7 @@ const handleCopyInviteCode = async () => {
 
 .sectionTitle {
   color: white;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 0.5rem 0;
@@ -691,7 +691,7 @@ const handleCopyInviteCode = async () => {
 
 .toggleLabel {
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 400;
   letter-spacing: 0.01em;
 }
@@ -794,7 +794,7 @@ const handleCopyInviteCode = async () => {
 
 .inviteDescription {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   text-align: center;
   margin: 0 0 2rem 0;
 }
@@ -807,7 +807,7 @@ const handleCopyInviteCode = async () => {
 .inviteCodeLabel {
   display: block;
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.5rem;
 }
@@ -947,7 +947,7 @@ const handleCopyInviteCode = async () => {
 
 .rewardDesc {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 /* 초대 통계 */
@@ -959,7 +959,7 @@ const handleCopyInviteCode = async () => {
 
 .statsTitle {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   margin: 0 0 0.5rem 0;
 }
@@ -1006,7 +1006,7 @@ const handleCopyInviteCode = async () => {
 .checkInMessage {
   margin-top: 0.8rem;
   color: #7DD3FC;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   text-align: center;
   animation: fadeIn 0.3s ease;
@@ -1102,7 +1102,7 @@ const handleCopyInviteCode = async () => {
 
 .walletInfoLabel {
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 
@@ -1115,7 +1115,7 @@ const handleCopyInviteCode = async () => {
 .walletAddressText {
   color: white;
   font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   word-break: break-all;
   flex: 1;
 }
@@ -1215,14 +1215,14 @@ const handleCopyInviteCode = async () => {
 
 .walletNotConnectedText {
   color: white;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   margin: 0;
 }
 
 .walletNotConnectedDesc {
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
+  font-size: 0.9em;
   margin: 0;
 }
 
@@ -1253,7 +1253,7 @@ const handleCopyInviteCode = async () => {
 
 .walletErrorMsg {
   color: #ff6b6b;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   margin-top: 0.5rem;
   padding: 0.5rem;
   background: rgba(239, 68, 68, 0.1);
@@ -1342,7 +1342,7 @@ const handleCopyInviteCode = async () => {
 
 .depositPopupDesc {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   margin: 0 0 1.5rem 0;
   text-align: center;
 }
@@ -1394,7 +1394,7 @@ const handleCopyInviteCode = async () => {
 
 .depositOptionDesc {
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .depositOptionArrow {
@@ -1414,7 +1414,7 @@ const handleCopyInviteCode = async () => {
 
 .depositPopupNote {
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   text-align: center;
   margin: 0;
 }
@@ -1444,7 +1444,7 @@ const handleCopyInviteCode = async () => {
   }
   
   .walletAddressText {
-    font-size: 0.8rem;
+    font-size: 0.875rem;
   }
   
   .walletNotConnectedIcon {
