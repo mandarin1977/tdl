@@ -18,8 +18,10 @@ const formData = ref({
 const inviteCode = ref(null)
 
 onMounted(() => {
-  // Get invitation code from URL parameter
-  if (route.query.ref) {
+  // Get invitation code from URL parameter (support both 'invite' and 'ref' for compatibility)
+  if (route.query.invite) {
+    inviteCode.value = route.query.invite
+  } else if (route.query.ref) {
     inviteCode.value = route.query.ref
   }
 })
