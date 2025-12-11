@@ -292,14 +292,14 @@ const gameStats = computed(() => {
 }
 
 .mainContent {
-  padding: 1.6rem;
-  padding-bottom: 5rem; /* Footer 공간 확보 */
+  padding: 1.6em;
+  padding-bottom: 5em; /* Footer 공간 확보 */
   max-width: 500px;
   margin: 0 auto;
   min-height: calc(100vh - 130px);
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 2em;
   position: relative;
   z-index: 1; /* Footer보다 낮은 z-index */
 }
@@ -309,9 +309,9 @@ const gameStats = computed(() => {
   background: rgba(15, 23, 42, 0.7);
   border: none;
   color: white;
-  padding: 0.8rem 1.2rem;
+  padding: 0.8em 1.2em;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
@@ -328,8 +328,8 @@ const gameStats = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
-  padding: 2rem;
+  gap: 1.5em;
+  padding: 2em;
   background: rgba(15, 23, 42, 0.7);
   border-radius: 20px;
   backdrop-filter: blur(10px);
@@ -357,7 +357,7 @@ const gameStats = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  font-size: 3em;
   font-weight: 700;
   color: white;
 }
@@ -368,14 +368,14 @@ const gameStats = computed(() => {
 
 .userName {
   color: white;
-  font-size: 1.3rem;
+  font-size: 1.3em;
   font-weight: 600;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.5em 0;
 }
 
 .userEmail {
   color: #94A3B8;
-  font-size: 0.9rem;
+  font-size: 0.9em;
   margin: 0;
 }
 
@@ -383,20 +383,20 @@ const gameStats = computed(() => {
 .settingGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.8em;
 }
 
 .settingLabel {
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.9em;
   font-weight: 500;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.5em;
 }
 
 .settingInput {
   background: rgba(15, 23, 42, 0.7);
   border-radius: 12px;
-  padding: 1rem 1.2rem;
+  padding: 1em 1.2em;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -405,10 +405,10 @@ const gameStats = computed(() => {
 
 .userId {
   font-family: monospace;
-  font-size: 0.9rem;
+  font-size: 0.9em;
   word-break: break-all;
   flex: 1;
-  margin-right: 1rem;
+  margin-right: 1em;
 }
 
 .copyBtn {
@@ -417,7 +417,7 @@ const gameStats = computed(() => {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  font-size: 1.2rem;
+  font-size: 1.2em;
   cursor: pointer;
   transition: all 0.3s;
   flex-shrink: 0;
@@ -432,29 +432,29 @@ const gameStats = computed(() => {
 .statsSection {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.5em;
 }
 
 .sectionTitle {
   color: white;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.5em 0;
 }
 
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  gap: 1em;
 }
 
 .statCard {
   background: rgba(15, 23, 42, 0.7);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.5em;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1em;
   transition: all 0.3s;
   border: 2px solid transparent;
 }
@@ -466,7 +466,7 @@ const gameStats = computed(() => {
 }
 
 .statIcon {
-  font-size: 2rem;
+  font-size: 2em;
   width: 50px;
   height: 50px;
   display: flex;
@@ -481,36 +481,36 @@ const gameStats = computed(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.3em;
 }
 
 .statLabel {
   color: #94A3B8;
-  font-size: 0.85rem;
+  font-size: 0.85em;
   font-weight: 500;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.3em;
 }
 
 .statValue {
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.2em;
   font-weight: 700;
 }
 
 /* 로그아웃 섹션 */
 .logoutSection {
   margin-top: auto;
-  padding-top: 2rem;
+  padding-top: 2em;
 }
 
 .logoutBtn {
   width: 100%;
-  padding: 1.2rem;
+  padding: 1.2em;
   background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -525,12 +525,12 @@ const gameStats = computed(() => {
 
 .loginBtn {
   width: 100%;
-  padding: 1.2rem;
+  padding: 1.2em;
   background: linear-gradient(135deg, #7DD3FC 0%, #0EA5E9 100%);
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -546,12 +546,12 @@ const gameStats = computed(() => {
 /* 모바일 반응형 */
 @media (max-width: 480px) {
   .mainContent {
-    padding: 1.2rem;
-    gap: 1.5rem;
+    padding: 1.2em;
+    gap: 1.5em;
   }
   
   .profileHeader {
-    padding: 1.5rem;
+    padding: 1.5em;
   }
   
   .profileImageWrapper {
@@ -560,50 +560,50 @@ const gameStats = computed(() => {
   }
   
   .profileImagePlaceholder {
-    font-size: 2.5rem;
+    font-size: 2.5em;
   }
   
   .userName {
-    font-size: 1.2rem;
+    font-size: 1.2em;
   }
   
   .userEmail {
-    font-size: 0.85rem;
+    font-size: 0.85em;
   }
   
   .settingLabel {
-    font-size: 0.85rem;
+    font-size: 0.85em;
   }
   
   .sectionTitle {
-    font-size: 0.95rem;
+    font-size: 0.95em;
   }
   
   .statsGrid {
-    gap: 0.8rem;
+    gap: 0.8em;
   }
   
   .statCard {
-    padding: 1.2rem;
+    padding: 1.2em;
   }
   
   .statIcon {
-    font-size: 1.5rem;
+    font-size: 1.5em;
     width: 40px;
     height: 40px;
   }
   
   .statLabel {
-    font-size: 0.8rem;
+    font-size: 0.8em;
   }
   
   .statValue {
-    font-size: 1.1rem;
+    font-size: 1.1em;
   }
   
   .logoutBtn {
-    font-size: 0.95rem;
-    padding: 1rem;
+    font-size: 0.95em;
+    padding: 1em;
   }
 }
 
