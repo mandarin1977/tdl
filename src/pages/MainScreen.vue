@@ -18,6 +18,7 @@ import mainTab4 from '@/assets/img/mainTab4.png'
 import mainTab4Off from '@/assets/img/mainTab4_off.png'
 import plusMini from '@/assets/img/plusMini.png'
 import energyMini from '@/assets/img/energyMini.png'
+import inventoryIcon from '@/assets/img/tabIcon2.png'
 import '@/styles/main.css'
 
 // appStore 사용
@@ -27,6 +28,11 @@ const store = useAppStore()
 const texts = computed(() => getI18nTexts())
 
 const router = useRouter()
+
+// 인벤토리 페이지로 이동
+const goToInventory = () => {
+  router.push('/inventory')
+}
 
 // 현재 사용자 정보
 const currentUser = ref(null)
@@ -2018,6 +2024,11 @@ const canProduce = (recipe) => {
       :catCount="catCount"
     />
     
+    <!-- 인벤토리 아이콘 (상단 오른쪽) -->
+    <button class="inventoryIconBtn" @click="goToInventory" title="Inventory">
+      <img :src="inventoryIcon" alt="Inventory" class="inventoryIcon" />
+    </button>
+    
     <!-- 메인 콘텐츠 -->
     <main class="mainContent">
       <!-- 상단 모드 탭 -->
@@ -2816,6 +2827,7 @@ const canProduce = (recipe) => {
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: calc(100% / 5);
 }
 
 .modeTab:hover {
@@ -2827,7 +2839,7 @@ const canProduce = (recipe) => {
 }
 
 .modeTabIcon {
-  width: 15vw;
+  width: 100%;
   height: auto;
   object-fit: contain;
   transition: all 0.3s ease;
@@ -2951,5 +2963,49 @@ const canProduce = (recipe) => {
 
 .catsListScroll::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
+}
+
+/* 인벤토리 아이콘 버튼 (상단 오른쪽) */
+.inventoryIconBtn {
+  position: absolute;
+  top: 80px; /* Header 아래 */
+  right: 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 100;
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inventoryIconBtn:hover {
+  transform: scale(1.1);
+  opacity: 0.9;
+}
+
+.inventoryIconBtn:active {
+  transform: scale(0.95);
+}
+
+.inventoryIcon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+@media (max-width: 480px) {
+  .inventoryIconBtn {
+    top: 70px;
+    right: 0.8rem;
+  }
+  
+  .inventoryIcon {
+    width: 40px;
+    height: 40px;
+  }
 }
 </style>

@@ -1023,7 +1023,8 @@ onMounted(() => {
 }
 
 .actionButtons.has-select-btn .selectCatsBtn {
-  width: 100%;
+  width: 75%;
+  margin: auto;
 }
 
 .actionButtons.has-select-btn .bottomButtonsRow {
@@ -1066,7 +1067,7 @@ onMounted(() => {
   padding: 2rem 1.5rem;
   border: none;
   border-radius: 12px;
-  font-size: 1em;
+  font-size: 1.3em;
   font-weight: 600;
   color: white;
   cursor: pointer;
@@ -1447,7 +1448,7 @@ onMounted(() => {
 
 .modalHeader h2 {
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.2em;
   font-weight: 600;
   margin: 0;
 }
@@ -1524,14 +1525,14 @@ onMounted(() => {
 
 .catSelectName {
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.9em;
   font-weight: 600;
   margin: 0;
 }
 
 .catSelectLevel {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.8rem;
+  font-size: 0.8em;
   margin: 0.25rem 0 0 0;
 }
 
@@ -1554,7 +1555,7 @@ onMounted(() => {
 .selectedCount {
   text-align: center;
   color: white;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   padding: 1rem;
   background: rgba(255, 255, 255, 0.05);
@@ -1573,7 +1574,7 @@ onMounted(() => {
   padding: 0.8rem 1.5rem;
   border: none;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -1619,14 +1620,7 @@ onMounted(() => {
     width: 60px;
     height: 60px;
   }
-  
-  .catSelectName {
-    font-size: 0.8rem;
-  }
-  
-  .catSelectLevel {
-    font-size: 0.7rem;
-  }
+
 }
 
 </style>

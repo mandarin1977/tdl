@@ -34,6 +34,7 @@ import NFTPage from './pages/NFTPage.vue'
 import NotificationPage from './pages/NotificationPage.vue'
 import ShopPage from './pages/ShopPage.vue'
 import HomePage from './pages/HomePage.vue'
+import SocialPage from './pages/SocialPage.vue'
 
 // 공개 페이지 (로그인 없이 접근 가능)
 const publicRoutes = ['/loading', '/login', '/signup', '/forgot-password', '/reset-password', '/home', '/main']
@@ -61,7 +62,8 @@ const routes = [
   { path: '/nft', component: NFTPage },
   { path: '/notification', component: NotificationPage },
   { path: '/shop', component: ShopPage },
-  { path: '/home', component: HomePage }
+  { path: '/home', component: HomePage },
+  { path: '/social', component: SocialPage }
 ]
 
 const router = createRouter({

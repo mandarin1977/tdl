@@ -6,6 +6,7 @@ import tabIcon1 from '@/assets/img/tabIcon1.png'
 import tabIcon2 from '@/assets/img/tabIcon2.png'
 import tabIcon3 from '@/assets/img/tabIcon3.png'
 import tabIcon4 from '@/assets/img/tabIcon4.png'
+import tabIcon5 from '@/assets/img/tabIcon5.png'
 import optionButton from '@/assets/img/optionButton.png'
 
 const router = useRouter()
@@ -34,8 +35,11 @@ const setActiveTabByRoute = () => {
     case '/exchange':
       activeTab.value = 'exchange' // Exchange 페이지일 때 네 번째 아이콘 활성화
       break
+    case '/social':
+      activeTab.value = 'social' // Social 페이지일 때 두 번째 아이콘 활성화
+      break
     case '/inventory':
-      activeTab.value = 'inventory' // Inventory 페이지일 때 두 번째 아이콘 활성화
+      activeTab.value = 'inventory' // Inventory 페이지 (별도 처리)
       break
     case '/factory':
       activeTab.value = 'factory'
@@ -85,7 +89,7 @@ watch(language, () => {
 
 const tabs = computed(() => [
   { id: 'game', img: tabIcon1, imgActive: tabIcon1, label: texts.value.game },
-  { id: 'inventory', img: tabIcon2, imgActive: tabIcon2, label: texts.value.inventory }, // 두 번째 아이콘
+  { id: 'social', img: tabIcon5, imgActive: tabIcon5, label: 'Social' }, // 두 번째 아이콘 - tabIcon5로 변경
   { id: 'home', img: tabIcon3, imgActive: tabIcon3, label: texts.value.home },
   { id: 'exchange', img: tabIcon4, imgActive: tabIcon4, label: texts.value.exchange }, // 네 번째 아이콘
   { id: 'settings', img: optionButton, imgActive: optionButton, label: texts.value.settings || 'Settings' } // 마지막 아이콘
@@ -102,9 +106,9 @@ const setActiveTab = (tabId) => {
     case 'game':
       router.push('/main')
       break
-    case 'inventory':
-      // 두 번째 아이콘 클릭 시 Inventory 페이지로 이동
-      router.push('/inventory')
+    case 'social':
+      // 두 번째 아이콘 클릭 시 Social 페이지로 이동
+      router.push('/social')
       break
     case 'exchange':
       // 네 번째 아이콘 클릭 시 Exchange 페이지로 이동
@@ -116,6 +120,9 @@ const setActiveTab = (tabId) => {
       break
     case 'factory':
       router.push('/factory')
+      break
+    case 'inventory':
+      router.push('/inventory')
       break
   }
 }
@@ -158,6 +165,9 @@ footer {
   overflow-y: clip;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(10px);
+  max-width: 500px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .footerCont {

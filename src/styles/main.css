@@ -359,8 +359,9 @@
 }
 
 .catCard {
-  width: 20vw;
-  height: 20vw;
+  width: calc(100% / 5);
+  height: auto;
+  aspect-ratio: 1/1;
   padding: 0;
   display: flex;
   flex-direction: column;
