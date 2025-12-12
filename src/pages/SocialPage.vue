@@ -5,15 +5,74 @@ import Footer from '@/components/Footer.vue'
 import { getCurrentUser, getI18nTexts } from '@/utils/userUtils'
 import { useAppStore } from '@/store/appStore'
 import { getOrCreateInviteCode } from '@/utils/referralUtils'
-import cat1 from '@/assets/img/cat1.png'
 import friendBoxOff from '@/assets/img/friendBox_off.png'
 import friendBoxOn from '@/assets/img/friendBox_on.png'
 import requestBoxOff from '@/assets/img/requestBox_off.png'
 import requestBoxOn from '@/assets/img/requestBox_on.png'
 import inviteCodeIcon from '@/assets/img/inviteCode.png'
+import giftIcon from '@/assets/img/friendGifts.png'
+import suggestedIcon from '@/assets/img/suggStar.png'
+
+// 모든 고양이 이미지 import
+import cat1 from '@/assets/img/cat1.png'
+import cat2 from '@/assets/img/cat2.png'
+import cat3 from '@/assets/img/cat3.png'
+import cat4 from '@/assets/img/cat4.png'
+import cat5 from '@/assets/img/cat5.png'
+import cat6 from '@/assets/img/cat6.png'
+import cat7 from '@/assets/img/cat7.png'
+import cat8 from '@/assets/img/cat8.png'
+import cat9 from '@/assets/img/cat9.png'
+import cat10 from '@/assets/img/cat10.png'
+import cat11 from '@/assets/img/cat11.png'
+import cat12 from '@/assets/img/cat12.png'
+import cat13 from '@/assets/img/cat13.png'
+import cat14 from '@/assets/img/cat14.png'
+import cat15 from '@/assets/img/cat15.png'
+import cat16 from '@/assets/img/cat16.png'
+import cat17 from '@/assets/img/cat17.png'
+import cat18 from '@/assets/img/cat18.png'
+import cat19 from '@/assets/img/cat19.png'
+import cat20 from '@/assets/img/cat20.png'
+import cat21 from '@/assets/img/cat21.png'
+import cat22 from '@/assets/img/cat22.png'
+import cat23 from '@/assets/img/cat23.png'
+import cat24 from '@/assets/img/cat24.png'
+import cat25 from '@/assets/img/cat25.png'
+import cat26 from '@/assets/img/cat26.png'
+import cat27 from '@/assets/img/cat27.png'
+import cat28 from '@/assets/img/cat28.png'
+import cat29 from '@/assets/img/cat29.png'
+import cat30 from '@/assets/img/cat30.png'
 
 // appStore 사용
 const store = useAppStore()
+
+// 고양이 이미지 배열
+const catImages = [
+  cat1, cat2, cat3, cat4, cat5, cat6, cat7, cat8, cat9, cat10,
+  cat11, cat12, cat13, cat14, cat15, cat16, cat17, cat18, cat19, cat20,
+  cat21, cat22, cat23, cat24, cat25, cat26, cat27, cat28, cat29, cat30
+]
+
+// 고양이 이미지 가져오기 함수
+const getCatImage = (id) => {
+  const index = id - 1 // id는 1-30, 배열 인덱스는 0-29
+  if (index >= 0 && index < catImages.length) {
+    return catImages[index]
+  }
+  return cat1 // 기본 이미지
+}
+
+// 이름 기반으로 일관된 랜덤 고양이 이미지 생성 (같은 이름은 항상 같은 고양이)
+const getCatImageFromName = (name) => {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const catId = (Math.abs(hash) % 30) + 1 // 1-30
+  return getCatImage(catId)
+}
 
 // appStore에서 게임 데이터 가져오기 (반응형)
 const coinCount = computed(() => store.state.coins)
@@ -54,21 +113,21 @@ const copyInviteCode = async () => {
 
 // 더미 친구 데이터
 const friends = ref([
-  { id: 'TDL_8923', name: 'Luna', profileImage: cat1 },
-  { id: 'TDL_4567', name: 'Max', profileImage: cat1 },
-  { id: 'TDL_7891', name: 'Zoe', profileImage: cat1 }
+  { id: 'TDL_8923', name: 'Luna', profileImage: getCatImageFromName('Luna') },
+  { id: 'TDL_4567', name: 'Max', profileImage: getCatImageFromName('Max') },
+  { id: 'TDL_7891', name: 'Zoe', profileImage: getCatImageFromName('Zoe') }
 ])
 
 // 더미 추천 친구 데이터 (검색용 전체 데이터)
 const allSuggestedFriends = ref([
-  { id: 'TDL_2345', name: 'Alice', profileImage: cat1 },
-  { id: 'TDL_6789', name: 'Bob', profileImage: cat1 },
-  { id: 'TDL_3456', name: 'Charlie', profileImage: cat1 },
-  { id: 'TDL_7890', name: 'Diana', profileImage: cat1 },
-  { id: 'TDL_1234', name: 'Eve', profileImage: cat1 },
-  { id: 'TDL_5678', name: 'Frank', profileImage: cat1 },
-  { id: 'TDL_9012', name: 'Grace', profileImage: cat1 },
-  { id: 'TDL_2468', name: 'Henry', profileImage: cat1 }
+  { id: 'TDL_2345', name: 'Alice', profileImage: getCatImageFromName('Alice') },
+  { id: 'TDL_6789', name: 'Bob', profileImage: getCatImageFromName('Bob') },
+  { id: 'TDL_3456', name: 'Charlie', profileImage: getCatImageFromName('Charlie') },
+  { id: 'TDL_7890', name: 'Diana', profileImage: getCatImageFromName('Diana') },
+  { id: 'TDL_1234', name: 'Eve', profileImage: getCatImageFromName('Eve') },
+  { id: 'TDL_5678', name: 'Frank', profileImage: getCatImageFromName('Frank') },
+  { id: 'TDL_9012', name: 'Grace', profileImage: getCatImageFromName('Grace') },
+  { id: 'TDL_2468', name: 'Henry', profileImage: getCatImageFromName('Henry') }
 ])
 
 // 검색어에 따라 필터링된 추천 친구 목록
@@ -86,9 +145,9 @@ const suggestedFriends = computed(() => {
 
 // 더미 친구 요청 데이터
 const friendRequests = ref([
-  { id: 'TDL_1357', name: 'Oliver', profileImage: cat1 },
-  { id: 'TDL_8024', name: 'Sophia', profileImage: cat1 },
-  { id: 'TDL_3691', name: 'Mason', profileImage: cat1 }
+  { id: 'TDL_1357', name: 'Oliver', profileImage: getCatImageFromName('Oliver') },
+  { id: 'TDL_8024', name: 'Sophia', profileImage: getCatImageFromName('Sophia') },
+  { id: 'TDL_3691', name: 'Mason', profileImage: getCatImageFromName('Mason') }
 ])
 
 // 친구 초대
@@ -185,8 +244,12 @@ onMounted(async () => {
                   class="friendCard"
                 >
                   <div class="friendProfileWrapper">
-                    <img :src="friend.profileImage" :alt="friend.name" class="friendProfile" />
-                    <div class="giftIcon">🎁</div>
+                    <figure class="friendListWrap">
+                      <img :src="friend.profileImage" :alt="friend.name" class="friendProfile" />
+                    </figure>
+                    <div class="giftIcon">
+                      <img :src="giftIcon" :alt="giftIcon" />
+                    </div>
                   </div>
                   <div class="friendInfo">
                     <p class="friendName">{{ friend.name }}</p>
@@ -210,7 +273,7 @@ onMounted(async () => {
             <!-- Suggested Friends 섹션 -->
             <div class="suggestedSection">
               <h3 class="sectionTitle">
-                Suggested Friends ✨
+                Suggested Friends <img :src="suggestedIcon" :alt="suggestedIcon" />
               </h3>
               <div v-if="suggestedFriends.length > 0" class="suggestedGrid">
                 <div 
@@ -218,7 +281,9 @@ onMounted(async () => {
                   :key="suggested.id"
                   class="suggestedCard"
                 >
-                  <img :src="suggested.profileImage" :alt="suggested.name" class="suggestedProfile" />
+                  <figure class="suggestedProfileWrapper">
+                    <img :src="suggested.profileImage" :alt="suggested.name" class="suggestedProfile" />
+                  </figure>
                   <div class="suggestedInfo">
                     <p class="suggestedName">{{ suggested.name }}</p>
                     <p class="suggestedId">{{ suggested.id }}</p>
@@ -282,13 +347,12 @@ onMounted(async () => {
 }
 
 .mainContent {
-  padding: 3vw 5vw;
+  padding: 3rem;
   max-width: 500px;
   width: 95%;
   min-height: unset;
   margin: 0 auto;
-  padding-bottom: 5rem;
-  background-image: url('@/assets/img/factoryAllbg.png');
+  background-image: url('@/assets/img/friendBoxBg.png');
   background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
@@ -296,10 +360,14 @@ onMounted(async () => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  height: 78dvh;
+  overflow-y: auto;
 }
 
 .socialContent {
   width: 100%;
+  height: 100%;
+  overflow-y: auto;
   color: white;
   text-align: center;
 }
@@ -321,18 +389,21 @@ onMounted(async () => {
 /* 탭 버튼 */
 .tabButtons {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .tabButton {
   width: max-content;
   height: auto;
-  padding: 0.8rem 1.5rem; 
+  padding: 1rem 1.5rem 2rem; 
   border: none;
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 1em;
-  font-weight: 600;
+  font-size: 1.3em;
+  font-weight: 300;
   cursor: pointer;
   transition: all 0.3s ease;
   background-size: contain;
@@ -343,16 +414,23 @@ onMounted(async () => {
 /* Friends 버튼 스타일 */
 .tabButtonFriends {
   background-image: url('@/assets/img/friendBox_off.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .tabButtonFriends.active {
   background-image: url('@/assets/img/friendBox_on.png');
+
   color: white;
 }
 
 /* Requests 버튼 스타일 */
 .tabButtonRequests {
   background-image: url('@/assets/img/requestBox_off.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .tabButtonRequests.active {
@@ -397,10 +475,18 @@ onMounted(async () => {
 
 .sectionTitle {
   font-size: 1em;
-  font-weight: 600;
+  font-weight: 300;
   color: white;
   margin-bottom: 0.5rem;
   text-align: left;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sectionTitle img {
+  width: 1.5em;
+  height: 1.5em;
+  object-fit: contain;
 }
 
 .inviteCodeBox {
@@ -418,7 +504,7 @@ onMounted(async () => {
   background: transparent;
   border: none;
   color: white;
-  font-size: 1rem;
+  font-size: 1em;
   font-family: monospace;
   outline: none;
 }
@@ -453,9 +539,13 @@ onMounted(async () => {
 
 .friendsGrid {
   display: flex;
-  gap: 1rem;
+  gap: 3rem;
   justify-content: flex-start;
-  flex-wrap: wrap;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
 }
 
 .friendCard {
@@ -463,26 +553,38 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  min-width: 80px;
+  min-width: calc((100% - 7rem) / 3); /* 3개가 보이도록 */
 }
 
 .friendProfileWrapper {
   position: relative;
-  width: 60px;
-  height: 60px;
+  width: 100%;
+}
+
+.friendListWrap {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.7);
+  border: 3px solid #576B9B;
+  position: relative;
 }
 
 .friendProfile {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 130%;
+  height: auto;
+  object-fit: contain;
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .giftIcon {
   position: absolute;
-  top: -5px;
+  top: 5px;
   right: -5px;
   font-size: 1.2rem;
   background: rgba(0, 0, 0, 0.7);
@@ -492,6 +594,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.giftIcon img {
+  width: 5dvw;
+  height: auto;
+  aspect-ratio: auto;
+  max-width: 30px;
 }
 
 .friendInfo {
@@ -521,16 +630,21 @@ onMounted(async () => {
 .searchInput {
   width: 100%;
   padding: 0.8rem;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: url('@/assets/img/friendSearchInput.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: 8px;
   color: white;
-  font-size: 0.95rem;
+  font-size: 1em;
   outline: none;
+  font-weight: 300;
 }
 
 .searchInput::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 300;
+  border: none;
 }
 
 .noResults {
@@ -548,7 +662,7 @@ onMounted(async () => {
 .suggestedGrid {
   display: flex;
   flex-direction: row;
-  gap: 1rem;
+  gap: 3rem;
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 0.5rem;
@@ -579,59 +693,67 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  background: rgba(33, 36, 54, 0.6);
-  backdrop-filter: blur(10px);
+  gap: 1rem;
   border-radius: 12px;
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  min-width: calc((100% - 2rem) / 3); /* 3개가 보이도록 */
-  flex-shrink: 0;
+  min-width: calc((100% - 7rem) / 3); /* 3개가 보이도록 */
+}
+
+.suggestedProfileWrapper {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.7);
+  position: relative;
+  border: 3px solid #576B9B;
 }
 
 .suggestedProfile {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  flex-shrink: 0;
+  width: 130%;
+  height: auto;
+  object-fit: contain;
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .suggestedInfo {
   width: 100%;
   text-align: center;
+  
 }
 
 .suggestedName {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.9em;
+  font-weight: 400;
   color: white;
   margin: 0;
   margin-bottom: 0.2rem;
 }
 
 .suggestedId {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.5);
   margin: 0;
 }
 
 .inviteBtn {
-  padding: 0.6rem 1.2rem;
-  background: #4CAF50;
+  width: 100%;
+  padding: 0.3rem 1.2rem 0.6rem;
+  background: url('@/assets/img/inviteBox.png');
+  background-size: 100% 100%;
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 1em;
   cursor: pointer;
   transition: all 0.3s ease;
   flex-shrink: 0;
 }
 
 .inviteBtn:hover {
-  background: #45a049;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
@@ -652,20 +774,23 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
+  background: url('@/assets/img/requestFirendBg.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .requestProfile {
-  width: 60px;
-  height: 60px;
+  width: 30%;
+  height: auto;
+  aspect-ratio: 1/1;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid #576B9B;
   flex-shrink: 0;
 }
 
@@ -678,20 +803,21 @@ onMounted(async () => {
 }
 
 .requestName {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.5em;
+  font-weight: 100;
   color: white;
   margin: 0;
 }
 
 .requestId {
-  font-size: 0.85rem;
+  font-size: 0.9em;
   color: rgba(255, 255, 255, 0.7);
   margin: 0;
 }
 
 .requestMessage {
-  font-size: 0.9rem;
+  font-size: 0.8em;
+  font-weight: 300;
   color: white;
   margin: 0;
   margin-top: 0.3rem;
@@ -702,22 +828,25 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+  margin-top: 10%;
 }
 
 .acceptBtn {
   padding: 0.6rem 1.2rem;
-  background: #4CAF50;
+  background:url('@/assets/img/acceptBox.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 1em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .acceptBtn:hover {
-  background: #45a049;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
@@ -729,12 +858,15 @@ onMounted(async () => {
 .declineBtn {
   width: 32px;
   height: 32px;
-  background: #f44336;
+  background: url('@/assets/img/acceptClose.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
   color: white;
   border: none;
   border-radius: 50%;
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: 1.4em;
+  font-weight: 300;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -742,12 +874,9 @@ onMounted(async () => {
   transition: all 0.3s ease;
   line-height: 1;
   padding: 0;
-}
-
-.declineBtn:hover {
-  background: #da190b;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
 }
 
 .declineBtn:active {
@@ -760,32 +889,10 @@ onMounted(async () => {
     gap: 0.8rem;
   }
   
-  .requestProfile {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .requestName {
-    font-size: 0.9rem;
-  }
-  
-  .requestId {
-    font-size: 0.75rem;
-  }
-  
-  .requestMessage {
-    font-size: 0.8rem;
-  }
-  
-  .acceptBtn {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-  }
-  
+
   .declineBtn {
     width: 28px;
     height: 28px;
-    font-size: 1rem;
   }
 }
 </style>

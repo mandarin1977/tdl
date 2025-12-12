@@ -206,8 +206,8 @@ footer {
 }
 
 .tabIcon {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   object-fit: contain;
   transition: all 0.3s ease;
   position: relative;
@@ -224,10 +224,7 @@ footer {
 
 /* 반응형 */
 @media (max-width: 480px) {
-  .tabIcon {
-    width: 36px;
-    height: 36px;
-  }
+
 }
 
 @media (max-width: 360px) {
